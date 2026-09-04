@@ -23,6 +23,7 @@ function parseForm(formData: FormData) {
     email: formData.get("email"),
     phone: formData.get("phone"),
     address: formData.get("address"),
+    city: formData.get("city"),
   });
 }
 

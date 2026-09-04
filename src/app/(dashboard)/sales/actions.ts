@@ -35,6 +35,7 @@ export async function createSale(
     customerId: formData.get("customerId"),
     note: formData.get("note"),
     items: itemsRaw,
+    initialPayment: formData.get("initialPayment"),
   });
   if (!result.success) {
     return { error: result.error.issues[0]?.message ?? "Revisá los datos." };
@@ -45,7 +46,13 @@ export async function createSale(
   try {
     const sale = await db.$transaction(async (tx) => {
       let total = 0;
-      const saleItemsData: { productId: string; quantity: number; unitPrice: number }[] = [];
+      const saleItemsData: {
+        productId: string;
+        saleUnit: string;
+        quantity: number;
+        unitPrice: number;
+        stockDelta: number;
+      }[] = [];
 
       for (const line of data.items) {
         const product = await tx.product.findUnique({ where: { id: line.productId } });
@@ -55,9 +62,11 @@ export async function createSale(
 
         // Update condicional: solo descuenta si hay stock suficiente en ese
         // instante, evitando vender de más si dos ventas chocan a la vez.
+        // stockDelta siempre está en la unidad base del stock (ej: kg),
+        // sin importar si se vendió por bolsa completa o por fracción.
         const updated = await tx.product.updateMany({
-          where: { id: product.id, stock: { gte: line.quantity } },
-          data: { stock: { decrement: line.quantity } },
+          where: { id: product.id, stock: { gte: line.stockDelta } },
+          data: { stock: { decrement: line.stockDelta } },
         });
         if (updated.count === 0) {
           throw new SaleError(`Sin stock suficiente de ${product.name}.`);
@@ -66,10 +75,14 @@ export async function createSale(
         total += line.unitPrice * line.quantity;
         saleItemsData.push({
           productId: product.id,
+          saleUnit: line.saleUnit,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
+          stockDelta: line.stockDelta,
         });
       }
+
+      const initialPayment = Math.min(data.initialPayment, total);
 
       const created = await tx.sale.create({
         data: {
@@ -89,6 +102,18 @@ export async function createSale(
           saleId: created.id,
         },
       });
+
+      // Entrega parcial (o total) del cliente al momento de la venta.
+      if (initialPayment > 0) {
+        await tx.customerLedgerEntry.create({
+          data: {
+            customerId: data.customerId,
+            type: "payment",
+            amount: initialPayment,
+            note: "Entrega al momento de la venta",
+          },
+        });
+      }
 
       return created;
     });
@@ -121,7 +146,7 @@ export async function cancelSale(id: string): Promise<{ error?: string }> {
     ...sale.items.map((item) =>
       db.product.update({
         where: { id: item.productId },
-        data: { stock: { increment: item.quantity } },
+        data: { stock: { increment: item.stockDelta } },
       }),
     ),
     db.sale.update({ where: { id }, data: { status: "cancelled" } }),

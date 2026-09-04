@@ -10,6 +10,7 @@ const navLinks = [
   { href: "/suppliers", label: "Proveedores" },
   { href: "/sales", label: "Ventas" },
   { href: "/purchase-orders", label: "Pedidos a proveedores" },
+  { href: "/reports", label: "Informes" },
   { href: "/users", label: "Usuarios" },
 ];
 

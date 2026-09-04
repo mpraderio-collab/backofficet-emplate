@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatQuantity } from "@/lib/format";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
                   <span
                     className={p.stock === 0 ? "font-semibold text-err-ink" : "font-semibold text-warn-ink"}
                   >
-                    {p.stock === 0 ? "sin stock" : `${p.stock} u.`}
+                    {p.stock === 0 ? "sin stock" : formatQuantity(p.stock, p.fractionUnit)}
                   </span>
                 </li>
               ))}

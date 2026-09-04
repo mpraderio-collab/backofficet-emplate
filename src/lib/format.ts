@@ -6,6 +6,13 @@ export function formatMoney(value: number): string {
   }).format(value);
 }
 
+export function formatQuantity(value: number, unit?: string | null): string {
+  const rounded = new Intl.NumberFormat("es-AR", {
+    maximumFractionDigits: 2,
+  }).format(value);
+  return unit ? `${rounded} ${unit}` : `${rounded} u.`;
+}
+
 export function formatDate(value: Date): string {
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",

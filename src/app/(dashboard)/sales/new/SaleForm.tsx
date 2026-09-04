@@ -2,18 +2,27 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatQuantity } from "@/lib/format";
 import { createSale, type SaleActionState } from "../actions";
 
-type ProductOption = { id: string; name: string; price: number; stock: number };
+type ProductOption = {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  fractionUnit: string | null;
+  unitSize: number | null;
+  fractionPrice: number | null;
+};
 type CustomerOption = { id: string; name: string };
 
 type LineItem = {
   productId: string;
   productName: string;
+  saleUnit: "unit" | "fraction";
   quantity: number;
   unitPrice: number;
-  maxStock: number;
+  stockDelta: number;
 };
 
 const initialState: SaleActionState = {};
@@ -31,39 +40,57 @@ export function SaleForm({
   const [customerId, setCustomerId] = useState(customers[0]?.id ?? "");
   const [items, setItems] = useState<LineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id ?? "");
+  const [saleUnit, setSaleUnit] = useState<"unit" | "fraction">("unit");
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(products[0]?.price ?? 0);
   const [addError, setAddError] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [initialPayment, setInitialPayment] = useState(0);
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
+  const isFractionable = Boolean(selectedProduct?.fractionUnit);
 
   function selectProduct(id: string) {
     setSelectedProductId(id);
     const product = products.find((p) => p.id === id);
+    setSaleUnit("unit");
     setUnitPrice(product?.price ?? 0);
+  }
+
+  function selectSaleUnit(unit: "unit" | "fraction") {
+    setSaleUnit(unit);
+    setUnitPrice(unit === "unit" ? (selectedProduct?.price ?? 0) : (selectedProduct?.fractionPrice ?? 0));
   }
 
   useEffect(() => {
     if (state.saleId) router.push(`/sales/${state.saleId}`);
   }, [state.saleId, router]);
 
-  const alreadyAdded = items
+  // Cuánto se descontaría del stock (en unidad base) si se agrega esta línea.
+  const unitSizeForDelta = selectedProduct?.unitSize ?? 1;
+  const stockDeltaForQuantity =
+    saleUnit === "unit" ? quantity * unitSizeForDelta : quantity;
+
+  const alreadyReserved = items
     .filter((i) => i.productId === selectedProductId)
-    .reduce((sum, i) => sum + i.quantity, 0);
-  const maxStockForSelection = (selectedProduct?.stock ?? 0) - alreadyAdded;
+    .reduce((sum, i) => sum + i.stockDelta, 0);
+  const remainingStock = (selectedProduct?.stock ?? 0) - alreadyReserved;
+  const maxQuantityForSelection =
+    saleUnit === "unit" ? remainingStock / unitSizeForDelta : remainingStock;
 
   const total = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
 
   function addItem() {
     setAddError(null);
     if (!selectedProduct) return;
-    if (quantity < 1) {
-      setAddError("La cantidad tiene que ser al menos 1.");
+    if (quantity <= 0) {
+      setAddError("La cantidad tiene que ser mayor a 0.");
       return;
     }
-    if (quantity > maxStockForSelection) {
-      setAddError(`Solo quedan ${maxStockForSelection} unidades disponibles.`);
+    if (stockDeltaForQuantity > remainingStock) {
+      setAddError(
+        `Solo quedan ${formatQuantity(remainingStock, selectedProduct.fractionUnit)} disponibles.`,
+      );
       return;
     }
 
@@ -72,9 +99,10 @@ export function SaleForm({
       {
         productId: selectedProduct.id,
         productName: selectedProduct.name,
+        saleUnit,
         quantity,
         unitPrice,
-        maxStock: selectedProduct.stock,
+        stockDelta: stockDeltaForQuantity,
       },
     ]);
     setQuantity(1);
@@ -131,21 +159,37 @@ export function SaleForm({
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.stock} disp.)
+                  {p.name} ({formatQuantity(p.stock, p.fractionUnit)} disp.)
                 </option>
               ))}
             </select>
           </label>
 
+          {isFractionable && (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-ink-soft">Modalidad</span>
+              <select
+                value={saleUnit}
+                onChange={(e) => selectSaleUnit(e.target.value as "unit" | "fraction")}
+                className="input"
+              >
+                <option value="unit">Unidad completa</option>
+                <option value="fraction">Por {selectedProduct?.fractionUnit}</option>
+              </select>
+            </label>
+          )}
+
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-ink-soft">Cantidad</span>
+            <span className="text-xs text-ink-soft">
+              Cantidad {isFractionable && saleUnit === "fraction" ? `(${selectedProduct?.fractionUnit})` : ""}
+            </span>
             <input
               type="number"
-              min={1}
-              max={Math.max(maxStockForSelection, 1)}
+              min={0}
+              step={saleUnit === "fraction" ? "any" : 1}
               value={quantity}
               onChange={(e) => setQuantity(Number(e.target.value))}
-              className="input w-20"
+              className="input w-24"
             />
           </label>
 
@@ -163,13 +207,13 @@ export function SaleForm({
           <button
             type="button"
             onClick={addItem}
-            disabled={maxStockForSelection <= 0}
+            disabled={maxQuantityForSelection <= 0}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
           >
             + Agregar
           </button>
         </div>
-        {maxStockForSelection <= 0 && (
+        {maxQuantityForSelection <= 0 && (
           <p className="mt-2 text-xs text-err-ink">Sin stock disponible.</p>
         )}
         {addError && <p className="mt-2 text-xs text-err-ink">{addError}</p>}
@@ -187,24 +231,31 @@ export function SaleForm({
               </tr>
             </thead>
             <tbody>
-              {items.map((item, i) => (
-                <tr key={i} className="border-b border-line last:border-0">
-                  <td className="px-4 py-2 text-ink">{item.productName}</td>
-                  <td className="px-4 py-2 text-ink-soft">{item.quantity}</td>
-                  <td className="px-4 py-2 text-ink-soft">
-                    {formatMoney(item.unitPrice * item.quantity)}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      type="button"
-                      onClick={() => removeItem(i)}
-                      className="text-xs font-semibold text-err-ink hover:underline"
-                    >
-                      Quitar
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {items.map((item, i) => {
+                const product = products.find((p) => p.id === item.productId);
+                return (
+                  <tr key={i} className="border-b border-line last:border-0">
+                    <td className="px-4 py-2 text-ink">{item.productName}</td>
+                    <td className="px-4 py-2 text-ink-soft">
+                      {item.saleUnit === "fraction"
+                        ? formatQuantity(item.quantity, product?.fractionUnit)
+                        : `${item.quantity} u.`}
+                    </td>
+                    <td className="px-4 py-2 text-ink-soft">
+                      {formatMoney(item.unitPrice * item.quantity)}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => removeItem(i)}
+                        className="text-xs font-semibold text-err-ink hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <div className="border-t border-line px-4 py-3 text-right text-sm font-semibold text-ink">
@@ -219,6 +270,26 @@ export function SaleForm({
       >
         <input type="hidden" name="customerId" value={customerId} />
         <input type="hidden" name="items" value={JSON.stringify(items)} />
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">
+            Entrega al momento de la venta (opcional)
+          </span>
+          <input
+            name="initialPayment"
+            type="number"
+            min={0}
+            max={total}
+            step={1}
+            value={initialPayment}
+            onChange={(e) => setInitialPayment(Number(e.target.value))}
+            className="input max-w-[200px]"
+          />
+          <span className="text-xs text-ink-soft">
+            Si el cliente entrega parte (o todo) del pago ahora, el resto
+            queda pendiente en su cuenta corriente.
+          </span>
+        </label>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Nota (opcional)</span>

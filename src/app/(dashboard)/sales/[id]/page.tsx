@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, formatQuantity } from "@/lib/format";
 import { CancelSaleButton } from "./CancelSaleButton";
 
 export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
@@ -10,7 +10,7 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
     where: { id },
     include: {
       customer: true,
-      items: { include: { product: { select: { name: true } } } },
+      items: { include: { product: { select: { name: true, fractionUnit: true } } } },
     },
   });
   if (!sale) notFound();
@@ -49,7 +49,11 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
             {sale.items.map((item) => (
               <tr key={item.id} className="border-b border-line-soft last:border-0">
                 <td className="px-4 py-2 text-ink">{item.product.name}</td>
-                <td className="px-4 py-2 text-ink-soft">{item.quantity}</td>
+                <td className="px-4 py-2 text-ink-soft">
+                  {item.saleUnit === "fraction"
+                    ? formatQuantity(item.quantity, item.product.fractionUnit)
+                    : `${item.quantity} u.`}
+                </td>
                 <td className="px-4 py-2 text-ink-soft">{formatMoney(item.unitPrice)}</td>
                 <td className="px-4 py-2 text-ink">
                   {formatMoney(item.unitPrice * item.quantity)}

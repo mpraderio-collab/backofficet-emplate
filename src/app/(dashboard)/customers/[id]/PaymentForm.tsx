@@ -30,7 +30,7 @@ export function PaymentForm({
           className="input sm:w-40"
         />
       </Field>
-      <Field label="Nota" hint="Opcional">
+      <Field label="Nota (opcional)">
         <input name="note" className="input sm:w-56" placeholder="Ej: transferencia" />
       </Field>
       <button

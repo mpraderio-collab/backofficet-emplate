@@ -21,12 +21,28 @@ model Product {
   sku         String?  @unique
   name        String
   description String?
-  price       Int // precio de venta, en pesos enteros (sin centavos)
+  price       Int // precio de venta de la unidad completa (ej: la bolsa entera)
   cost        Int? // costo — interno, referencia para margen
-  stock       Int      @default(0)
+  stock       Float    @default(0) // en la unidad de fracción si el producto es fraccionable (ej: kg); si no, en unidades enteras
   status      String   @default("active") // active | archived
   supplierId  String?
   supplier    Supplier? @relation(fields: [supplierId], references: [id])
+
+  // Venta fraccionada (opcional): si fractionUnit está seteado, el producto
+  // se puede vender también por fracción (ej: por kg) además de por unidad
+  // completa. unitSize = cuántas unidades de fracción tiene 1 unidad
+  // completa (ej: 20 kg por bolsa). fractionPrice = precio por 1 unidad de
+  // fracción (ej: precio por kg).
+  fractionUnit  String?
+  unitSize      Float?
+  fractionPrice Int?
+
+  // Datos específicos para productos de mascotas/veterinaria (opcionales).
+  brand       String?
+  animalType  String? // ej: perro, gato
+  animalSize  String? // ej: pequeño, mediano, grande
+  animalWeight String? // ej: "1-10 kg" — texto libre, no siempre es un rango exacto
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -44,6 +60,7 @@ model Customer {
   email     String?
   phone     String?
   address   String?
+  city      String?
   createdAt DateTime @default(now())
 
   sales   Sale[]
@@ -57,6 +74,7 @@ model Supplier {
   email     String?
   phone     String?
   address   String?
+  city      String?
   createdAt DateTime @default(now())
 
   products       Product[]
@@ -85,8 +103,10 @@ model SaleItem {
   sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
   productId String
   product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  unitPrice Int
+  saleUnit  String  @default("unit") // "unit" (unidad/bolsa completa) | "fraction" (ej: por kg)
+  quantity  Float // cantidad en la unidad elegida (bolsas si "unit", kg si "fraction")
+  unitPrice Int // precio por esa unidad
+  stockDelta Float // cuánto se descontó del stock (en unidad base) — fijo, para poder reponerlo bien si se cancela
 
   @@index([saleId])
 }
@@ -127,8 +147,9 @@ model PurchaseOrderItem {
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   productId       String
   product         Product       @relation(fields: [productId], references: [id])
-  quantity        Int
+  quantity        Float // siempre en unidades completas (ej: bolsas)
   unitCost        Int
+  stockDelta      Float? // cuánto sumó al stock al recibirse (quantity * unitSize del producto en ese momento)
 
   @@index([purchaseOrderId])
 }

@@ -48,6 +48,7 @@ export default async function SupplierDetailPage(
                 email: supplier.email,
                 phone: supplier.phone,
                 address: supplier.address,
+                city: supplier.city,
               }}
             />
           </div>

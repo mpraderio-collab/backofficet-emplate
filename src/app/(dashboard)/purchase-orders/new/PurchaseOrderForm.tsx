@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
 import { createPurchaseOrder, type PurchaseOrderActionState } from "../actions";
 
-type ProductOption = { id: string; name: string; cost: number | null };
+type ProductOption = {
+  id: string;
+  name: string;
+  cost: number | null;
+  fractionUnit: string | null;
+  unitSize: number | null;
+};
 type SupplierOption = { id: string; name: string };
 
 type LineItem = {
@@ -34,6 +40,8 @@ export function PurchaseOrderForm({
   const [unitCost, setUnitCost] = useState(products[0]?.cost ?? 0);
   const [addError, setAddError] = useState<string | null>(null);
   const [note, setNote] = useState("");
+
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   function selectProduct(id: string) {
     setSelectedProductId(id);
@@ -144,6 +152,13 @@ export function PurchaseOrderForm({
             + Agregar
           </button>
         </div>
+        {selectedProduct?.fractionUnit && (
+          <p className="mt-2 text-xs text-ink-faint">
+            Se pide por unidad completa (ej: bolsas) — cada una suma{" "}
+            {selectedProduct.unitSize ?? 1} {selectedProduct.fractionUnit} de stock al
+            recibirse.
+          </p>
+        )}
         {addError && <p className="mt-2 text-xs text-err-ink">{addError}</p>}
       </div>
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, formatQuantity } from "@/lib/format";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { StatusActions } from "./StatusActions";
 
@@ -13,7 +13,7 @@ export default async function PurchaseOrderDetailPage(
     where: { id },
     include: {
       supplier: true,
-      items: { include: { product: { select: { name: true } } } },
+      items: { include: { product: { select: { name: true, fractionUnit: true } } } },
     },
   });
   if (!po) notFound();
@@ -46,17 +46,27 @@ export default async function PurchaseOrderDetailPage(
               <th className="px-4 py-2 font-medium">Cant.</th>
               <th className="px-4 py-2 font-medium">Costo unit.</th>
               <th className="px-4 py-2 font-medium">Subtotal</th>
+              {po.status === "received" && (
+                <th className="px-4 py-2 font-medium">Sumó al stock</th>
+              )}
             </tr>
           </thead>
           <tbody>
             {po.items.map((item) => (
               <tr key={item.id} className="border-b border-line-soft last:border-0">
                 <td className="px-4 py-2 text-ink">{item.product.name}</td>
-                <td className="px-4 py-2 text-ink-soft">{item.quantity}</td>
+                <td className="px-4 py-2 text-ink-soft">{item.quantity} u.</td>
                 <td className="px-4 py-2 text-ink-soft">{formatMoney(item.unitCost)}</td>
                 <td className="px-4 py-2 text-ink">
                   {formatMoney(item.unitCost * item.quantity)}
                 </td>
+                {po.status === "received" && (
+                  <td className="px-4 py-2 text-ink-soft">
+                    {item.stockDelta != null
+                      ? formatQuantity(item.stockDelta, item.product.fractionUnit)
+                      : "—"}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

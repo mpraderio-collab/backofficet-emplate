@@ -7,7 +7,15 @@ export default async function NewSalePage() {
     db.product.findMany({
       where: { status: "active" },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, price: true, stock: true },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        fractionUnit: true,
+        unitSize: true,
+        fractionPrice: true,
+      },
     }),
   ]);
 

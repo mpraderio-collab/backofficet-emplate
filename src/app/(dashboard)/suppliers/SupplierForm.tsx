@@ -15,6 +15,7 @@ type Props = {
     email: string | null;
     phone: string | null;
     address: string | null;
+    city: string | null;
   };
   submitLabel: string;
 };
@@ -52,9 +53,14 @@ export function SupplierForm({ action, defaultValues, submitLabel }: Props) {
         />
       </Field>
 
-      <Field label="Dirección" error={state.fieldErrors?.address} hint="Opcional">
-        <input name="address" defaultValue={defaultValues?.address ?? ""} className="input" />
-      </Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Dirección" error={state.fieldErrors?.address} hint="Opcional">
+          <input name="address" defaultValue={defaultValues?.address ?? ""} className="input" />
+        </Field>
+        <Field label="Ciudad" error={state.fieldErrors?.city} hint="Opcional">
+          <input name="city" defaultValue={defaultValues?.city ?? ""} className="input" />
+        </Field>
+      </div>
 
       <button
         type="submit"

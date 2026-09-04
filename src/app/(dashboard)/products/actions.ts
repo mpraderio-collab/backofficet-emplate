@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
+import type { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { productSchema } from "@/lib/validation";
@@ -26,6 +27,13 @@ function parseForm(formData: FormData) {
     cost: formData.get("cost"),
     stock: formData.get("stock"),
     supplierId: formData.get("supplierId"),
+    fractionUnit: formData.get("fractionUnit"),
+    unitSize: formData.get("unitSize"),
+    fractionPrice: formData.get("fractionPrice"),
+    brand: formData.get("brand"),
+    animalType: formData.get("animalType"),
+    animalSize: formData.get("animalSize"),
+    animalWeight: formData.get("animalWeight"),
   });
 }
 
@@ -41,6 +49,18 @@ function toFieldErrors(result: ReturnType<typeof parseForm>) {
   return fieldErrors;
 }
 
+// Si el producto no se vende por fracción, hay que limpiar explícitamente
+// unitSize/fractionPrice a null — si no, un update con esos campos en
+// `undefined` dejaría el valor anterior sin tocar en vez de borrarlo.
+function toProductData(data: z.infer<typeof productSchema>) {
+  return {
+    ...data,
+    fractionUnit: data.fractionUnit ?? null,
+    unitSize: data.fractionUnit ? (data.unitSize ?? null) : null,
+    fractionPrice: data.fractionUnit ? (data.fractionPrice ?? null) : null,
+  };
+}
+
 export async function createProduct(
   _prev: ProductActionState,
   formData: FormData,
@@ -54,7 +74,7 @@ export async function createProduct(
 
   let productId: string;
   try {
-    const product = await db.product.create({ data: result.data });
+    const product = await db.product.create({ data: toProductData(result.data) });
     productId = product.id;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -83,7 +103,7 @@ export async function updateProduct(
   }
 
   try {
-    await db.product.update({ where: { id }, data: result.data });
+    await db.product.update({ where: { id }, data: toProductData(result.data) });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return {

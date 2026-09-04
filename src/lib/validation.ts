@@ -18,13 +18,35 @@ export const productSchema = z.object({
     (val) => (val === "" || val === null || val === undefined ? undefined : val),
     z.coerce.number().int().nonnegative().optional(),
   ),
-  stock: z.coerce.number().int().nonnegative().default(0),
+  stock: z.coerce.number().nonnegative().default(0),
   supplierId: z
     .string()
     .trim()
     .optional()
     .or(z.literal(""))
     .transform((v) => (v === "" ? undefined : v)),
+  fractionUnit: z
+    .string()
+    .trim()
+    .max(20)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
+  unitSize: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce.number().positive().optional(),
+  ),
+  fractionPrice: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce.number().int().nonnegative().optional(),
+  ),
+  brand: z.string().trim().max(80).optional().or(z.literal("")),
+  animalType: z.string().trim().max(60).optional().or(z.literal("")),
+  animalSize: z.string().trim().max(60).optional().or(z.literal("")),
+  animalWeight: z.string().trim().max(60).optional().or(z.literal("")),
+}).refine((data) => !data.fractionUnit || (data.unitSize && data.fractionPrice != null), {
+  message: "Completá el tamaño de la unidad y el precio por fracción",
+  path: ["unitSize"],
 });
 
 export const customerSchema = z.object({
@@ -38,6 +60,7 @@ export const customerSchema = z.object({
     .or(z.literal("")),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   address: z.string().trim().max(200).optional().or(z.literal("")),
+  city: z.string().trim().max(100).optional().or(z.literal("")),
 });
 
 export const supplierSchema = customerSchema;
@@ -52,19 +75,22 @@ export const ledgerPaymentSchema = z.object({
 
 export const saleItemSchema = z.object({
   productId: z.string().min(1),
-  quantity: z.coerce.number().int().positive(),
+  saleUnit: z.enum(["unit", "fraction"]).default("unit"),
+  quantity: z.coerce.number().positive(),
   unitPrice: z.coerce.number().int().nonnegative(),
+  stockDelta: z.coerce.number().positive(),
 });
 
 export const saleSchema = z.object({
   customerId: z.string().min(1, "Elegí un cliente"),
   note: z.string().trim().max(300).optional().or(z.literal("")),
   items: z.array(saleItemSchema).min(1, "Agregá al menos un producto"),
+  initialPayment: z.coerce.number().int().nonnegative().optional().default(0),
 });
 
 export const purchaseOrderItemSchema = z.object({
   productId: z.string().min(1),
-  quantity: z.coerce.number().int().positive(),
+  quantity: z.coerce.number().positive(),
   unitCost: z.coerce.number().int().nonnegative(),
 });
 

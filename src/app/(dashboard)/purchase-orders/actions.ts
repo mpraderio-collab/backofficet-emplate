@@ -83,13 +83,31 @@ export async function updatePurchaseOrderStatus(
 
   if (nextStatus === "received") {
     const total = po.items.reduce((sum, item) => sum + item.unitCost * item.quantity, 0);
+
+    // Las cantidades del pedido están en unidades completas (ej: bolsas);
+    // el stock del producto se lleva en su unidad base (ej: kg), así que
+    // hay que multiplicar por unitSize antes de sumarlo.
+    const products = await db.product.findMany({
+      where: { id: { in: po.items.map((item) => item.productId) } },
+      select: { id: true, unitSize: true },
+    });
+    const unitSizeByProductId = new Map(products.map((p) => [p.id, p.unitSize ?? 1]));
+
     await db.$transaction([
-      ...po.items.map((item) =>
-        db.product.update({
+      ...po.items.map((item) => {
+        const stockDelta = item.quantity * (unitSizeByProductId.get(item.productId) ?? 1);
+        return db.product.update({
           where: { id: item.productId },
-          data: { stock: { increment: item.quantity } },
-        }),
-      ),
+          data: { stock: { increment: stockDelta } },
+        });
+      }),
+      ...po.items.map((item) => {
+        const stockDelta = item.quantity * (unitSizeByProductId.get(item.productId) ?? 1);
+        return db.purchaseOrderItem.update({
+          where: { id: item.id },
+          data: { stockDelta },
+        });
+      }),
       db.purchaseOrder.update({ where: { id }, data: { status: nextStatus } }),
       db.supplierLedgerEntry.create({
         data: {

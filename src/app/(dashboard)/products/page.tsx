@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatQuantity } from "@/lib/format";
+import { calculateMargin, formatMarginPercent } from "@/lib/margin";
 
 export default async function ProductsPage() {
   const products = await db.product.findMany({
@@ -12,12 +13,20 @@ export default async function ProductsPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink">Productos</h1>
-        <Link
-          href="/products/new"
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-hover"
-        >
-          + Nuevo producto
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/products/bulk-update"
+            className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
+          >
+            Actualizar precios por lote
+          </Link>
+          <Link
+            href="/products/new"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-hover"
+          >
+            + Nuevo producto
+          </Link>
+        </div>
       </div>
 
       {products.length === 0 ? (
@@ -30,6 +39,7 @@ export default async function ProductsPage() {
                 <th className="px-4 py-3">Producto</th>
                 <th className="px-4 py-3">Proveedor</th>
                 <th className="px-4 py-3">Precio</th>
+                <th className="px-4 py-3">Margen</th>
                 <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3" />
@@ -43,12 +53,27 @@ export default async function ProductsPage() {
                     {p.sku && (
                       <p className="font-mono text-xs text-ink-faint">{p.sku}</p>
                     )}
+                    {(p.brand || p.animalType || p.animalSize || p.animalWeight) && (
+                      <p className="text-xs text-ink-faint">
+                        {[p.brand, p.animalType, p.animalSize, p.animalWeight]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {p.supplier?.name ?? "—"}
                   </td>
                   <td className="px-4 py-3 font-medium text-ink">
                     {formatMoney(p.price)}
+                    {p.fractionUnit && (
+                      <p className="text-xs font-normal text-ink-faint">
+                        {formatMoney(p.fractionPrice ?? 0)} / {p.fractionUnit}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-ink-soft">
+                    {formatMarginPercent(calculateMargin(p.price, p.cost))}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -60,7 +85,7 @@ export default async function ProductsPage() {
                             : "text-ink"
                       }
                     >
-                      {p.stock}
+                      {formatQuantity(p.stock, p.fractionUnit)}
                     </span>
                   </td>
                   <td className="px-4 py-3">

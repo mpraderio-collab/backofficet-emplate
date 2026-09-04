@@ -47,6 +47,7 @@ export default async function CustomerDetailPage(
                 email: customer.email,
                 phone: customer.phone,
                 address: customer.address,
+                city: customer.city,
               }}
             />
           </div>
