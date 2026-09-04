@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  sku         String?  @unique
+  name        String
+  description String?
+  price       Int // precio de venta, en pesos enteros (sin centavos)
+  cost        Int? // costo — interno, referencia para margen
+  stock       Int      @default(0)
+  status      String   @default("active") // active | archived
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  saleItems     SaleItem[]
+  purchaseItems PurchaseOrderItem[]
+
+  @@index([status])
+  @@index([supplierId])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  taxId     String? // CUIT / DNI
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  sales   Sale[]
+  ledger  CustomerLedgerEntry[]
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  taxId     String?
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
+  ledger         SupplierLedgerEntry[]
+}
+
+model Sale {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  total      Int
+  status     String   @default("confirmed") // confirmed | cancelled
+  note       String?
+  createdAt  DateTime @default(now())
+
+  items       SaleItem[]
+  ledgerEntry CustomerLedgerEntry?
+
+  @@index([customerId])
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Int
+
+  @@index([saleId])
+}
+
+model CustomerLedgerEntry {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  type       String // "charge" (venta) | "payment" (pago del cliente)
+  amount     Int // siempre positivo; el signo lo da "type"
+  note       String?
+  saleId     String?  @unique
+  sale       Sale?    @relation(fields: [saleId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([customerId])
+}
+
+model PurchaseOrder {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  status     String   @default("pending") // pending | sent | received | cancelled
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items       PurchaseOrderItem[]
+  ledgerEntry SupplierLedgerEntry?
+
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Int
+  unitCost        Int
+
+  @@index([purchaseOrderId])
+}
+
+model SupplierLedgerEntry {
+  id              String         @id @default(cuid())
+  supplierId      String
+  supplier        Supplier       @relation(fields: [supplierId], references: [id])
+  type            String // "charge" (recepción de pedido) | "payment" (pago al proveedor)
+  amount          Int
+  note            String?
+  purchaseOrderId String?        @unique
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@index([supplierId])
+}

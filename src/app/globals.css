@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+:root {
+  /* marca */
+  --color-primary: #111827; /* sidebar, botón principal */
+  --color-primary-hover: #1f2937;
+  --color-accent: #4f46e5; /* foco, enlaces, acciones */
+  --color-accent-hover: #4338ca;
+  --color-accent-soft: #eef2ff;
+
+  /* neutros */
+  --color-bg: #ffffff;
+  --color-surface: #f8fafc;
+  --color-line: #e2e8f0;
+  --color-line-soft: #f1f5f9;
+  --color-ink: #0f172a;
+  --color-ink-soft: #475569;
+  --color-ink-faint: #94a3b8;
+  --color-border-input: #cbd5e1;
+
+  /* estados */
+  --color-ok-bg: #ecfdf5;
+  --color-ok-ink: #047857;
+  --color-warn-bg: #fffbeb;
+  --color-warn-ink: #92400e;
+  --color-err-bg: #fef2f2;
+  --color-err-line: #fecaca;
+  --color-err-ink: #b91c1c;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-soft: var(--color-accent-soft);
+
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-line: var(--color-line);
+  --color-line-soft: var(--color-line-soft);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-border-input: var(--color-border-input);
+
+  --color-ok-bg: var(--color-ok-bg);
+  --color-ok-ink: var(--color-ok-ink);
+  --color-warn-bg: var(--color-warn-bg);
+  --color-warn-ink: var(--color-warn-ink);
+  --color-err-bg: var(--color-err-bg);
+  --color-err-line: var(--color-err-line);
+  --color-err-ink: var(--color-err-ink);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+.focus-accent:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.input {
+  border-radius: 8px;
+  border: 1px solid var(--color-border-input);
+  background: var(--color-bg);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  width: 100%;
+}
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
