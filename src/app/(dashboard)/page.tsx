@@ -3,8 +3,14 @@ import { db } from "@/lib/db";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
+import { monthBuckets, startOfMonth, endOfToday } from "@/lib/reports";
+import { BarChart } from "@/components/charts/BarChart";
+import { DonutChart } from "@/components/charts/DonutChart";
 
 export default async function DashboardPage() {
+  const buckets = monthBuckets(6);
+  const rangeStart = buckets[0].start;
+
   const [
     productCount,
     lowStockProducts,
@@ -12,6 +18,8 @@ export default async function DashboardPage() {
     customerBalances,
     supplierBalances,
     recentSales,
+    salesForCharts,
+    salesThisMonth,
   ] = await Promise.all([
     db.product.count({ where: { status: "active" } }),
     db.product.findMany({
@@ -33,6 +41,18 @@ export default async function DashboardPage() {
       take: 6,
       include: { customer: { select: { name: true } } },
     }),
+    db.sale.findMany({
+      where: { status: "confirmed", createdAt: { gte: rangeStart } },
+      select: {
+        total: true,
+        createdAt: true,
+        items: { select: { unitPrice: true, quantity: true, product: { select: { name: true } } } },
+      },
+    }),
+    db.sale.findMany({
+      where: { status: "confirmed", createdAt: { gte: startOfMonth(), lte: endOfToday() } },
+      select: { total: true },
+    }),
   ]);
 
   const totalReceivable = [...customerBalances.values()].reduce(
@@ -44,16 +64,42 @@ export default async function DashboardPage() {
     0,
   );
 
+  const revenueThisMonth = salesThisMonth.reduce((sum, s) => sum + s.total, 0);
+
   const stats = [
     { label: "Productos activos", value: productCount },
+    { label: "Facturado este mes", value: formatMoney(revenueThisMonth) },
     { label: "Por cobrar a clientes", value: formatMoney(totalReceivable) },
     { label: "Por pagar a proveedores", value: formatMoney(totalPayable) },
-    { label: "Pedidos en curso", value: pendingPurchaseOrders.length },
   ];
+
+  const monthlyRevenue = buckets.map((bucket) => {
+    const total = salesForCharts
+      .filter((s) => s.createdAt >= bucket.start && s.createdAt < bucket.end)
+      .reduce((sum, s) => sum + s.total, 0);
+    return { label: bucket.label, value: total };
+  });
+
+  const revenueByProduct = new Map<string, number>();
+  for (const sale of salesForCharts) {
+    for (const item of sale.items) {
+      const current = revenueByProduct.get(item.product.name) ?? 0;
+      revenueByProduct.set(item.product.name, current + item.unitPrice * item.quantity);
+    }
+  }
+  const topProducts = [...revenueByProduct.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, value]) => ({ label, value }));
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-ink">Resumen</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-ink">Panorama del negocio</h1>
+        <p className="mt-1 text-sm text-ink-soft">
+          Un vistazo general a ventas, stock y cuentas corrientes.
+        </p>
+      </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -64,7 +110,25 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">Ventas por mes</p>
+          <p className="text-xs text-ink-faint">Últimos {buckets.length} meses, facturación total</p>
+          <div className="mt-4">
+            <BarChart data={monthlyRevenue} formatValue={(v) => formatMoney(v)} />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">Productos más vendidos</p>
+          <p className="text-xs text-ink-faint">Por facturación, últimos {buckets.length} meses</p>
+          <div className="mt-4">
+            <DonutChart data={topProducts} formatValue={(v) => formatMoney(v)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-line bg-bg p-5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-ink">Stock bajo</p>
