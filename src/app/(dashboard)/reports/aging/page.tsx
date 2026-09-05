@@ -74,6 +74,10 @@ export default async function AgingReportPage() {
   const receivableTotals = totalsByBucket(receivable);
   const payableTotals = totalsByBucket(payable);
 
+  const totalReceivable = receivable.reduce((s, r) => s + r.balance, 0);
+  const totalPayable = payable.reduce((s, r) => s + r.balance, 0);
+  const netBalance = totalReceivable - totalPayable;
+
   return (
     <div>
       <p className="text-sm text-ink-faint">
@@ -92,9 +96,7 @@ export default async function AgingReportPage() {
         <div>
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-ink">Por cobrar a clientes</p>
-            <p className="text-sm font-bold text-err-ink">
-              {formatMoney(receivable.reduce((s, r) => s + r.balance, 0))}
-            </p>
+            <p className="text-sm font-bold text-ok-ink">{formatMoney(totalReceivable)}</p>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
             {(Object.keys(bucketLabels) as Bucket[]).map((b) => (
@@ -142,9 +144,7 @@ export default async function AgingReportPage() {
         <div>
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-ink">Por pagar a proveedores</p>
-            <p className="text-sm font-bold text-err-ink">
-              {formatMoney(payable.reduce((s, r) => s + r.balance, 0))}
-            </p>
+            <p className="text-sm font-bold text-err-ink">{formatMoney(totalPayable)}</p>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
             {(Object.keys(bucketLabels) as Bucket[]).map((b) => (
@@ -188,6 +188,18 @@ export default async function AgingReportPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-8 flex items-center justify-between rounded-xl border border-line bg-surface p-5">
+        <div>
+          <p className="text-sm font-semibold text-ink">Saldo neto</p>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            {formatMoney(totalReceivable)} por cobrar − {formatMoney(totalPayable)} por pagar
+          </p>
+        </div>
+        <p className={`text-xl font-bold ${netBalance >= 0 ? "text-ok-ink" : "text-err-ink"}`}>
+          {formatMoney(netBalance)}
+        </p>
       </div>
     </div>
   );
