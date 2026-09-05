@@ -18,7 +18,7 @@ type ProductOption = {
   unitSize: number | null;
   fractionPrice: number | null;
 };
-type CustomerOption = { id: string; name: string };
+type CustomerOption = { id: string; name: string; balance: number };
 
 type LineItem = {
   productId: string;
@@ -53,6 +53,7 @@ export function SaleForm({
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const isFractionable = Boolean(selectedProduct?.fractionUnit);
+  const selectedCustomer = customers.find((c) => c.id === customerId);
 
   function selectProduct(id: string) {
     setSelectedProductId(id);
@@ -146,6 +147,13 @@ export function SaleForm({
           placeholder="Buscar cliente…"
         />
       </label>
+
+      {selectedCustomer && selectedCustomer.balance > 0 && (
+        <p className="rounded-lg bg-warn-bg px-3 py-2 text-sm text-warn-ink">
+          {selectedCustomer.name} ya tiene un saldo pendiente de{" "}
+          <strong>{formatMoney(selectedCustomer.balance)}</strong> en su cuenta corriente.
+        </p>
+      )}
 
       <div className="rounded-xl border border-line bg-bg p-5">
         <p className="text-sm font-semibold text-ink">Agregar producto</p>

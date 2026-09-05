@@ -11,6 +11,16 @@ const sections = [
     title: "Productos parados",
     description: "Productos activos sin ventas en el último año, o que nunca se vendieron.",
   },
+  {
+    href: "/reports/cash-register",
+    title: "Caja diaria",
+    description: "Cobros, pagos y gastos de un día, agrupados por método de pago.",
+  },
+  {
+    href: "/reports/aging",
+    title: "Cuentas por cobrar y pagar",
+    description: "Saldos de clientes y proveedores agrupados por antigüedad.",
+  },
 ];
 
 export default function ReportsPage() {

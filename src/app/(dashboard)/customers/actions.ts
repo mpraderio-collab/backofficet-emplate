@@ -9,6 +9,7 @@ import { customerSchema, ledgerPaymentSchema } from "@/lib/validation";
 async function requireAuth() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  return session.user.id;
 }
 
 export type CustomerActionState = {
@@ -78,7 +79,7 @@ export async function registerCustomerPayment(
   _prev: PaymentActionState,
   formData: FormData,
 ): Promise<PaymentActionState> {
-  await requireAuth();
+  const userId = await requireAuth();
 
   const result = ledgerPaymentSchema.safeParse({
     amount: formData.get("amount"),
@@ -96,6 +97,7 @@ export async function registerCustomerPayment(
       amount: result.data.amount,
       paymentMethod: result.data.paymentMethod,
       note: result.data.note || null,
+      createdByUserId: userId,
     },
   });
 

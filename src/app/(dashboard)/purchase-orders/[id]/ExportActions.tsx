@@ -1,5 +1,7 @@
 "use client";
 
+import { exportRowsToCsv } from "@/components/ExportCsvButton";
+
 type ExportItem = {
   productName: string;
   characteristics: string;
@@ -7,11 +9,6 @@ type ExportItem = {
   unitCost: number;
   subtotal: number;
 };
-
-function csvCell(value: string | number): string {
-  const text = String(value);
-  return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
 
 export function ExportActions({
   fileName,
@@ -35,7 +32,7 @@ export function ExportActions({
       item.unitCost,
       item.subtotal,
     ]);
-    const lines = [
+    exportRowsToCsv(fileName, [
       [`Pedido a ${supplierName}`],
       [`Fecha del pedido: ${orderDate}`],
       [],
@@ -43,16 +40,7 @@ export function ExportActions({
       ...rows,
       [],
       ["Total", "", "", "", total],
-    ];
-    const csv = lines.map((line) => line.map(csvCell).join(";")).join("\n");
-    // BOM para que Excel detecte UTF-8 y no rompa los acentos.
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${fileName}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    ]);
   }
 
   return (

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
-import { monthBuckets, startOfMonth, endOfToday } from "@/lib/reports";
+import { monthBuckets, startOfMonth, endOfToday, daysSince } from "@/lib/reports";
 import { estimateItemCost } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { BarChart } from "@/components/charts/BarChart";
@@ -33,7 +33,10 @@ export default async function DashboardPage() {
     }),
     db.purchaseOrder.findMany({
       where: { status: { in: ["pending", "sent"] } },
-      include: { supplier: { select: { name: true } } },
+      include: {
+        supplier: { select: { name: true } },
+        statusEvents: { where: { status: "sent" }, orderBy: { createdAt: "desc" }, take: 1 },
+      },
       orderBy: { createdAt: "asc" },
       take: 6,
     }),
@@ -244,18 +247,30 @@ export default async function DashboardPage() {
             <p className="mt-3 text-sm text-ink-soft">No hay pedidos pendientes.</p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
-              {pendingPurchaseOrders.map((po) => (
-                <li key={po.id} className="flex items-center justify-between text-sm">
-                  <Link href={`/purchase-orders/${po.id}`} className="text-ink-soft hover:text-accent">
-                    {po.supplier.name}
-                  </Link>
-                  <span
-                    className={`rounded-md px-2 py-0.5 text-xs font-semibold ${purchaseOrderStatusColors[po.status]}`}
-                  >
-                    {purchaseOrderStatusLabels[po.status]}
-                  </span>
-                </li>
-              ))}
+              {pendingPurchaseOrders.map((po) => {
+                const sentAt = po.statusEvents[0]?.createdAt;
+                const daysSinceSent = sentAt ? daysSince(sentAt) : 0;
+                const isDelayed = po.status === "sent" && daysSinceSent > 7;
+                return (
+                  <li key={po.id} className="flex items-center justify-between text-sm">
+                    <Link href={`/purchase-orders/${po.id}`} className="text-ink-soft hover:text-accent">
+                      {po.supplier.name}
+                    </Link>
+                    <span className="flex items-center gap-1.5">
+                      {isDelayed && (
+                        <span className="rounded-md bg-err-bg px-2 py-0.5 text-xs font-semibold text-err-ink">
+                          Demorado
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-xs font-semibold ${purchaseOrderStatusColors[po.status]}`}
+                      >
+                        {purchaseOrderStatusLabels[po.status]}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

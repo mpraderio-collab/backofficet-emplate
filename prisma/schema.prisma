@@ -14,6 +14,13 @@ model User {
   name         String
   passwordHash String
   createdAt    DateTime @default(now())
+
+  createdSales                Sale[]
+  createdExpenses              Expense[]
+  createdCustomerLedgerEntries CustomerLedgerEntry[]
+  createdSupplierLedgerEntries SupplierLedgerEntry[]
+  createdPurchaseOrders        PurchaseOrder[]
+  createdPurchaseOrderStatusEvents PurchaseOrderStatusEvent[]
 }
 
 model Product {
@@ -93,6 +100,9 @@ model Sale {
   note       String?
   createdAt  DateTime @default(now())
 
+  createdByUserId String?
+  createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
+
   items       SaleItem[]
   ledgerEntry CustomerLedgerEntry?
 
@@ -125,6 +135,9 @@ model CustomerLedgerEntry {
   sale       Sale?    @relation(fields: [saleId], references: [id])
   createdAt  DateTime @default(now())
 
+  createdByUserId String?
+  createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
+
   @@index([customerId])
 }
 
@@ -137,6 +150,9 @@ model PurchaseOrder {
   note       String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  createdByUserId String?
+  createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
 
   items        PurchaseOrderItem[]
   ledgerEntry  SupplierLedgerEntry?
@@ -167,6 +183,9 @@ model PurchaseOrderStatusEvent {
   status          String
   createdAt       DateTime      @default(now())
 
+  createdByUserId String?
+  createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
+
   @@index([purchaseOrderId])
 }
 
@@ -181,6 +200,9 @@ model SupplierLedgerEntry {
   purchaseOrderId String?        @unique
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
   createdAt       DateTime       @default(now())
+
+  createdByUserId String?
+  createdByUser   User?          @relation(fields: [createdByUserId], references: [id])
 
   @@index([supplierId])
 }
@@ -206,6 +228,9 @@ model Expense {
   isRecurring   Boolean     @default(false) // ej: alquiler, luz — se repite todos los meses
   note          String?
   createdAt     DateTime    @default(now())
+
+  createdByUserId String?
+  createdByUser   User?     @relation(fields: [createdByUserId], references: [id])
 
   @@index([expenseTypeId])
   @@index([date])

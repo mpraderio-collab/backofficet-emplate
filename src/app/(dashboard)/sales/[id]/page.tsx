@@ -11,6 +11,7 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
     include: {
       customer: true,
       items: { include: { product: { select: { name: true, fractionUnit: true } } } },
+      createdByUser: { select: { name: true } },
     },
   });
   if (!sale) notFound();
@@ -33,7 +34,10 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
           {sale.status === "confirmed" ? "Confirmada" : "Cancelada"}
         </span>
       </div>
-      <p className="mt-1 text-sm text-ink-soft">{formatDate(sale.createdAt)}</p>
+      <p className="mt-1 text-sm text-ink-soft">
+        {formatDate(sale.createdAt)}
+        {sale.createdByUser && ` · registrada por ${sale.createdByUser.name}`}
+      </p>
 
       <div className="mt-6 max-w-2xl overflow-x-auto rounded-xl border border-line bg-bg">
         <table className="w-full text-left text-sm">

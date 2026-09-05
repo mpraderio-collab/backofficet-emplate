@@ -32,4 +32,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    // Sin esto, session.user nunca lleva el id — y sin id no se puede
+    // registrar quién creó una venta, un gasto o un pago.
+    async jwt({ token, user }) {
+      if (user) token.id = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) session.user.id = token.id as string;
+      return session;
+    },
+  },
 });

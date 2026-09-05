@@ -10,6 +10,7 @@ import { expenseTypeSchema, expenseSchema } from "@/lib/validation";
 async function requireAuth() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  return session.user.id;
 }
 
 export type ExpenseTypeActionState = {
@@ -80,7 +81,7 @@ export async function createExpense(
   _prev: ExpenseActionState,
   formData: FormData,
 ): Promise<ExpenseActionState> {
-  await requireAuth();
+  const userId = await requireAuth();
 
   const result = parseExpenseForm(formData);
   if (!result.success) {
@@ -100,6 +101,7 @@ export async function createExpense(
       paymentMethod: result.data.paymentMethod,
       isRecurring: result.data.isRecurring,
       note: result.data.note || null,
+      createdByUserId: userId,
     },
   });
 

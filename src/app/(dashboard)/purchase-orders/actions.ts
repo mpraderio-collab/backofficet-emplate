@@ -9,6 +9,7 @@ import { purchaseOrderSchema, receivePurchaseOrderSchema } from "@/lib/validatio
 async function requireAuth() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  return session.user.id;
 }
 
 export type PurchaseOrderActionState = {
@@ -20,7 +21,7 @@ export async function createPurchaseOrder(
   _prev: PurchaseOrderActionState,
   formData: FormData,
 ): Promise<PurchaseOrderActionState> {
-  await requireAuth();
+  const userId = await requireAuth();
 
   let itemsRaw: unknown;
   try {
@@ -46,6 +47,7 @@ export async function createPurchaseOrder(
       supplierId: data.supplierId,
       note: data.note || null,
       orderDate: data.orderDate,
+      createdByUserId: userId,
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,
@@ -53,7 +55,7 @@ export async function createPurchaseOrder(
           unitCost: item.unitCost,
         })),
       },
-      statusEvents: { create: { status: "pending" } },
+      statusEvents: { create: { status: "pending", createdByUserId: userId } },
     },
   });
 
@@ -72,7 +74,7 @@ export async function updatePurchaseOrderStatus(
   id: string,
   nextStatus: string,
 ): Promise<{ error?: string }> {
-  await requireAuth();
+  const userId = await requireAuth();
 
   const po = await db.purchaseOrder.findUnique({ where: { id } });
   if (!po) return { error: "El pedido ya no existe." };
@@ -83,7 +85,10 @@ export async function updatePurchaseOrderStatus(
 
   await db.purchaseOrder.update({
     where: { id },
-    data: { status: nextStatus, statusEvents: { create: { status: nextStatus } } },
+    data: {
+      status: nextStatus,
+      statusEvents: { create: { status: nextStatus, createdByUserId: userId } },
+    },
   });
 
   revalidatePath("/purchase-orders");
@@ -99,7 +104,7 @@ export async function receivePurchaseOrder(
   id: string,
   items: { itemId: string; receivedQuantity: number; newCost?: number }[],
 ): Promise<{ error?: string }> {
-  await requireAuth();
+  const userId = await requireAuth();
 
   const po = await db.purchaseOrder.findUnique({
     where: { id },
@@ -164,7 +169,10 @@ export async function receivePurchaseOrder(
     }),
     db.purchaseOrder.update({
       where: { id },
-      data: { status: "received", statusEvents: { create: { status: "received" } } },
+      data: {
+        status: "received",
+        statusEvents: { create: { status: "received", createdByUserId: userId } },
+      },
     }),
     db.supplierLedgerEntry.create({
       data: {
@@ -172,6 +180,7 @@ export async function receivePurchaseOrder(
         type: "charge",
         amount: total,
         purchaseOrderId: id,
+        createdByUserId: userId,
       },
     }),
   ]);

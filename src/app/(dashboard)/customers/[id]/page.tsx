@@ -15,7 +15,10 @@ export default async function CustomerDetailPage(
   const customer = await db.customer.findUnique({
     where: { id },
     include: {
-      ledger: { orderBy: { createdAt: "desc" } },
+      ledger: {
+        orderBy: { createdAt: "desc" },
+        include: { createdByUser: { select: { name: true } } },
+      },
       sales: { orderBy: { createdAt: "desc" }, take: 10 },
     },
   });
@@ -71,6 +74,18 @@ export default async function CustomerDetailPage(
                   ? "Tiene saldo a favor."
                   : "Cuenta al día."}
             </p>
+            {balance > 0 && customer.phone && (
+              <a
+                href={`https://wa.me/${customer.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                  `Hola ${customer.name}! Te escribo para recordarte que tenés un saldo pendiente de ${formatMoney(balance)}. ¡Gracias!`,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-ok-ink hover:underline"
+              >
+                Recordar saldo por WhatsApp →
+              </a>
+            )}
             <div className="mt-4 border-t border-line pt-4">
               <PaymentForm action={boundPayment} />
             </div>
@@ -90,7 +105,10 @@ export default async function CustomerDetailPage(
                         {entry.paymentMethod ? ` · ${paymentMethodLabels[entry.paymentMethod as PaymentMethod] ?? entry.paymentMethod}` : ""}
                         {entry.note ? ` · ${entry.note}` : ""}
                       </p>
-                      <p className="text-xs text-ink-faint">{formatDate(entry.createdAt)}</p>
+                      <p className="text-xs text-ink-faint">
+                        {formatDate(entry.createdAt)}
+                        {entry.createdByUser && ` · por ${entry.createdByUser.name}`}
+                      </p>
                     </div>
                     <span
                       className={`font-semibold ${

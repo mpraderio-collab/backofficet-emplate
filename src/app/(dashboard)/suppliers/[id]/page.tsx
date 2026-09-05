@@ -16,7 +16,10 @@ export default async function SupplierDetailPage(
   const supplier = await db.supplier.findUnique({
     where: { id },
     include: {
-      ledger: { orderBy: { createdAt: "desc" } },
+      ledger: {
+        orderBy: { createdAt: "desc" },
+        include: { createdByUser: { select: { name: true } } },
+      },
       purchaseOrders: { orderBy: { createdAt: "desc" }, take: 10 },
     },
   });
@@ -91,7 +94,10 @@ export default async function SupplierDetailPage(
                         {entry.paymentMethod ? ` · ${paymentMethodLabels[entry.paymentMethod as PaymentMethod] ?? entry.paymentMethod}` : ""}
                         {entry.note ? ` · ${entry.note}` : ""}
                       </p>
-                      <p className="text-xs text-ink-faint">{formatDate(entry.createdAt)}</p>
+                      <p className="text-xs text-ink-faint">
+                        {formatDate(entry.createdAt)}
+                        {entry.createdByUser && ` · por ${entry.createdByUser.name}`}
+                      </p>
                     </div>
                     <span
                       className={`font-semibold ${

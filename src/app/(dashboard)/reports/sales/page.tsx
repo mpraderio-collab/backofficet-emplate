@@ -8,6 +8,7 @@ import {
   startOfYear,
   toDateInputValue,
 } from "@/lib/reports";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 export default async function SalesReportPage(props: PageProps<"/reports/sales">) {
   const searchParams = await props.searchParams;
@@ -57,15 +58,32 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
     { label: "Este año", from: startOfYear(), to: endOfToday() },
   ];
 
+  const exportRows: (string | number)[][] = [
+    [`Informe de ventas: ${toDateInputValue(from)} a ${toDateInputValue(to)}`],
+    [],
+    ["Fecha", "Cliente", "Ítems", "Total"],
+    ...sales.map((s) => [formatDate(s.createdAt), s.customer.name, s.items.length, s.total]),
+    [],
+    ["Total vendido", "", "", totalRevenue],
+  ];
+
   return (
     <div>
-      <p className="text-sm text-ink-faint">
-        <Link href="/reports" className="hover:text-accent">
-          Informes
-        </Link>{" "}
-        / <span className="text-ink">Ventas</span>
-      </p>
-      <h1 className="mt-1 text-2xl font-bold text-ink">Informe de ventas</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-ink-faint">
+            <Link href="/reports" className="hover:text-accent">
+              Informes
+            </Link>{" "}
+            / <span className="text-ink">Ventas</span>
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-ink">Informe de ventas</h1>
+        </div>
+        <ExportCsvButton
+          fileName={`ventas-${toDateInputValue(from)}-a-${toDateInputValue(to)}`}
+          rows={exportRows}
+        />
+      </div>
 
       <div className="mt-6 flex flex-wrap items-end gap-4 rounded-xl border border-line bg-surface p-4">
         <form className="flex flex-wrap items-end gap-3" method="get">

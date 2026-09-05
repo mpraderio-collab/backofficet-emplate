@@ -9,6 +9,7 @@ import { saleSchema } from "@/lib/validation";
 async function requireAuth() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  return session.user.id;
 }
 
 export type SaleActionState = {
@@ -22,7 +23,7 @@ export async function createSale(
   _prev: SaleActionState,
   formData: FormData,
 ): Promise<SaleActionState> {
-  await requireAuth();
+  const userId = await requireAuth();
 
   let itemsRaw: unknown;
   try {
@@ -90,6 +91,7 @@ export async function createSale(
           customerId: data.customerId,
           total,
           note: data.note || null,
+          createdByUserId: userId,
           items: { create: saleItemsData },
         },
       });
@@ -101,6 +103,7 @@ export async function createSale(
           type: "charge",
           amount: total,
           saleId: created.id,
+          createdByUserId: userId,
         },
       });
 
@@ -113,6 +116,7 @@ export async function createSale(
             amount: initialPayment,
             paymentMethod: data.initialPaymentMethod,
             note: "Entrega al momento de la venta",
+            createdByUserId: userId,
           },
         });
       }
@@ -135,7 +139,7 @@ export async function createSale(
 // la cuenta corriente del cliente (deja registrado el motivo, no borra
 // el historial).
 export async function cancelSale(id: string): Promise<{ error?: string }> {
-  await requireAuth();
+  const userId = await requireAuth();
 
   const sale = await db.sale.findUnique({
     where: { id },
@@ -158,6 +162,7 @@ export async function cancelSale(id: string): Promise<{ error?: string }> {
         type: "payment",
         amount: sale.total,
         note: "Anulación de venta cancelada",
+        createdByUserId: userId,
       },
     }),
   ]);

@@ -9,6 +9,7 @@ import {
   startOfYear,
   toDateInputValue,
 } from "@/lib/reports";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ExpenseTypeForm } from "./ExpenseTypeForm";
 import { DeleteExpenseTypeButton } from "./DeleteExpenseTypeButton";
 import { ExpenseForm } from "./ExpenseForm";
@@ -27,7 +28,10 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
     db.expense.findMany({
       where: { date: { gte: from, lte: to } },
       orderBy: { date: "desc" },
-      include: { expenseType: { select: { name: true } } },
+      include: {
+        expenseType: { select: { name: true } },
+        createdByUser: { select: { name: true } },
+      },
     }),
     db.expense.findMany({
       where: { isRecurring: true },
@@ -65,12 +69,35 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
     { label: "Este año", from: startOfYear(), to: endOfToday() },
   ];
 
+  const exportRows: (string | number)[][] = [
+    [`Gastos: ${toDateInputValue(from)} a ${toDateInputValue(to)}`],
+    [],
+    ["Fecha", "Tipo", "Método", "Monto", "Nota"],
+    ...expenses.map((e) => [
+      formatDate(e.date),
+      e.expenseType.name,
+      paymentMethodLabels[e.paymentMethod as PaymentMethod] ?? e.paymentMethod,
+      e.amount,
+      e.note ?? "",
+    ]),
+    [],
+    ["Total", "", "", totalExpenses, ""],
+  ];
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-ink">Gastos</h1>
-      <p className="mt-1 text-sm text-ink-soft">
-        Impuestos, servicios y demás gastos del negocio, independientes de proveedores.
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Gastos</h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            Impuestos, servicios y demás gastos del negocio, independientes de proveedores.
+          </p>
+        </div>
+        <ExportCsvButton
+          fileName={`gastos-${toDateInputValue(from)}-a-${toDateInputValue(to)}`}
+          rows={exportRows}
+        />
+      </div>
 
       <div className="mt-6 flex flex-wrap items-end gap-4 rounded-xl border border-line bg-surface p-4">
         <form className="flex flex-wrap items-end gap-3" method="get">
@@ -201,6 +228,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                   <th className="px-4 py-3">Método</th>
                   <th className="px-4 py-3">Monto</th>
                   <th className="px-4 py-3">Nota</th>
+                  <th className="px-4 py-3">Cargado por</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -221,6 +249,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                     </td>
                     <td className="px-4 py-3 font-medium text-ink">{formatMoney(e.amount)}</td>
                     <td className="px-4 py-3 text-ink-soft">{e.note ?? "—"}</td>
+                    <td className="px-4 py-3 text-ink-soft">{e.createdByUser?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-right">
                       <DeleteExpenseButton id={e.id} />
                     </td>

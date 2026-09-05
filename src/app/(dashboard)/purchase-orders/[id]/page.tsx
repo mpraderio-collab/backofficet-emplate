@@ -41,7 +41,10 @@ export default async function PurchaseOrderDetailPage(
           },
         },
       },
-      statusEvents: { orderBy: { createdAt: "asc" } },
+      statusEvents: {
+        orderBy: { createdAt: "asc" },
+        include: { createdByUser: { select: { name: true } } },
+      },
     },
   });
   if (!po) notFound();
@@ -161,7 +164,10 @@ export default async function PurchaseOrderDetailPage(
                 >
                   {purchaseOrderStatusLabels[event.status] ?? event.status}
                 </span>
-                <span className="text-ink-soft">{formatDate(event.createdAt)}</span>
+                <span className="text-ink-soft">
+                  {formatDate(event.createdAt)}
+                  {event.createdByUser && ` · por ${event.createdByUser.name}`}
+                </span>
               </li>
             ))}
           </ul>

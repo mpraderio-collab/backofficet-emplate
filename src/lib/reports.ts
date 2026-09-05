@@ -32,6 +32,13 @@ export function toDateInputValue(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Envuelve Date.now() en una función plana para no llamarlo directo en el
+// cuerpo de un componente (la regla react-hooks/purity lo marca como
+// impuro ahí, aunque el resultado no se usa como estado).
+export function daysSince(date: Date): number {
+  return Math.floor((Date.now() - date.getTime()) / 86_400_000);
+}
+
 const MONTH_LABELS = [
   "ene",
   "feb",

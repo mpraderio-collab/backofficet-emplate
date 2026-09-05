@@ -2,11 +2,18 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDateOnly } from "@/lib/format";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
+import { daysSince } from "@/lib/reports";
+
+const DELAYED_AFTER_DAYS = 7;
 
 export default async function PurchaseOrdersPage() {
   const purchaseOrders = await db.purchaseOrder.findMany({
     orderBy: { orderDate: "desc" },
-    include: { supplier: { select: { name: true } }, items: true },
+    include: {
+      supplier: { select: { name: true } },
+      items: true,
+      statusEvents: { where: { status: "sent" }, orderBy: { createdAt: "desc" }, take: 1 },
+    },
   });
 
   return (
@@ -36,7 +43,11 @@ export default async function PurchaseOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {purchaseOrders.map((po) => (
+              {purchaseOrders.map((po) => {
+                const sentAt = po.statusEvents[0]?.createdAt;
+                const daysSinceSent = sentAt ? daysSince(sentAt) : 0;
+                const isDelayed = po.status === "sent" && daysSinceSent > DELAYED_AFTER_DAYS;
+                return (
                 <tr key={po.id} className="border-b border-line-soft last:border-0">
                   <td className="px-4 py-3 text-ink-soft">{formatDateOnly(po.orderDate)}</td>
                   <td className="px-4 py-3 font-medium text-ink">{po.supplier.name}</td>
@@ -47,6 +58,14 @@ export default async function PurchaseOrdersPage() {
                     >
                       {purchaseOrderStatusLabels[po.status]}
                     </span>
+                    {isDelayed && (
+                      <span
+                        className="ml-1.5 rounded-md bg-err-bg px-2 py-0.5 text-xs font-semibold text-err-ink"
+                        title={`Enviado hace ${daysSinceSent} días sin recibirse`}
+                      >
+                        Demorado
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
@@ -57,7 +76,8 @@ export default async function PurchaseOrdersPage() {
                     </Link>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
