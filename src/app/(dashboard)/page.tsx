@@ -22,7 +22,6 @@ export default async function DashboardPage() {
     pendingPurchaseOrders,
     customerBalances,
     supplierBalances,
-    recentSales,
     salesForCharts,
     expensesThisMonth,
   ] = await Promise.all([
@@ -42,12 +41,6 @@ export default async function DashboardPage() {
     }),
     getAllCustomerBalances(),
     getAllSupplierBalances(),
-    db.sale.findMany({
-      where: { status: "confirmed" },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-      include: { customer: { select: { name: true } } },
-    }),
     db.sale.findMany({
       where: { status: "confirmed", createdAt: { gte: rangeStart } },
       select: {
@@ -175,6 +168,18 @@ export default async function DashboardPage() {
     .slice(0, 5)
     .map(([label, value]) => ({ label, value }));
 
+  const quantityByProduct = new Map<string, number>();
+  for (const sale of salesForCharts) {
+    for (const item of sale.items) {
+      const current = quantityByProduct.get(item.product.name) ?? 0;
+      quantityByProduct.set(item.product.name, current + item.quantity);
+    }
+  }
+  const topProductsByQuantity = [...quantityByProduct.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, value]) => ({ label, value }));
+
   return (
     <div>
       <div>
@@ -194,7 +199,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-line bg-bg p-5">
           <p className="text-sm font-semibold text-ink">Ventas por mes</p>
           <p className="text-xs text-ink-faint">Últimos {buckets.length} meses, facturación total</p>
@@ -210,12 +215,25 @@ export default async function DashboardPage() {
             <BarChart data={monthlyMargin} formatValue={(v) => formatMoney(v)} />
           </div>
         </div>
+      </div>
 
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-line bg-bg p-5">
           <p className="text-sm font-semibold text-ink">Productos más vendidos</p>
           <p className="text-xs text-ink-faint">Por facturación, últimos {buckets.length} meses</p>
           <div className="mt-4">
             <DonutChart data={topProducts} formatValue={(v) => formatMoney(v)} />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">Productos más vendidos</p>
+          <p className="text-xs text-ink-faint">Por cantidad de ventas, últimos {buckets.length} meses</p>
+          <div className="mt-4">
+            <DonutChart
+              data={topProductsByQuantity}
+              formatValue={(v) => new Intl.NumberFormat("es-AR").format(v)}
+            />
           </div>
         </div>
       </div>
@@ -284,36 +302,6 @@ export default async function DashboardPage() {
             </ul>
           )}
         </div>
-      </div>
-
-      <div className="mt-6">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-ink">Últimas ventas</p>
-          <Link href="/sales" className="text-sm font-semibold text-accent hover:underline">
-            Ver todas →
-          </Link>
-        </div>
-        {recentSales.length === 0 ? (
-          <p className="mt-3 text-sm text-ink-soft">Todavía no hay ventas.</p>
-        ) : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-bg">
-            <table className="w-full min-w-[420px] text-left text-sm">
-              <tbody>
-                {recentSales.map((sale) => (
-                  <tr key={sale.id} className="border-b border-line-soft last:border-0">
-                    <td className="px-4 py-3 font-medium text-ink">{sale.customer.name}</td>
-                    <td className="px-4 py-3 text-ink-soft">{formatMoney(sale.total)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/sales/${sale.id}`} className="font-semibold text-accent hover:underline">
-                        Ver
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );
