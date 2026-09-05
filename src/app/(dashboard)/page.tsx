@@ -4,6 +4,7 @@ import { formatMoney, formatQuantity } from "@/lib/format";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { monthBuckets, startOfMonth, endOfToday } from "@/lib/reports";
+import { estimateItemCost } from "@/lib/margin";
 import { BarChart } from "@/components/charts/BarChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 
@@ -46,7 +47,14 @@ export default async function DashboardPage() {
       select: {
         total: true,
         createdAt: true,
-        items: { select: { unitPrice: true, quantity: true, product: { select: { name: true } } } },
+        items: {
+          select: {
+            unitPrice: true,
+            quantity: true,
+            saleUnit: true,
+            product: { select: { name: true, cost: true, unitSize: true } },
+          },
+        },
       },
     }),
     db.sale.findMany({
@@ -66,9 +74,43 @@ export default async function DashboardPage() {
 
   const revenueThisMonth = salesThisMonth.reduce((sum, s) => sum + s.total, 0);
 
+  // Margen = ingreso - costo estimado, sumado solo sobre las líneas que
+  // tienen costo cargado (y, si son por fracción, unitSize) — las que no,
+  // quedan afuera tanto del monto como del ingreso de referencia del %,
+  // para no inflar ni diluir el margen con datos incompletos.
+  let totalMarginAmount = 0;
+  let totalMarginRevenue = 0;
+  const marginByBucket = buckets.map(() => 0);
+  for (const sale of salesForCharts) {
+    const bucketIndex = buckets.findIndex(
+      (b) => sale.createdAt >= b.start && sale.createdAt < b.end,
+    );
+    for (const item of sale.items) {
+      const itemCost = estimateItemCost(
+        item.saleUnit,
+        item.quantity,
+        item.product.cost,
+        item.product.unitSize,
+      );
+      if (itemCost == null) continue;
+      const itemRevenue = item.unitPrice * item.quantity;
+      const itemMargin = itemRevenue - itemCost;
+      totalMarginAmount += itemMargin;
+      totalMarginRevenue += itemRevenue;
+      if (bucketIndex >= 0) marginByBucket[bucketIndex] += itemMargin;
+    }
+  }
+  const totalMarginPercent =
+    totalMarginRevenue > 0 ? (totalMarginAmount / totalMarginRevenue) * 100 : 0;
+
   const stats = [
     { label: "Productos activos", value: productCount },
     { label: "Facturado este mes", value: formatMoney(revenueThisMonth) },
+    {
+      label: "Margen total de ventas",
+      value: formatMoney(totalMarginAmount),
+      hint: `${totalMarginPercent.toFixed(1)}% · últimos ${buckets.length} meses`,
+    },
     { label: "Por cobrar a clientes", value: formatMoney(totalReceivable) },
     { label: "Por pagar a proveedores", value: formatMoney(totalPayable) },
   ];
@@ -79,6 +121,11 @@ export default async function DashboardPage() {
       .reduce((sum, s) => sum + s.total, 0);
     return { label: bucket.label, value: total };
   });
+
+  const monthlyMargin = buckets.map((bucket, i) => ({
+    label: bucket.label,
+    value: marginByBucket[i],
+  }));
 
   const revenueByProduct = new Map<string, number>();
   for (const sale of salesForCharts) {
@@ -101,21 +148,30 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-xl border border-line bg-bg p-[18px]">
             <p className="text-[13px] text-ink-soft">{stat.label}</p>
             <p className="mt-1 text-2xl font-bold text-ink">{stat.value}</p>
+            {stat.hint && <p className="mt-0.5 text-xs text-ink-faint">{stat.hint}</p>}
           </div>
         ))}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-line bg-bg p-5">
           <p className="text-sm font-semibold text-ink">Ventas por mes</p>
           <p className="text-xs text-ink-faint">Últimos {buckets.length} meses, facturación total</p>
           <div className="mt-4">
             <BarChart data={monthlyRevenue} formatValue={(v) => formatMoney(v)} />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">Margen por mes</p>
+          <p className="text-xs text-ink-faint">Últimos {buckets.length} meses, margen estimado</p>
+          <div className="mt-4">
+            <BarChart data={monthlyMargin} formatValue={(v) => formatMoney(v)} />
           </div>
         </div>
 
