@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatDateOnly } from "@/lib/format";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { daysSince } from "@/lib/reports";
+import { ClickableRow } from "@/components/ClickableRow";
 
 const DELAYED_AFTER_DAYS = 7;
 
@@ -115,7 +116,6 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                 <th className="px-4 py-3">Proveedor</th>
                 <th className="px-4 py-3">Ítems</th>
                 <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -124,7 +124,11 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                 const daysSinceSent = sentAt ? daysSince(sentAt) : 0;
                 const isDelayed = po.status === "sent" && daysSinceSent > DELAYED_AFTER_DAYS;
                 return (
-                <tr key={po.id} className="border-b border-line-soft last:border-0">
+                <ClickableRow
+                  key={po.id}
+                  href={`/purchase-orders/${po.id}`}
+                  className="border-b border-line-soft last:border-0"
+                >
                   <td className="px-4 py-3 text-ink-soft">{formatDateOnly(po.orderDate)}</td>
                   <td className="px-4 py-3 font-medium text-ink">{po.supplier.name}</td>
                   <td className="px-4 py-3 text-ink-soft">{po.items.length}</td>
@@ -143,15 +147,7 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/purchase-orders/${po.id}`}
-                      className="font-semibold text-accent hover:underline"
-                    >
-                      Ver
-                    </Link>
-                  </td>
-                </tr>
+                </ClickableRow>
                 );
               })}
             </tbody>

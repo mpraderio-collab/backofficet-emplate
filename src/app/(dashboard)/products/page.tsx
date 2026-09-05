@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { calculateMargin, formatMarginPercent } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
+import { ClickableRow } from "@/components/ClickableRow";
 
 export default async function ProductsPage(props: PageProps<"/products">) {
   const searchParams = await props.searchParams;
@@ -100,14 +101,17 @@ export default async function ProductsPage(props: PageProps<"/products">) {
                 <th className="px-4 py-3">Margen %</th>
                 <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {products.map((p) => {
                 const margin = calculateMargin(p.price, p.cost);
                 return (
-                <tr key={p.id} className="border-b border-line-soft last:border-0">
+                <ClickableRow
+                  key={p.id}
+                  href={`/products/${p.id}`}
+                  className="border-b border-line-soft last:border-0"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {p.imageUrl ? (
@@ -181,15 +185,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
                       {p.status === "active" ? "Activo" : "Archivado"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/products/${p.id}`}
-                      className="font-semibold text-accent hover:underline"
-                    >
-                      Editar
-                    </Link>
-                  </td>
-                </tr>
+                </ClickableRow>
                 );
               })}
             </tbody>

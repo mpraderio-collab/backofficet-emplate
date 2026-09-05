@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 import { getAllCustomerBalances } from "@/lib/ledger";
 import { WhatsAppLink } from "@/components/WhatsAppLink";
+import { ClickableRow } from "@/components/ClickableRow";
 
 export default async function CustomersPage(props: PageProps<"/customers">) {
   const searchParams = await props.searchParams;
@@ -67,14 +68,17 @@ export default async function CustomersPage(props: PageProps<"/customers">) {
                 <th className="px-4 py-3">Cliente</th>
                 <th className="px-4 py-3">Contacto</th>
                 <th className="px-4 py-3">Saldo cta. cte.</th>
-                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {customers.map((c) => {
                 const balance = balances.get(c.id) ?? 0;
                 return (
-                  <tr key={c.id} className="border-b border-line-soft last:border-0">
+                  <ClickableRow
+                    key={c.id}
+                    href={`/customers/${c.id}`}
+                    className="border-b border-line-soft last:border-0"
+                  >
                     <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
                     <td className="px-4 py-3 text-ink-soft">
                       <span className="inline-flex items-center gap-1.5">
@@ -96,15 +100,7 @@ export default async function CustomersPage(props: PageProps<"/customers">) {
                         {formatMoney(balance)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/customers/${c.id}`}
-                        className="font-semibold text-accent hover:underline"
-                      >
-                        Ver ficha
-                      </Link>
-                    </td>
-                  </tr>
+                  </ClickableRow>
                 );
               })}
             </tbody>

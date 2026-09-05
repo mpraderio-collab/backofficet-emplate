@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney } from "@/lib/format";
+import { ClickableRow } from "@/components/ClickableRow";
 
 export default async function SalesPage() {
   const sales = await db.sale.findMany({
@@ -31,12 +32,15 @@ export default async function SalesPage() {
                 <th className="px-4 py-3">Cliente</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {sales.map((sale) => (
-                <tr key={sale.id} className="border-b border-line-soft last:border-0">
+                <ClickableRow
+                  key={sale.id}
+                  href={`/sales/${sale.id}`}
+                  className="border-b border-line-soft last:border-0"
+                >
                   <td className="px-4 py-3 text-ink-soft">{formatDate(sale.createdAt)}</td>
                   <td className="px-4 py-3 font-medium text-ink">{sale.customer.name}</td>
                   <td className="px-4 py-3 text-ink">{formatMoney(sale.total)}</td>
@@ -51,15 +55,7 @@ export default async function SalesPage() {
                       {sale.status === "confirmed" ? "Confirmada" : "Cancelada"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/sales/${sale.id}`}
-                      className="font-semibold text-accent hover:underline"
-                    >
-                      Ver
-                    </Link>
-                  </td>
-                </tr>
+                </ClickableRow>
               ))}
             </tbody>
           </table>
