@@ -13,6 +13,8 @@ export default async function BulkUpdatePage() {
       cost: true,
       fractionUnit: true,
       fractionPrice: true,
+      brand: true,
+      supplier: { select: { name: true } },
     },
   });
 

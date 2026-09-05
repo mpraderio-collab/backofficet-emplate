@@ -27,9 +27,12 @@ function parseForm(formData: FormData) {
     cost: formData.get("cost"),
     stock: formData.get("stock"),
     supplierId: formData.get("supplierId"),
-    fractionUnit: formData.get("fractionUnit"),
-    unitSize: formData.get("unitSize"),
-    fractionPrice: formData.get("fractionPrice"),
+    // Estos tres campos no se renderizan cuando "sellsByFraction" está
+    // apagado, así que formData.get() devuelve null (no ""), lo que
+    // rompía la validación de Zod (espera string | undefined, no null).
+    fractionUnit: formData.get("fractionUnit") ?? "",
+    unitSize: formData.get("unitSize") ?? "",
+    fractionPrice: formData.get("fractionPrice") ?? "",
     brand: formData.get("brand"),
     animalType: formData.get("animalType"),
     animalSize: formData.get("animalSize"),

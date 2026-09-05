@@ -11,6 +11,8 @@ type ProductOption = {
   cost: number | null;
   fractionUnit: string | null;
   fractionPrice: number | null;
+  brand: string | null;
+  supplier: { name: string } | null;
 };
 
 const initialState: BulkUpdateState = {};
@@ -19,11 +21,38 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
   const [state, formAction, pending] = useActionState(bulkUpdatePrices, initialState);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [percent, setPercent] = useState(0);
+  const [brandFilter, setBrandFilter] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("");
 
-  const allSelected = products.length > 0 && selected.size === products.length;
+  const brands = useMemo(
+    () => [...new Set(products.map((p) => p.brand).filter((b): b is string => Boolean(b)))].sort(),
+    [products],
+  );
+  const suppliers = useMemo(
+    () =>
+      [...new Set(products.map((p) => p.supplier?.name).filter((s): s is string => Boolean(s)))].sort(),
+    [products],
+  );
+
+  const visibleProducts = products.filter(
+    (p) =>
+      (!brandFilter || p.brand === brandFilter) &&
+      (!supplierFilter || p.supplier?.name === supplierFilter),
+  );
+
+  const allSelected =
+    visibleProducts.length > 0 && visibleProducts.every((p) => selected.has(p.id));
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(products.map((p) => p.id)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        for (const p of visibleProducts) next.delete(p.id);
+      } else {
+        for (const p of visibleProducts) next.add(p.id);
+      }
+      return next;
+    });
   }
 
   function toggleOne(id: string) {
@@ -39,13 +68,13 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
 
   const preview = useMemo(
     () =>
-      products.map((p) => ({
+      visibleProducts.map((p) => ({
         ...p,
         newPrice: Math.round(p.price * factor),
         newCost: p.cost != null ? Math.round(p.cost * factor) : null,
         newFractionPrice: p.fractionPrice != null ? Math.round(p.fractionPrice * factor) : null,
       })),
-    [products, factor],
+    [visibleProducts, factor],
   );
 
   if (products.length === 0) {
@@ -59,6 +88,36 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
       ))}
 
       <div className="flex flex-wrap items-end gap-4 rounded-xl border border-line bg-surface p-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Marca</span>
+          <select
+            value={brandFilter}
+            onChange={(e) => setBrandFilter(e.target.value)}
+            className="input w-48"
+          >
+            <option value="">Todas las marcas</option>
+            {brands.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Proveedor</span>
+          <select
+            value={supplierFilter}
+            onChange={(e) => setSupplierFilter(e.target.value)}
+            className="input w-48"
+          >
+            <option value="">Todos los proveedores</option>
+            {suppliers.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">
             Porcentaje de aumento (usá negativo para bajar precios)
