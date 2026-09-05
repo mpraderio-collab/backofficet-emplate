@@ -32,6 +32,32 @@ export function toDateInputValue(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Formato "YYYY-MM" para un <input type="month">.
+export function toMonthInputValue(d: Date): string {
+  return d.toISOString().slice(0, 7);
+}
+
+const MONTH_NAMES_LONG = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+
+// "septiembre 2026" a partir de una fecha que representa el primer día de un
+// mes (guardada en UTC), sin depender de la zona horaria del navegador.
+export function formatMonth(d: Date): string {
+  return `${MONTH_NAMES_LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
 // Envuelve Date.now() en una función plana para no llamarlo directo en el
 // cuerpo de un componente (la regla react-hooks/purity lo marca como
 // impuro ahí, aunque el resultado no se usa como estado).

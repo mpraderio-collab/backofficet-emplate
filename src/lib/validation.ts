@@ -137,6 +137,10 @@ export const expenseSchema = z.object({
     .int("El monto no puede tener centavos")
     .positive("El monto tiene que ser mayor a cero"),
   date: z.coerce.date({ message: "Elegí una fecha válida" }),
+  referenceMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "Elegí un mes válido")
+    .transform((value) => new Date(`${value}-01T00:00:00.000Z`)),
   paymentMethod: z.enum(paymentMethods).default("cash"),
   isRecurring: z.coerce.boolean().default(false),
   note: z.string().trim().max(300).optional().or(z.literal("")),

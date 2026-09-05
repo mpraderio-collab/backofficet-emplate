@@ -3,7 +3,7 @@
 import { useActionState, useRef, useState, useEffect } from "react";
 import { Field } from "@/components/Field";
 import { formatMoney } from "@/lib/format";
-import { toDateInputValue } from "@/lib/reports";
+import { toDateInputValue, toMonthInputValue } from "@/lib/reports";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import { createExpense, type ExpenseActionState } from "./actions";
 
@@ -30,6 +30,7 @@ export function ExpenseForm({
   const [expenseTypeId, setExpenseTypeId] = useState(expenseTypes[0]?.id ?? "");
   const [amount, setAmount] = useState<number | "">("");
   const [date, setDate] = useState(() => toDateInputValue(new Date()));
+  const [referenceMonth, setReferenceMonth] = useState(() => toMonthInputValue(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [isRecurring, setIsRecurring] = useState(false);
   const [note, setNote] = useState("");
@@ -45,6 +46,7 @@ export function ExpenseForm({
       setNote("");
       setIsRecurring(false);
       setDate(toDateInputValue(new Date()));
+      setReferenceMonth(toMonthInputValue(new Date()));
     }
   }
 
@@ -58,6 +60,12 @@ export function ExpenseForm({
     setPaymentMethod(s.paymentMethod);
     setIsRecurring(true);
     setDate(toDateInputValue(new Date()));
+    setReferenceMonth(toMonthInputValue(new Date()));
+  }
+
+  function handleDateChange(value: string) {
+    setDate(value);
+    if (value) setReferenceMonth(value.slice(0, 7));
   }
 
   return (
@@ -121,11 +129,24 @@ export function ExpenseForm({
               name="date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => handleDateChange(e.target.value)}
               required
               className="input"
             />
           </Field>
+          <Field label="Mes al que corresponde" error={state.fieldErrors?.referenceMonth}>
+            <input
+              name="referenceMonth"
+              type="month"
+              value={referenceMonth}
+              onChange={(e) => setReferenceMonth(e.target.value)}
+              required
+              className="input"
+            />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <Field label="Método de pago" error={state.fieldErrors?.paymentMethod}>
             <select
               name="paymentMethod"

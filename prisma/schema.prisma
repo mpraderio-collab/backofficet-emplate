@@ -224,6 +224,8 @@ model Expense {
   expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [id])
   amount        Int
   date          DateTime // fecha del gasto (puede no ser el día que se carga)
+  referenceMonth DateTime? // primer día del mes al que corresponde el gasto — puede diferir
+  // del mes de `date` (ej: alquiler de diciembre pagado el 3 de enero)
   paymentMethod String // cash | transfer | card | other
   isRecurring   Boolean     @default(false) // ej: alquiler, luz — se repite todos los meses
   note          String?
@@ -234,4 +236,5 @@ model Expense {
 
   @@index([expenseTypeId])
   @@index([date])
+  @@index([referenceMonth])
 }
