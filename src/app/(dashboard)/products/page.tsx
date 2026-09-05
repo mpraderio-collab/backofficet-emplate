@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { calculateMargin, formatMarginPercent } from "@/lib/margin";
+import { effectiveMinStock, isLowStock } from "@/lib/stock";
 
 export default async function ProductsPage() {
   const products = await db.product.findMany({
@@ -80,13 +81,14 @@ export default async function ProductsPage() {
                       className={
                         p.stock <= 0
                           ? "font-semibold text-err-ink"
-                          : p.stock <= 5
+                          : isLowStock(p.stock, p.minStock)
                             ? "font-semibold text-warn-ink"
                             : "text-ink"
                       }
                     >
                       {formatQuantity(p.stock, p.fractionUnit)}
                     </span>
+                    <p className="text-xs text-ink-faint">mín. {effectiveMinStock(p.minStock)}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span

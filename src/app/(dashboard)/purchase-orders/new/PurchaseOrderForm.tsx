@@ -2,9 +2,10 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatQuantity } from "@/lib/format";
 import { Combobox } from "@/components/Combobox";
 import { toDateInputValue } from "@/lib/reports";
+import { isLowStock } from "@/lib/stock";
 import { createPurchaseOrder, type PurchaseOrderActionState } from "../actions";
 
 type ProductOption = {
@@ -17,6 +18,9 @@ type ProductOption = {
   animalType: string | null;
   animalSize: string | null;
   animalWeight: string | null;
+  supplierId: string | null;
+  stock: number;
+  minStock: number | null;
 };
 
 function productCharacteristics(product: ProductOption): string {
@@ -55,6 +59,10 @@ export function PurchaseOrderForm({
   const [orderDate, setOrderDate] = useState(() => toDateInputValue(new Date()));
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
+
+  const suggestedProducts = products.filter(
+    (p) => p.supplierId === supplierId && isLowStock(p.stock, p.minStock),
+  );
 
   function selectProduct(id: string) {
     setSelectedProductId(id);
@@ -123,6 +131,33 @@ export function PurchaseOrderForm({
           />
         </label>
       </div>
+
+      {suggestedProducts.length > 0 && (
+        <div className="rounded-xl border border-line bg-warn-bg p-4">
+          <p className="text-sm font-semibold text-warn-ink">
+            Productos de este proveedor con stock bajo
+          </p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {suggestedProducts.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-ink">
+                  {p.name}{" "}
+                  <span className="text-ink-faint">
+                    ({formatQuantity(p.stock, p.fractionUnit)} disp.)
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => selectProduct(p.id)}
+                  className="shrink-0 text-xs font-semibold text-accent hover:underline"
+                >
+                  + Agregar
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-xl border border-line bg-bg p-5">
         <p className="text-sm font-semibold text-ink">Agregar producto</p>

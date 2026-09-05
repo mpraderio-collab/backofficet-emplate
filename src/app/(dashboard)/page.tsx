@@ -5,6 +5,7 @@ import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { monthBuckets, startOfMonth, endOfToday } from "@/lib/reports";
 import { estimateItemCost } from "@/lib/margin";
+import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { BarChart } from "@/components/charts/BarChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 
@@ -14,7 +15,7 @@ export default async function DashboardPage() {
 
   const [
     productCount,
-    lowStockProducts,
+    activeProducts,
     pendingPurchaseOrders,
     customerBalances,
     supplierBalances,
@@ -24,9 +25,8 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     db.product.count({ where: { status: "active" } }),
     db.product.findMany({
-      where: { status: "active", stock: { lte: 5 } },
-      orderBy: { stock: "asc" },
-      take: 6,
+      where: { status: "active" },
+      select: { id: true, name: true, stock: true, fractionUnit: true, minStock: true },
     }),
     db.purchaseOrder.findMany({
       where: { status: { in: ["pending", "sent"] } },
@@ -62,6 +62,11 @@ export default async function DashboardPage() {
       select: { total: true },
     }),
   ]);
+
+  const lowStockProducts = activeProducts
+    .filter((p) => isLowStock(p.stock, p.minStock))
+    .sort((a, b) => a.stock - effectiveMinStock(a.minStock) - (b.stock - effectiveMinStock(b.minStock)))
+    .slice(0, 6);
 
   const totalReceivable = [...customerBalances.values()].reduce(
     (sum, b) => sum + Math.max(b, 0),

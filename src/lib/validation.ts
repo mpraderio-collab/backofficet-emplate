@@ -19,6 +19,10 @@ export const productSchema = z.object({
     z.coerce.number().int().nonnegative().optional(),
   ),
   stock: z.coerce.number().nonnegative().default(0),
+  minStock: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce.number().nonnegative().optional(),
+  ),
   supplierId: z
     .string()
     .trim()

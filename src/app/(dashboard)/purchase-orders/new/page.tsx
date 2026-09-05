@@ -16,6 +16,9 @@ export default async function NewPurchaseOrderPage() {
         animalType: true,
         animalSize: true,
         animalWeight: true,
+        supplierId: true,
+        stock: true,
+        minStock: true,
       },
     }),
   ]);

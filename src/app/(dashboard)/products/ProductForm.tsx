@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
+import { DEFAULT_MIN_STOCK } from "@/lib/stock";
 import type { ProductActionState } from "./actions";
 
 type Supplier = { id: string; name: string };
@@ -20,6 +21,7 @@ type Props = {
     price: number;
     cost: number | null;
     stock: number;
+    minStock: number | null;
     supplierId: string | null;
     fractionUnit: string | null;
     unitSize: number | null;
@@ -111,7 +113,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
         </Field>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Field
           label={sellsByFraction ? "Precio (unidad completa)" : "Precio de venta"}
           error={state.fieldErrors?.price}
@@ -151,6 +153,20 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
             step="any"
             defaultValue={defaultValues?.stock ?? 0}
             required
+            className="input"
+          />
+        </Field>
+        <Field
+          label="Stock mínimo"
+          error={state.fieldErrors?.minStock}
+          hint={`Opcional. Default: ${DEFAULT_MIN_STOCK}`}
+        >
+          <input
+            name="minStock"
+            type="number"
+            min={0}
+            step="any"
+            defaultValue={defaultValues?.minStock ?? ""}
             className="input"
           />
         </Field>

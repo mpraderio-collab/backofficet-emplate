@@ -26,6 +26,7 @@ function parseForm(formData: FormData) {
     price: formData.get("price"),
     cost: formData.get("cost"),
     stock: formData.get("stock"),
+    minStock: formData.get("minStock"),
     supplierId: formData.get("supplierId"),
     // Estos tres campos no se renderizan cuando "sellsByFraction" está
     // apagado, así que formData.get() devuelve null (no ""), lo que
@@ -61,6 +62,7 @@ function toProductData(data: z.infer<typeof productSchema>) {
     fractionUnit: data.fractionUnit ?? null,
     unitSize: data.fractionUnit ? (data.unitSize ?? null) : null,
     fractionPrice: data.fractionUnit ? (data.fractionPrice ?? null) : null,
+    minStock: data.minStock ?? null,
   };
 }
 

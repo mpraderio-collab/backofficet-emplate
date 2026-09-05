@@ -24,6 +24,7 @@ model Product {
   price       Int // precio de venta de la unidad completa (ej: la bolsa entera)
   cost        Int? // costo — interno, referencia para margen
   stock       Float    @default(0) // en la unidad de fracción si el producto es fraccionable (ej: kg); si no, en unidades enteras
+  minStock    Float?   // nivel para avisar reposición; si no se carga, se usa un default en la app
   status      String   @default("active") // active | archived
   supplierId  String?
   supplier    Supplier? @relation(fields: [supplierId], references: [id])

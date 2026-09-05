@@ -40,6 +40,7 @@ export default async function EditProductPage(
             price: product.price,
             cost: product.cost,
             stock: product.stock,
+            minStock: product.minStock,
             supplierId: product.supplierId,
             fractionUnit: product.fractionUnit,
             unitSize: product.unitSize,
