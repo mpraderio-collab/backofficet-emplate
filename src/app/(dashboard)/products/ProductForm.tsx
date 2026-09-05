@@ -117,6 +117,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
         <Field
           label={sellsByFraction ? "Precio (unidad completa)" : "Precio de venta"}
           error={state.fieldErrors?.price}
+          labelClassName="min-h-10"
         >
           <input
             name="price"
@@ -132,6 +133,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
           label="Costo"
           error={state.fieldErrors?.cost}
           hint="Opcional, solo referencia interna"
+          labelClassName="min-h-10"
         >
           <input
             name="cost"
@@ -145,6 +147,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
         <Field
           label={sellsByFraction ? `Stock (${defaultValues?.fractionUnit || "unidad"})` : "Stock"}
           error={state.fieldErrors?.stock}
+          labelClassName="min-h-10"
         >
           <input
             name="stock"
@@ -160,6 +163,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
           label="Stock mínimo"
           error={state.fieldErrors?.minStock}
           hint={`Opcional. Default: ${DEFAULT_MIN_STOCK}`}
+          labelClassName="min-h-10"
         >
           <input
             name="minStock"
@@ -189,6 +193,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
             label="Unidad de fracción"
             error={state.fieldErrors?.fractionUnit}
             hint='Ej: "kg"'
+            labelClassName="min-h-10"
           >
             <input
               name="fractionUnit"
@@ -201,6 +206,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
             label="Tamaño de la unidad completa"
             error={state.fieldErrors?.unitSize}
             hint="Ej: 20 (kg por bolsa)"
+            labelClassName="min-h-10"
           >
             <input
               name="unitSize"
@@ -215,6 +221,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
             label="Precio por fracción"
             error={state.fieldErrors?.fractionPrice}
             hint="Ej: precio por kg"
+            labelClassName="min-h-10"
           >
             <input
               name="fractionPrice"
