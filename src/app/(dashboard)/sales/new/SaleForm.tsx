@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { Combobox } from "@/components/Combobox";
+import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import { createSale, type SaleActionState } from "../actions";
 
 type ProductOption = {
@@ -267,25 +268,37 @@ export function SaleForm({
         <input type="hidden" name="customerId" value={customerId} />
         <input type="hidden" name="items" value={JSON.stringify(items)} />
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink">
-            Entrega al momento de la venta (opcional)
-          </span>
-          <input
-            name="initialPayment"
-            type="number"
-            min={0}
-            max={total}
-            step={1}
-            value={initialPayment}
-            onChange={(e) => setInitialPayment(Number(e.target.value))}
-            className="input max-w-[200px]"
-          />
-          <span className="text-xs text-ink-soft">
-            Si el cliente entrega parte (o todo) del pago ahora, el resto
-            queda pendiente en su cuenta corriente.
-          </span>
-        </label>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink">
+              Entrega al momento de la venta (opcional)
+            </span>
+            <input
+              name="initialPayment"
+              type="number"
+              min={0}
+              max={total}
+              step={1}
+              value={initialPayment}
+              onChange={(e) => setInitialPayment(Number(e.target.value))}
+              className="input max-w-[200px]"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink">Método de pago</span>
+            <select name="initialPaymentMethod" defaultValue="cash" className="input max-w-[160px]">
+              {paymentMethods.map((method) => (
+                <option key={method} value={method}>
+                  {paymentMethodLabels[method]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="-mt-2 text-xs text-ink-soft">
+          Si el cliente entrega parte (o todo) del pago ahora, el resto queda pendiente en su
+          cuenta corriente.
+        </p>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Nota (opcional)</span>

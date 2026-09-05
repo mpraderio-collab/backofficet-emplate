@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Field } from "@/components/Field";
+import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import type { PaymentActionState } from "../actions";
 
 const initialState: PaymentActionState = {};
@@ -29,6 +30,15 @@ export function PaymentForm({
           required
           className="input sm:w-40"
         />
+      </Field>
+      <Field label="Método de pago">
+        <select name="paymentMethod" defaultValue="cash" className="input sm:w-40">
+          {paymentMethods.map((method) => (
+            <option key={method} value={method}>
+              {paymentMethodLabels[method]}
+            </option>
+          ))}
+        </select>
       </Field>
       <Field label="Nota (opcional)">
         <input name="note" className="input sm:w-56" placeholder="Ej: transferencia" />

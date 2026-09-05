@@ -36,6 +36,7 @@ export async function createSale(
     note: formData.get("note"),
     items: itemsRaw,
     initialPayment: formData.get("initialPayment"),
+    initialPaymentMethod: formData.get("initialPaymentMethod"),
   });
   if (!result.success) {
     return { error: result.error.issues[0]?.message ?? "Revisá los datos." };
@@ -110,6 +111,7 @@ export async function createSale(
             customerId: data.customerId,
             type: "payment",
             amount: initialPayment,
+            paymentMethod: data.initialPaymentMethod,
             note: "Entrega al momento de la venta",
           },
         });

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney } from "@/lib/format";
 import { getCustomerBalance } from "@/lib/ledger";
+import { paymentMethodLabels, type PaymentMethod } from "@/lib/payment-method";
 import { updateCustomer, registerCustomerPayment } from "../actions";
 import { CustomerForm } from "../CustomerForm";
 import { PaymentForm } from "./PaymentForm";
@@ -86,6 +87,7 @@ export default async function CustomerDetailPage(
                     <div>
                       <p className="font-medium text-ink">
                         {entry.type === "charge" ? "Venta" : "Pago"}
+                        {entry.paymentMethod ? ` · ${paymentMethodLabels[entry.paymentMethod as PaymentMethod] ?? entry.paymentMethod}` : ""}
                         {entry.note ? ` · ${entry.note}` : ""}
                       </p>
                       <p className="text-xs text-ink-faint">{formatDate(entry.createdAt)}</p>

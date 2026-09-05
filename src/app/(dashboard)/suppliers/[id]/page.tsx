@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney } from "@/lib/format";
 import { getSupplierBalance } from "@/lib/ledger";
+import { paymentMethodLabels, type PaymentMethod } from "@/lib/payment-method";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { updateSupplier, registerSupplierPayment } from "../actions";
 import { SupplierForm } from "../SupplierForm";
@@ -87,6 +88,7 @@ export default async function SupplierDetailPage(
                     <div>
                       <p className="font-medium text-ink">
                         {entry.type === "charge" ? "Pedido recibido" : "Pago"}
+                        {entry.paymentMethod ? ` · ${paymentMethodLabels[entry.paymentMethod as PaymentMethod] ?? entry.paymentMethod}` : ""}
                         {entry.note ? ` · ${entry.note}` : ""}
                       </p>
                       <p className="text-xs text-ink-faint">{formatDate(entry.createdAt)}</p>

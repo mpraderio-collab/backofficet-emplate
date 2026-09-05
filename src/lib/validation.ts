@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paymentMethods } from "./payment-method";
 
 export const productSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(160),
@@ -74,6 +75,7 @@ export const ledgerPaymentSchema = z.object({
     .number({ message: "El monto tiene que ser un número" })
     .int("El monto no puede tener centavos")
     .positive("El monto tiene que ser mayor a cero"),
+  paymentMethod: z.enum(paymentMethods).default("cash"),
   note: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
@@ -90,6 +92,7 @@ export const saleSchema = z.object({
   note: z.string().trim().max(300).optional().or(z.literal("")),
   items: z.array(saleItemSchema).min(1, "Agregá al menos un producto"),
   initialPayment: z.coerce.number().int().nonnegative().optional().default(0),
+  initialPaymentMethod: z.enum(paymentMethods).default("cash"),
 });
 
 export const purchaseOrderItemSchema = z.object({

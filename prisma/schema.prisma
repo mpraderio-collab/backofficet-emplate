@@ -21,6 +21,7 @@ model Product {
   sku         String?  @unique
   name        String
   description String?
+  imageUrl    String? // foto del producto (Vercel Blob), usada en buscadores/listados
   price       Int // precio de venta de la unidad completa (ej: la bolsa entera)
   cost        Int? // costo — interno, referencia para margen
   stock       Float    @default(0) // en la unidad de fracción si el producto es fraccionable (ej: kg); si no, en unidades enteras
@@ -118,6 +119,7 @@ model CustomerLedgerEntry {
   customer   Customer @relation(fields: [customerId], references: [id])
   type       String // "charge" (venta) | "payment" (pago del cliente)
   amount     Int // siempre positivo; el signo lo da "type"
+  paymentMethod String? // solo en type "payment": cash | transfer | card | other
   note       String?
   saleId     String?  @unique
   sale       Sale?    @relation(fields: [saleId], references: [id])
@@ -174,6 +176,7 @@ model SupplierLedgerEntry {
   supplier        Supplier       @relation(fields: [supplierId], references: [id])
   type            String // "charge" (recepción de pedido) | "payment" (pago al proveedor)
   amount          Int
+  paymentMethod   String? // solo en type "payment": cash | transfer | card | other
   note            String?
   purchaseOrderId String?        @unique
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])

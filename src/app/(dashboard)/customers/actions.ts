@@ -82,6 +82,7 @@ export async function registerCustomerPayment(
 
   const result = ledgerPaymentSchema.safeParse({
     amount: formData.get("amount"),
+    paymentMethod: formData.get("paymentMethod"),
     note: formData.get("note"),
   });
   if (!result.success) {
@@ -93,6 +94,7 @@ export async function registerCustomerPayment(
       customerId,
       type: "payment",
       amount: result.data.amount,
+      paymentMethod: result.data.paymentMethod,
       note: result.data.note || null,
     },
   });
