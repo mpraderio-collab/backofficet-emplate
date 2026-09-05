@@ -21,6 +21,7 @@ type ProductOption = {
   supplierId: string | null;
   stock: number;
   minStock: number | null;
+  imageUrl: string | null;
 };
 
 function productCharacteristics(product: ProductOption): string {
@@ -170,7 +171,9 @@ export function PurchaseOrderForm({
               options={products.map((p) => ({
                 value: p.id,
                 label: p.name,
-                sublabel: productCharacteristics(p),
+                imageUrl: p.imageUrl,
+                description: productCharacteristics(p) || undefined,
+                priceLabel: p.cost != null ? formatMoney(p.cost) : undefined,
               }))}
               placeholder="Buscar producto…"
             />

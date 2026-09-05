@@ -49,6 +49,7 @@ export default async function EditProductPage(
             animalType: product.animalType,
             animalSize: product.animalSize,
             animalWeight: product.animalWeight,
+            imageUrl: product.imageUrl,
           }}
         />
       </div>

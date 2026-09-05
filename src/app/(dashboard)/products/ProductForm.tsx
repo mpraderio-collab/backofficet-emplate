@@ -30,6 +30,7 @@ type Props = {
     animalType: string | null;
     animalSize: string | null;
     animalWeight: string | null;
+    imageUrl?: string | null;
   };
   submitLabel: string;
 };
@@ -42,6 +43,8 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
     Boolean(defaultValues?.fractionUnit),
   );
   const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? "");
+  const [imagePreview, setImagePreview] = useState(defaultValues?.imageUrl ?? "");
+  const [removeImage, setRemoveImage] = useState(false);
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-5">
@@ -53,6 +56,44 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
 
       <Field label="Nombre" error={state.fieldErrors?.name}>
         <input name="name" defaultValue={defaultValues?.name} required className="input" />
+      </Field>
+
+      <Field label="Foto del producto" hint="Opcional. Se usa en los buscadores y listados.">
+        <div className="flex items-center gap-4">
+          {imagePreview && !removeImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imagePreview}
+              alt=""
+              className="h-16 w-16 rounded-lg border border-line object-cover"
+            />
+          )}
+          <input
+            name="image"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setImagePreview(URL.createObjectURL(file));
+                setRemoveImage(false);
+              }
+            }}
+            className="input"
+          />
+        </div>
+        {defaultValues?.imageUrl && (
+          <label className="mt-1 flex items-center gap-2 text-xs text-ink-soft">
+            <input
+              type="checkbox"
+              name="removeImage"
+              checked={removeImage}
+              onChange={(e) => setRemoveImage(e.target.checked)}
+              className="h-3.5 w-3.5"
+            />
+            Quitar la imagen actual
+          </label>
+        )}
       </Field>
 
       <div className="grid grid-cols-2 gap-4">

@@ -50,17 +50,31 @@ export default async function ProductsPage() {
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-line-soft last:border-0">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-ink">{p.name}</p>
-                    {p.sku && (
-                      <p className="font-mono text-xs text-ink-faint">{p.sku}</p>
-                    )}
-                    {(p.brand || p.animalType || p.animalSize || p.animalWeight) && (
-                      <p className="text-xs text-ink-faint">
-                        {[p.brand, p.animalType, p.animalSize, p.animalWeight]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.imageUrl}
+                          alt=""
+                          className="h-10 w-10 shrink-0 rounded-lg border border-line object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
+                      )}
+                      <div>
+                        <p className="font-medium text-ink">{p.name}</p>
+                        {p.sku && (
+                          <p className="font-mono text-xs text-ink-faint">{p.sku}</p>
+                        )}
+                        {(p.brand || p.animalType || p.animalSize || p.animalWeight) && (
+                          <p className="text-xs text-ink-faint">
+                            {[p.brand, p.animalType, p.animalSize, p.animalWeight]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {p.supplier?.name ?? "—"}

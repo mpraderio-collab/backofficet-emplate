@@ -10,6 +10,8 @@ export default async function NewSalePage() {
       select: {
         id: true,
         name: true,
+        description: true,
+        imageUrl: true,
         price: true,
         stock: true,
         fractionUnit: true,

@@ -19,6 +19,7 @@ export default async function NewPurchaseOrderPage() {
         supplierId: true,
         stock: true,
         minStock: true,
+        imageUrl: true,
       },
     }),
   ]);

@@ -3,10 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
+import { put } from "@vercel/blob";
 import type { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { productSchema } from "@/lib/validation";
+
+// Sube la foto elegida a Vercel Blob y devuelve su URL, o null si no se
+// eligió ningún archivo nuevo (para no pisar la imagen ya guardada).
+async function uploadProductImage(formData: FormData): Promise<string | null> {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return null;
+  const blob = await put(`products/${crypto.randomUUID()}-${file.name}`, file, {
+    access: "public",
+    addRandomSuffix: false,
+  });
+  return blob.url;
+}
 
 async function requireAuth() {
   const session = await auth();
@@ -77,9 +90,13 @@ export async function createProduct(
     return { error: "Revisá los campos marcados.", fieldErrors: toFieldErrors(result) };
   }
 
+  const imageUrl = await uploadProductImage(formData);
+
   let productId: string;
   try {
-    const product = await db.product.create({ data: toProductData(result.data) });
+    const product = await db.product.create({
+      data: { ...toProductData(result.data), imageUrl },
+    });
     productId = product.id;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -107,8 +124,17 @@ export async function updateProduct(
     return { error: "Revisá los campos marcados.", fieldErrors: toFieldErrors(result) };
   }
 
+  const imageUrl = await uploadProductImage(formData);
+  const removeImage = formData.get("removeImage") === "on";
+
   try {
-    await db.product.update({ where: { id }, data: toProductData(result.data) });
+    await db.product.update({
+      where: { id },
+      data: {
+        ...toProductData(result.data),
+        ...(imageUrl ? { imageUrl } : removeImage ? { imageUrl: null } : {}),
+      },
+    });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return {

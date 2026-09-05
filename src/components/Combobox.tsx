@@ -6,6 +6,12 @@ export type ComboboxOption = {
   value: string;
   label: string;
   sublabel?: string;
+  // Fila "enriquecida" (imagen + descripción + precio), usada en el
+  // buscador de productos. Si se pasa cualquiera de estos tres, la opción
+  // se renderiza con ese layout en vez de la fila compacta de texto plano.
+  imageUrl?: string | null;
+  description?: string | null;
+  priceLabel?: string;
 };
 
 export function Combobox({
@@ -143,23 +149,55 @@ export function Combobox({
         {filtered.length === 0 ? (
           <li className="px-3 py-2 text-sm text-ink-faint">{emptyMessage}</li>
         ) : (
-          filtered.map((option, i) => (
-            <li
-              key={option.value}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectOption(option);
-              }}
-              className={`cursor-pointer px-3 py-2 text-sm ${
-                i === highlighted ? "bg-accent-soft text-accent" : "text-ink"
-              }`}
-            >
-              {option.label}
-              {option.sublabel && (
-                <span className="ml-1.5 text-xs text-ink-faint">{option.sublabel}</span>
-              )}
-            </li>
-          ))
+          filtered.map((option, i) => {
+            const isRich =
+              option.imageUrl !== undefined ||
+              option.description !== undefined ||
+              option.priceLabel !== undefined;
+            return (
+              <li
+                key={option.value}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  selectOption(option);
+                }}
+                className={`cursor-pointer px-3 py-2 text-sm ${
+                  i === highlighted ? "bg-accent-soft" : ""
+                }`}
+              >
+                {isRich ? (
+                  <div className="flex items-center gap-3">
+                    {option.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={option.imageUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-lg border border-line object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-accent">{option.label}</p>
+                      {option.description && (
+                        <p className="truncate text-xs text-ink-faint">{option.description}</p>
+                      )}
+                    </div>
+                    {option.priceLabel && (
+                      <span className="shrink-0 font-semibold text-ink">{option.priceLabel}</span>
+                    )}
+                  </div>
+                ) : (
+                  <span className={i === highlighted ? "text-accent" : "text-ink"}>
+                    {option.label}
+                    {option.sublabel && (
+                      <span className="ml-1.5 text-xs text-ink-faint">{option.sublabel}</span>
+                    )}
+                  </span>
+                )}
+              </li>
+            );
+          })
         )}
       </ul>
     </div>

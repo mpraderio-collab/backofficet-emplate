@@ -10,6 +10,8 @@ import { createSale, type SaleActionState } from "../actions";
 type ProductOption = {
   id: string;
   name: string;
+  description: string | null;
+  imageUrl: string | null;
   price: number;
   stock: number;
   fractionUnit: string | null;
@@ -156,7 +158,11 @@ export function SaleForm({
               options={products.map((p) => ({
                 value: p.id,
                 label: p.name,
-                sublabel: `${formatQuantity(p.stock, p.fractionUnit)} disp.`,
+                imageUrl: p.imageUrl,
+                description: p.description
+                  ? `${p.description} · ${formatQuantity(p.stock, p.fractionUnit)} disp.`
+                  : `${formatQuantity(p.stock, p.fractionUnit)} disp.`,
+                priceLabel: formatMoney(p.price),
               }))}
               placeholder="Buscar producto…"
             />
