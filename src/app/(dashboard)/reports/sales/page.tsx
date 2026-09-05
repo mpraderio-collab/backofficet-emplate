@@ -17,6 +17,7 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
 
   const from = fromParam ? new Date(`${fromParam}T00:00:00`) : startOfMonth();
   const to = toParam ? new Date(`${toParam}T23:59:59`) : endOfToday();
+  const hasFilters = Boolean(fromParam || toParam);
 
   const sales = await db.sale.findMany({
     where: { status: "confirmed", createdAt: { gte: from, lte: to } },
@@ -117,6 +118,14 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
               {r.label}
             </Link>
           ))}
+          {hasFilters && (
+            <Link
+              href="/reports/sales"
+              className="rounded-lg border border-border-input bg-bg px-3 py-2 text-xs font-semibold text-ink hover:bg-surface"
+            >
+              Limpiar filtros
+            </Link>
+          )}
         </div>
       </div>
 

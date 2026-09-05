@@ -7,6 +7,7 @@ import { toDateInputValue } from "@/lib/reports";
 export default async function CashRegisterReportPage(props: PageProps<"/reports/cash-register">) {
   const searchParams = await props.searchParams;
   const dateParam = typeof searchParams?.date === "string" ? searchParams.date : undefined;
+  const hasFilters = Boolean(dateParam);
   const day = dateParam ? new Date(`${dateParam}T00:00:00`) : new Date();
   day.setHours(0, 0, 0, 0);
   const dayEnd = new Date(day);
@@ -85,6 +86,14 @@ export default async function CashRegisterReportPage(props: PageProps<"/reports/
         >
           Ver
         </button>
+        {hasFilters && (
+          <Link
+            href="/reports/cash-register"
+            className="rounded-lg border border-border-input bg-bg px-3 py-2 text-xs font-semibold text-ink hover:bg-surface"
+          >
+            Limpiar filtros
+          </Link>
+        )}
       </form>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">

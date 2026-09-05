@@ -20,6 +20,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
 
   const from = fromParam ? new Date(`${fromParam}T00:00:00`) : startOfMonth();
   const to = toParam ? new Date(`${toParam}T23:59:59`) : endOfToday();
+  const hasFilters = Boolean(fromParam || toParam);
 
   const expenses = await db.expense.findMany({
     where: { date: { gte: from, lte: to } },
@@ -112,6 +113,14 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
               {r.label}
             </Link>
           ))}
+          {hasFilters && (
+            <Link
+              href="/expenses"
+              className="rounded-lg border border-border-input bg-bg px-3 py-2 text-xs font-semibold text-ink hover:bg-surface"
+            >
+              Limpiar filtros
+            </Link>
+          )}
         </div>
       </div>
 
