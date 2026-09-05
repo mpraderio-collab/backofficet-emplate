@@ -109,6 +109,10 @@ export const purchaseOrderStatuses = ["pending", "sent", "received", "cancelled"
 export const receivePurchaseOrderItemSchema = z.object({
   itemId: z.string().min(1),
   receivedQuantity: z.coerce.number().nonnegative(),
+  newCost: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce.number().int().nonnegative().optional(),
+  ),
 });
 
 export const receivePurchaseOrderSchema = z.object({

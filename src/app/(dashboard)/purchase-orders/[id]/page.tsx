@@ -6,6 +6,17 @@ import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purc
 import { StatusActions } from "./StatusActions";
 import { ReceiveOrderForm } from "./ReceiveOrderForm";
 
+function productCharacteristics(product: {
+  brand: string | null;
+  animalType: string | null;
+  animalSize: string | null;
+  animalWeight: string | null;
+}): string {
+  return [product.brand, product.animalType, product.animalSize, product.animalWeight]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export default async function PurchaseOrderDetailPage(
   props: PageProps<"/purchase-orders/[id]">,
 ) {
@@ -14,7 +25,21 @@ export default async function PurchaseOrderDetailPage(
     where: { id },
     include: {
       supplier: true,
-      items: { include: { product: { select: { name: true, fractionUnit: true } } } },
+      items: {
+        include: {
+          product: {
+            select: {
+              name: true,
+              fractionUnit: true,
+              cost: true,
+              brand: true,
+              animalType: true,
+              animalSize: true,
+              animalWeight: true,
+            },
+          },
+        },
+      },
       statusEvents: { orderBy: { createdAt: "asc" } },
     },
   });
@@ -59,7 +84,14 @@ export default async function PurchaseOrderDetailPage(
           <tbody>
             {po.items.map((item) => (
               <tr key={item.id} className="border-b border-line-soft last:border-0">
-                <td className="px-4 py-2 text-ink">{item.product.name}</td>
+                <td className="px-4 py-2 text-ink">
+                  {item.product.name}
+                  {productCharacteristics(item.product) && (
+                    <p className="text-xs font-normal text-ink-faint">
+                      {productCharacteristics(item.product)}
+                    </p>
+                  )}
+                </td>
                 <td className="px-4 py-2 text-ink-soft">{item.quantity} u.</td>
                 <td className="px-4 py-2 text-ink-soft">{formatMoney(item.unitCost)}</td>
                 <td className="px-4 py-2 text-ink">
@@ -127,8 +159,10 @@ export default async function PurchaseOrderDetailPage(
           items={po.items.map((item) => ({
             id: item.id,
             productName: item.product.name,
+            productCharacteristics: productCharacteristics(item.product),
             quantity: item.quantity,
             unitCost: item.unitCost,
+            currentCost: item.product.cost,
           }))}
         />
       )}

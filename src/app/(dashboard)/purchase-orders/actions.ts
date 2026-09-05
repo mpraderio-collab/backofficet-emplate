@@ -97,7 +97,7 @@ export async function updatePurchaseOrderStatus(
 // transición de estado como las demás.
 export async function receivePurchaseOrder(
   id: string,
-  items: { itemId: string; receivedQuantity: number }[],
+  items: { itemId: string; receivedQuantity: number; newCost?: number }[],
 ): Promise<{ error?: string }> {
   await requireAuth();
 
@@ -117,6 +117,9 @@ export async function receivePurchaseOrder(
 
   const receivedByItemId = new Map(
     result.data.items.map((i) => [i.itemId, i.receivedQuantity]),
+  );
+  const newCostByItemId = new Map(
+    result.data.items.map((i) => [i.itemId, i.newCost]),
   );
   for (const item of po.items) {
     if (!receivedByItemId.has(item.id)) {
@@ -142,9 +145,13 @@ export async function receivePurchaseOrder(
     ...po.items.map((item) => {
       const receivedQuantity = receivedByItemId.get(item.id) ?? 0;
       const stockDelta = receivedQuantity * (unitSizeByProductId.get(item.productId) ?? 1);
+      const newCost = newCostByItemId.get(item.id);
       return db.product.update({
         where: { id: item.productId },
-        data: { stock: { increment: stockDelta } },
+        data: {
+          stock: { increment: stockDelta },
+          ...(newCost != null ? { cost: newCost } : {}),
+        },
       });
     }),
     ...po.items.map((item) => {
