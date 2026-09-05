@@ -42,27 +42,29 @@ export function SidebarShell({
   return (
     <>
       <aside
-        className={
-          collapsed
-            ? "hidden"
-            : "print:hidden hidden w-[236px] shrink-0 flex-col bg-primary text-white md:flex"
-        }
+        className={`t-card-resize print:hidden hidden shrink-0 overflow-hidden bg-primary text-white md:flex ${
+          collapsed ? "w-0" : "w-[236px]"
+        }`}
       >
-        <div className="px-6 py-6">
-          <p className="text-lg font-bold text-white">Backoffice</p>
-          <p className="mt-1 text-xs text-white/60">Gestión interna</p>
-        </div>
-        <DashboardNav />
-        <div className="border-t border-white/12 p-3">
-          <p className="truncate px-3 py-1 text-xs text-white/50">{userLabel}</p>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-white/78 transition-colors hover:bg-white/12 hover:text-white"
-            >
-              Cerrar sesión
-            </button>
-          </form>
+        {/* Ancho fijo interno: el contenido no se reacomoda ni el texto se
+            corta mientras el <aside> de afuera anima su ancho hacia 0. */}
+        <div className="flex h-full w-[236px] shrink-0 flex-col">
+          <div className="px-6 py-6">
+            <p className="text-lg font-bold text-white">Backoffice</p>
+            <p className="mt-1 text-xs text-white/60">Gestión interna</p>
+          </div>
+          <DashboardNav />
+          <div className="border-t border-white/12 p-3">
+            <p className="truncate px-3 py-1 text-xs text-white/50">{userLabel}</p>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-white/78 transition-colors hover:bg-white/12 hover:text-white"
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
         </div>
       </aside>
 
