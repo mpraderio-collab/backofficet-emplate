@@ -123,23 +123,33 @@ export default async function DashboardPage() {
   // para no mezclar el margen bruto con los gastos.
   const netProfitThisMonth = marginThisMonth - totalExpensesThisMonth;
 
-  const stats = [
-    { label: "Productos activos", value: productCount },
-    { label: "Facturado este mes", value: formatMoney(revenueThisMonth) },
+  // "in" = entrada de dinero (o a favor nuestro), "out" = salida de dinero
+  // (o compromiso pendiente), "neutral" = no es un monto de dinero.
+  const stats: { label: string; value: string | number; hint?: string; tone: "in" | "out" | "neutral" }[] = [
+    { label: "Productos activos", value: productCount, tone: "neutral" },
+    { label: "Facturado este mes", value: formatMoney(revenueThisMonth), tone: "in" },
     {
       label: "Margen total de ventas",
       value: formatMoney(marginThisMonth),
       hint: `${marginPercentThisMonth.toFixed(1)}% · este mes`,
+      tone: "in",
     },
-    { label: "Gastos del mes", value: formatMoney(totalExpensesThisMonth) },
+    { label: "Gastos del mes", value: formatMoney(totalExpensesThisMonth), tone: "out" },
     {
       label: "Ganancia neta del mes",
       value: formatMoney(netProfitThisMonth),
       hint: `Margen ${formatMoney(marginThisMonth)} − gastos ${formatMoney(totalExpensesThisMonth)}`,
+      tone: netProfitThisMonth >= 0 ? "in" : "out",
     },
-    { label: "Por cobrar a clientes", value: formatMoney(totalReceivable) },
-    { label: "Por pagar a proveedores", value: formatMoney(totalPayable) },
+    { label: "Por cobrar a clientes", value: formatMoney(totalReceivable), tone: "in" },
+    { label: "Por pagar a proveedores", value: formatMoney(totalPayable), tone: "out" },
   ];
+
+  const statToneClass: Record<"in" | "out" | "neutral", string> = {
+    in: "text-ok-ink",
+    out: "text-err-ink",
+    neutral: "text-ink",
+  };
 
   const monthlyRevenue = buckets.map((bucket) => {
     const total = salesForCharts
@@ -178,7 +188,7 @@ export default async function DashboardPage() {
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-xl border border-line bg-bg p-[18px]">
             <p className="text-[13px] text-ink-soft">{stat.label}</p>
-            <p className="mt-1 text-2xl font-bold text-ink">{stat.value}</p>
+            <p className={`mt-1 text-2xl font-bold ${statToneClass[stat.tone]}`}>{stat.value}</p>
             {stat.hint && <p className="mt-0.5 text-xs text-ink-faint">{stat.hint}</p>}
           </div>
         ))}
