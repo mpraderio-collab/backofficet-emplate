@@ -27,7 +27,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const animalWeightParam =
     typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
-  const [products, suppliers, allProducts] = await Promise.all([
+  const [products, suppliers, allProducts, soldItems] = await Promise.all([
     db.product.findMany({
       where: {
         ...(q && { name: { contains: q, mode: "insensitive" } }),
@@ -44,12 +44,24 @@ export default async function ProductsPage(props: PageProps<"/products">) {
     db.product.findMany({
       select: { brand: true, animalType: true, animalSize: true, animalWeight: true },
     }),
+    db.saleItem.findMany({
+      where: { sale: { status: "confirmed" } },
+      select: { productId: true, quantity: true, saleUnit: true },
+    }),
   ]);
 
   const brandOptions = distinctValues(allProducts, "brand");
   const animalTypeOptions = distinctValues(allProducts, "animalType");
   const animalSizeOptions = distinctValues(allProducts, "animalSize");
   const animalWeightOptions = distinctValues(allProducts, "animalWeight");
+
+  const soldByProductId = new Map<string, { unitCount: number; fractionQuantity: number }>();
+  for (const item of soldItems) {
+    const entry = soldByProductId.get(item.productId) ?? { unitCount: 0, fractionQuantity: 0 };
+    if (item.saleUnit === "fraction") entry.fractionQuantity += item.quantity;
+    else entry.unitCount += item.quantity;
+    soldByProductId.set(item.productId, entry);
+  }
 
   const hasFilters =
     q || supplierIdParam || brandParam || animalTypeParam || animalSizeParam || animalWeightParam;
@@ -174,12 +186,13 @@ export default async function ProductsPage(props: PageProps<"/products">) {
                 <th className="px-4 py-3">Margen %</th>
                 <th className="px-4 py-3">Costo</th>
                 <th className="px-4 py-3">Stock</th>
-                <th className="px-4 py-3">Estado</th>
+                <th className="px-4 py-3">Ventas</th>
               </tr>
             </thead>
             <tbody>
               {products.map((p) => {
                 const margin = calculateMargin(p.price, p.cost);
+                const sold = soldByProductId.get(p.id);
                 return (
                 <ClickableRow
                   key={p.id}
@@ -251,16 +264,17 @@ export default async function ProductsPage(props: PageProps<"/products">) {
                     </span>
                     <p className="text-xs text-ink-faint">mín. {effectiveMinStock(p.minStock)}</p>
                   </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                        p.status === "active"
-                          ? "bg-ok-bg text-ok-ink"
-                          : "bg-line-soft text-ink-faint"
-                      }`}
-                    >
-                      {p.status === "active" ? "Activo" : "Archivado"}
-                    </span>
+                  <td className="px-4 py-3 text-ink-soft">
+                    {!sold || (sold.unitCount === 0 && sold.fractionQuantity === 0) ? (
+                      "—"
+                    ) : (
+                      <>
+                        {sold.unitCount > 0 && `${sold.unitCount} u.`}
+                        {sold.unitCount > 0 && sold.fractionQuantity > 0 && " + "}
+                        {sold.fractionQuantity > 0 &&
+                          formatQuantity(sold.fractionQuantity, p.fractionUnit)}
+                      </>
+                    )}
                   </td>
                 </ClickableRow>
                 );
