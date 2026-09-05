@@ -168,7 +168,7 @@ export default async function DashboardPage() {
   return (
     <div>
       <div>
-        <h1 className="text-2xl font-bold text-ink">Panorama del negocio</h1>
+        <h1 className="text-2xl font-bold text-ink">Panel Principal</h1>
         <p className="mt-1 text-sm text-ink-soft">
           Un vistazo general a ventas, stock y cuentas corrientes.
         </p>
