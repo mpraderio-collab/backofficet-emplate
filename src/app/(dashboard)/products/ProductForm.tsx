@@ -138,12 +138,16 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
             className="input"
           />
         </Field>
-        <Field label="Tamaño del animal" error={state.fieldErrors?.animalSize} hint='Opcional. Ej: "pequeño", "grande"'>
-          <input
+        <Field label="Tamaño de la mordida" error={state.fieldErrors?.animalSize} hint="Opcional">
+          <select
             name="animalSize"
             defaultValue={defaultValues?.animalSize ?? ""}
             className="input"
-          />
+          >
+            <option value="">Sin especificar</option>
+            <option value="Chica">Chica</option>
+            <option value="Grande">Grande</option>
+          </select>
         </Field>
         <Field label="Peso del animal" error={state.fieldErrors?.animalWeight} hint='Opcional. Ej: "1-10 kg"'>
           <input
