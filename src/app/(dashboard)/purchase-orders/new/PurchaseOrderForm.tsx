@@ -162,10 +162,11 @@ export function PurchaseOrderForm({
 
       <div className="rounded-xl border border-line bg-bg p-5">
         <p className="text-sm font-semibold text-ink">Agregar producto</p>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div className="mt-3 flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Producto</span>
             <Combobox
+              className="w-full"
               value={selectedProductId}
               onChange={selectProduct}
               options={products.map((p) => ({
@@ -179,35 +180,37 @@ export function PurchaseOrderForm({
             />
           </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-ink-soft">Cantidad</span>
-            <input
-              type="number"
-              min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="input w-20"
-            />
-          </label>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-ink-soft">Cantidad</span>
+              <input
+                type="number"
+                min={1}
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                className="input w-16"
+              />
+            </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-ink-soft">Costo unitario</span>
-            <input
-              type="number"
-              min={0}
-              value={unitCost}
-              onChange={(e) => setUnitCost(Number(e.target.value))}
-              className="input w-28"
-            />
-          </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-ink-soft">Costo unitario</span>
+              <input
+                type="number"
+                min={0}
+                value={unitCost}
+                onChange={(e) => setUnitCost(Number(e.target.value))}
+                className="input w-24"
+              />
+            </label>
 
-          <button
-            type="button"
-            onClick={addItem}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
-          >
-            + Agregar
-          </button>
+            <button
+              type="button"
+              onClick={addItem}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+            >
+              + Agregar
+            </button>
+          </div>
         </div>
         {selectedProduct && productCharacteristics(selectedProduct) && (
           <p className="mt-2 text-xs text-ink-faint">
