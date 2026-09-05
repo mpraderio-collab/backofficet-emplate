@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { DEFAULT_MIN_STOCK } from "@/lib/stock";
+import { calculateMargin } from "@/lib/margin";
 import type { ProductActionState } from "./actions";
 
 type Supplier = { id: string; name: string };
@@ -45,6 +46,34 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
   const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? "");
   const [imagePreview, setImagePreview] = useState(defaultValues?.imageUrl ?? "");
   const [removeImage, setRemoveImage] = useState(false);
+
+  const [cost, setCost] = useState<number | "">(defaultValues?.cost ?? "");
+  const [price, setPrice] = useState<number | "">(defaultValues?.price ?? "");
+  const [marginPercent, setMarginPercent] = useState<number | "">(() => {
+    const percent = calculateMargin(defaultValues?.price ?? 0, defaultValues?.cost ?? null)?.percent;
+    return percent != null ? Math.round(percent * 10) / 10 : "";
+  });
+
+  function handleCostChange(value: number | "") {
+    setCost(value);
+    if (value !== "" && value > 0 && marginPercent !== "") {
+      setPrice(Math.round(value * (1 + marginPercent / 100)));
+    }
+  }
+
+  function handleMarginChange(value: number | "") {
+    setMarginPercent(value);
+    if (cost !== "" && cost > 0 && value !== "") {
+      setPrice(Math.round(cost * (1 + value / 100)));
+    }
+  }
+
+  function handlePriceChange(value: number | "") {
+    setPrice(value);
+    if (cost !== "" && cost > 0 && value !== "") {
+      setMarginPercent(Math.round(((value - cost) / cost) * 1000) / 10);
+    }
+  }
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-5">
@@ -158,22 +187,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Field
-          label={sellsByFraction ? "Precio (unidad completa)" : "Precio de venta"}
-          error={state.fieldErrors?.price}
-          labelClassName="min-h-10"
-        >
-          <input
-            name="price"
-            type="number"
-            min={0}
-            step={1}
-            defaultValue={defaultValues?.price}
-            required
-            className="input"
-          />
-        </Field>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <Field
           label="Costo"
           error={state.fieldErrors?.cost}
@@ -185,7 +199,36 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
             type="number"
             min={0}
             step={1}
-            defaultValue={defaultValues?.cost ?? undefined}
+            value={cost}
+            onChange={(e) => handleCostChange(e.target.value === "" ? "" : Number(e.target.value))}
+            className="input"
+          />
+        </Field>
+        <Field label="% de margen" hint="Sobre el costo" labelClassName="min-h-10">
+          <input
+            type="number"
+            step="any"
+            value={marginPercent}
+            onChange={(e) =>
+              handleMarginChange(e.target.value === "" ? "" : Number(e.target.value))
+            }
+            disabled={cost === "" || cost <= 0}
+            className="input disabled:opacity-50"
+          />
+        </Field>
+        <Field
+          label={sellsByFraction ? "Precio (unidad completa)" : "Precio de venta"}
+          error={state.fieldErrors?.price}
+          labelClassName="min-h-10"
+        >
+          <input
+            name="price"
+            type="number"
+            min={0}
+            step={1}
+            value={price}
+            onChange={(e) => handlePriceChange(e.target.value === "" ? "" : Number(e.target.value))}
+            required
             className="input"
           />
         </Field>
