@@ -4,11 +4,25 @@ import { formatMoney, formatQuantity } from "@/lib/format";
 import { calculateMargin, formatMarginPercent } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 
-export default async function ProductsPage() {
-  const products = await db.product.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { supplier: { select: { name: true } } },
-  });
+export default async function ProductsPage(props: PageProps<"/products">) {
+  const searchParams = await props.searchParams;
+  const q = typeof searchParams?.q === "string" ? searchParams.q : "";
+  const supplierIdParam =
+    typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
+
+  const [products, suppliers] = await Promise.all([
+    db.product.findMany({
+      where: {
+        ...(q && { name: { contains: q, mode: "insensitive" } }),
+        ...(supplierIdParam && { supplierId: supplierIdParam }),
+      },
+      orderBy: { createdAt: "desc" },
+      include: { supplier: { select: { name: true } } },
+    }),
+    db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+
+  const hasFilters = q || supplierIdParam;
 
   return (
     <div>
@@ -30,8 +44,50 @@ export default async function ProductsPage() {
         </div>
       </div>
 
+      <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Buscar producto</span>
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Ej: Alimento"
+            className="input w-64"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Proveedor</span>
+          <select name="supplierId" defaultValue={supplierIdParam} className="input">
+            <option value="">Todos</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+        >
+          Filtrar
+        </button>
+        {hasFilters && (
+          <Link
+            href="/products"
+            className="rounded-lg border border-border-input bg-bg px-3 py-2 text-xs font-semibold text-ink hover:bg-surface"
+          >
+            Limpiar filtros
+          </Link>
+        )}
+      </form>
+
       {products.length === 0 ? (
-        <p className="mt-6 text-ink-soft">Todavía no hay productos cargados.</p>
+        <p className="mt-6 text-ink-soft">
+          {hasFilters
+            ? "Ningún producto coincide con estos filtros."
+            : "Todavía no hay productos cargados."}
+        </p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-bg">
           <table className="w-full min-w-[640px] text-left text-sm">

@@ -6,15 +6,37 @@ import { daysSince } from "@/lib/reports";
 
 const DELAYED_AFTER_DAYS = 7;
 
-export default async function PurchaseOrdersPage() {
-  const purchaseOrders = await db.purchaseOrder.findMany({
-    orderBy: { orderDate: "desc" },
-    include: {
-      supplier: { select: { name: true } },
-      items: true,
-      statusEvents: { where: { status: "sent" }, orderBy: { createdAt: "desc" }, take: 1 },
-    },
-  });
+export default async function PurchaseOrdersPage(props: PageProps<"/purchase-orders">) {
+  const searchParams = await props.searchParams;
+  const statusParam = typeof searchParams?.status === "string" ? searchParams.status : "";
+  const supplierIdParam =
+    typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
+  const fromParam = typeof searchParams?.from === "string" ? searchParams.from : "";
+  const toParam = typeof searchParams?.to === "string" ? searchParams.to : "";
+
+  const [purchaseOrders, suppliers] = await Promise.all([
+    db.purchaseOrder.findMany({
+      where: {
+        ...(statusParam && { status: statusParam }),
+        ...(supplierIdParam && { supplierId: supplierIdParam }),
+        ...((fromParam || toParam) && {
+          orderDate: {
+            ...(fromParam && { gte: new Date(`${fromParam}T00:00:00`) }),
+            ...(toParam && { lte: new Date(`${toParam}T23:59:59`) }),
+          },
+        }),
+      },
+      orderBy: { orderDate: "desc" },
+      include: {
+        supplier: { select: { name: true } },
+        items: true,
+        statusEvents: { where: { status: "sent" }, orderBy: { createdAt: "desc" }, take: 1 },
+      },
+    }),
+    db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+
+  const hasFilters = statusParam || supplierIdParam || fromParam || toParam;
 
   return (
     <div>
@@ -28,8 +50,62 @@ export default async function PurchaseOrdersPage() {
         </Link>
       </div>
 
+      <form
+        className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-line bg-surface p-4"
+        method="get"
+      >
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Estado</span>
+          <select name="status" defaultValue={statusParam} className="input">
+            <option value="">Todos</option>
+            {Object.entries(purchaseOrderStatusLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Proveedor</span>
+          <select name="supplierId" defaultValue={supplierIdParam} className="input">
+            <option value="">Todos</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Desde</span>
+          <input type="date" name="from" defaultValue={fromParam} className="input" />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Hasta</span>
+          <input type="date" name="to" defaultValue={toParam} className="input" />
+        </label>
+        <button
+          type="submit"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+        >
+          Filtrar
+        </button>
+        {hasFilters && (
+          <Link
+            href="/purchase-orders"
+            className="rounded-lg border border-border-input bg-bg px-3 py-2 text-xs font-semibold text-ink hover:bg-surface"
+          >
+            Limpiar filtros
+          </Link>
+        )}
+      </form>
+
       {purchaseOrders.length === 0 ? (
-        <p className="mt-6 text-ink-soft">Todavía no hay pedidos registrados.</p>
+        <p className="mt-6 text-ink-soft">
+          {hasFilters
+            ? "Ningún pedido coincide con estos filtros."
+            : "Todavía no hay pedidos registrados."}
+        </p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-bg">
           <table className="w-full min-w-[560px] text-left text-sm">
