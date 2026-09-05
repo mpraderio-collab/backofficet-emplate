@@ -20,6 +20,14 @@ export function startOfYear(): Date {
   return new Date(d.getFullYear(), 0, 1);
 }
 
+// Fecha de hace exactamente 1 año — umbral para considerar un producto
+// "parado" (sin ventas recientes).
+export function oneYearAgo(): Date {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  return d;
+}
+
 export function toDateInputValue(d: Date): string {
   return d.toISOString().slice(0, 10);
 }

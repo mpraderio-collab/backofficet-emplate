@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { formatMoney } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
 import { calculateMargin } from "@/lib/margin";
+import { getLastSaleDateForProduct } from "@/lib/product-sales";
 import { updateProduct } from "../actions";
 import { ProductForm } from "../ProductForm";
 import { ProductDangerZone } from "./ProductDangerZone";
@@ -10,9 +11,10 @@ export default async function EditProductPage(
   props: PageProps<"/products/[id]">,
 ) {
   const { id } = await props.params;
-  const [product, suppliers] = await Promise.all([
+  const [product, suppliers, lastSaleDate] = await Promise.all([
     db.product.findUnique({ where: { id } }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    getLastSaleDateForProduct(id),
   ]);
   if (!product) notFound();
 
@@ -28,6 +30,12 @@ export default async function EditProductPage(
           ({formatMoney(margin.amount)} por unidad)
         </p>
       )}
+      <p className="mt-1 text-sm text-ink-soft">
+        Última venta:{" "}
+        <span className="font-semibold text-ink">
+          {lastSaleDate ? formatDate(lastSaleDate) : "Todavía no se vendió"}
+        </span>
+      </p>
       <div className="mt-6">
         <ProductForm
           action={boundAction}
