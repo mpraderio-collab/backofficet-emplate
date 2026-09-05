@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatDateOnly } from "@/lib/format";
+import { formatDateOnly, formatMoney } from "@/lib/format";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { daysSince } from "@/lib/reports";
 import { ClickableRow } from "@/components/ClickableRow";
@@ -115,6 +115,7 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Proveedor</th>
                 <th className="px-4 py-3">Ítems</th>
+                <th className="px-4 py-3">Monto</th>
                 <th className="px-4 py-3">Estado</th>
               </tr>
             </thead>
@@ -123,6 +124,7 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                 const sentAt = po.statusEvents[0]?.createdAt;
                 const daysSinceSent = sentAt ? daysSince(sentAt) : 0;
                 const isDelayed = po.status === "sent" && daysSinceSent > DELAYED_AFTER_DAYS;
+                const total = po.items.reduce((sum, item) => sum + item.unitCost * item.quantity, 0);
                 return (
                 <ClickableRow
                   key={po.id}
@@ -132,6 +134,7 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                   <td className="px-4 py-3 text-ink-soft">{formatDateOnly(po.orderDate)}</td>
                   <td className="px-4 py-3 font-medium text-ink">{po.supplier.name}</td>
                   <td className="px-4 py-3 text-ink-soft">{po.items.length}</td>
+                  <td className="px-4 py-3 font-medium text-ink">{formatMoney(total)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-md px-2 py-0.5 text-xs font-semibold ${purchaseOrderStatusColors[po.status]}`}
