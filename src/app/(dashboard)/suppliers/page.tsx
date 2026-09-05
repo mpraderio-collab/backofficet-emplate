@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatMoney } from "@/lib/format";
+import { formatDateOnly, formatMoney } from "@/lib/format";
 import { getAllSupplierBalances } from "@/lib/ledger";
 import { WhatsAppLink } from "@/components/WhatsAppLink";
 import { ClickableRow } from "@/components/ClickableRow";
@@ -9,13 +9,21 @@ export default async function SuppliersPage(props: PageProps<"/suppliers">) {
   const searchParams = await props.searchParams;
   const q = typeof searchParams?.q === "string" ? searchParams.q : "";
 
-  const [suppliers, balances] = await Promise.all([
+  const [suppliers, balances, lastOrdersBySupplier] = await Promise.all([
     db.supplier.findMany({
       where: q ? { name: { contains: q, mode: "insensitive" } } : undefined,
       orderBy: { name: "asc" },
     }),
     getAllSupplierBalances(),
+    db.purchaseOrder.groupBy({
+      by: ["supplierId"],
+      _max: { orderDate: true },
+    }),
   ]);
+
+  const lastOrderBySupplierId = new Map(
+    lastOrdersBySupplier.map((r) => [r.supplierId, r._max.orderDate]),
+  );
 
   return (
     <div>
@@ -70,11 +78,13 @@ export default async function SuppliersPage(props: PageProps<"/suppliers">) {
                 <th className="px-4 py-3">Proveedor</th>
                 <th className="px-4 py-3">Contacto</th>
                 <th className="px-4 py-3">Saldo cta. cte.</th>
+                <th className="px-4 py-3">Última compra</th>
               </tr>
             </thead>
             <tbody>
               {suppliers.map((s) => {
                 const balance = balances.get(s.id) ?? 0;
+                const lastOrder = lastOrderBySupplierId.get(s.id);
                 return (
                   <ClickableRow
                     key={s.id}
@@ -83,15 +93,16 @@ export default async function SuppliersPage(props: PageProps<"/suppliers">) {
                   >
                     <td className="px-4 py-3 font-medium text-ink">{s.name}</td>
                     <td className="px-4 py-3 text-ink-soft">
-                      <span className="inline-flex items-center gap-1.5">
-                        {s.phone || s.email || "—"}
-                        {s.phone && (
-                          <WhatsAppLink
-                            phone={s.phone}
-                            message={`Hola ${s.name}! Te escribo de parte del negocio.`}
-                          />
-                        )}
-                      </span>
+                      {s.phone ? (
+                        <WhatsAppLink
+                          phone={s.phone}
+                          message={`Hola ${s.name}! Te escribo de parte del negocio.`}
+                        >
+                          {s.phone}
+                        </WhatsAppLink>
+                      ) : (
+                        s.email || "—"
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -101,6 +112,9 @@ export default async function SuppliersPage(props: PageProps<"/suppliers">) {
                       >
                         {formatMoney(balance)}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-ink-soft">
+                      {lastOrder ? formatDateOnly(lastOrder) : "—"}
                     </td>
                   </ClickableRow>
                 );

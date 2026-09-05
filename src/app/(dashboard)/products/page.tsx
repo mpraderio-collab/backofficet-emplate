@@ -99,6 +99,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
                 <th className="px-4 py-3">Precio</th>
                 <th className="px-4 py-3">Margen $</th>
                 <th className="px-4 py-3">Margen %</th>
+                <th className="px-4 py-3">Costo</th>
                 <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Estado</th>
               </tr>
@@ -160,6 +161,9 @@ export default async function ProductsPage(props: PageProps<"/products">) {
                     )}
                   </td>
                   <td className="px-4 py-3 text-ink-soft">{formatMarginPercent(margin)}</td>
+                  <td className="px-4 py-3 text-ink-soft">
+                    {p.cost != null ? formatMoney(p.cost) : "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={
