@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, formatQuantity } from "@/lib/format";
+import { Combobox } from "@/components/Combobox";
 import { createSale, type SaleActionState } from "../actions";
 
 type ProductOption = {
@@ -134,17 +135,13 @@ export function SaleForm({
     <div className="flex max-w-2xl flex-col gap-6">
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">Cliente</span>
-        <select
+        <Combobox
+          className="max-w-sm"
           value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
-          className="input max-w-sm"
-        >
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          onChange={setCustomerId}
+          options={customers.map((c) => ({ value: c.id, label: c.name }))}
+          placeholder="Buscar cliente…"
+        />
       </label>
 
       <div className="rounded-xl border border-line bg-bg p-5">
@@ -152,17 +149,16 @@ export function SaleForm({
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Producto</span>
-            <select
+            <Combobox
               value={selectedProductId}
-              onChange={(e) => selectProduct(e.target.value)}
-              className="input"
-            >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({formatQuantity(p.stock, p.fractionUnit)} disp.)
-                </option>
-              ))}
-            </select>
+              onChange={selectProduct}
+              options={products.map((p) => ({
+                value: p.id,
+                label: p.name,
+                sublabel: `${formatQuantity(p.stock, p.fractionUnit)} disp.`,
+              }))}
+              placeholder="Buscar producto…"
+            />
           </label>
 
           {isFractionable && (

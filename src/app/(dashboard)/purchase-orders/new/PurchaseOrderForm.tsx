@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
+import { Combobox } from "@/components/Combobox";
 import { createPurchaseOrder, type PurchaseOrderActionState } from "../actions";
 
 type ProductOption = {
@@ -101,17 +102,13 @@ export function PurchaseOrderForm({
     <div className="flex max-w-2xl flex-col gap-6">
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">Proveedor</span>
-        <select
+        <Combobox
+          className="max-w-sm"
           value={supplierId}
-          onChange={(e) => setSupplierId(e.target.value)}
-          className="input max-w-sm"
-        >
-          {suppliers.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+          onChange={setSupplierId}
+          options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+          placeholder="Buscar proveedor…"
+        />
       </label>
 
       <div className="rounded-xl border border-line bg-bg p-5">
@@ -119,21 +116,16 @@ export function PurchaseOrderForm({
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Producto</span>
-            <select
+            <Combobox
               value={selectedProductId}
-              onChange={(e) => selectProduct(e.target.value)}
-              className="input"
-            >
-              {products.map((p) => {
-                const characteristics = productCharacteristics(p);
-                return (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                    {characteristics ? ` — ${characteristics}` : ""}
-                  </option>
-                );
-              })}
-            </select>
+              onChange={selectProduct}
+              options={products.map((p) => ({
+                value: p.id,
+                label: p.name,
+                sublabel: productCharacteristics(p),
+              }))}
+              placeholder="Buscar producto…"
+            />
           </label>
 
           <label className="flex flex-col gap-1.5">

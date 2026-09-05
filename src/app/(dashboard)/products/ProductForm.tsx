@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Field } from "@/components/Field";
+import { Combobox } from "@/components/Combobox";
 import type { ProductActionState } from "./actions";
 
 type Supplier = { id: string; name: string };
@@ -38,6 +39,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
   const [sellsByFraction, setSellsByFraction] = useState(
     Boolean(defaultValues?.fractionUnit),
   );
+  const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? "");
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-5">
@@ -60,18 +62,16 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
           />
         </Field>
         <Field label="Proveedor" error={state.fieldErrors?.supplierId} hint="Opcional">
-          <select
+          <Combobox
             name="supplierId"
-            defaultValue={defaultValues?.supplierId ?? ""}
-            className="input"
-          >
-            <option value="">Sin proveedor asignado</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+            value={supplierId}
+            onChange={setSupplierId}
+            placeholder="Buscar proveedor…"
+            options={[
+              { value: "", label: "Sin proveedor asignado" },
+              ...suppliers.map((s) => ({ value: s.id, label: s.name })),
+            ]}
+          />
         </Field>
       </div>
 
