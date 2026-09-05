@@ -131,7 +131,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
         <Field label="Marca" error={state.fieldErrors?.brand} hint="Opcional">
           <input name="brand" defaultValue={defaultValues?.brand ?? ""} className="input" />
         </Field>
-        <Field label="Tipo de animal" error={state.fieldErrors?.animalType} hint='Opcional. Ej: "perro", "gato"'>
+        <Field label="Animal" error={state.fieldErrors?.animalType} hint='Opcional. Ej: "perro", "gato"'>
           <input
             name="animalType"
             defaultValue={defaultValues?.animalType ?? ""}

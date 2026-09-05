@@ -5,25 +5,54 @@ import { calculateMargin, formatMarginPercent } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { ClickableRow } from "@/components/ClickableRow";
 
+function distinctValues(products: { [key: string]: unknown }[], key: string): string[] {
+  const values = new Set<string>();
+  for (const p of products) {
+    const value = p[key];
+    if (typeof value === "string" && value.trim()) values.add(value);
+  }
+  return [...values].sort((a, b) => a.localeCompare(b));
+}
+
 export default async function ProductsPage(props: PageProps<"/products">) {
   const searchParams = await props.searchParams;
   const q = typeof searchParams?.q === "string" ? searchParams.q : "";
   const supplierIdParam =
     typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
+  const brandParam = typeof searchParams?.brand === "string" ? searchParams.brand : "";
+  const animalTypeParam =
+    typeof searchParams?.animalType === "string" ? searchParams.animalType : "";
+  const animalSizeParam =
+    typeof searchParams?.animalSize === "string" ? searchParams.animalSize : "";
+  const animalWeightParam =
+    typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
-  const [products, suppliers] = await Promise.all([
+  const [products, suppliers, allProducts] = await Promise.all([
     db.product.findMany({
       where: {
         ...(q && { name: { contains: q, mode: "insensitive" } }),
         ...(supplierIdParam && { supplierId: supplierIdParam }),
+        ...(brandParam && { brand: brandParam }),
+        ...(animalTypeParam && { animalType: animalTypeParam }),
+        ...(animalSizeParam && { animalSize: animalSizeParam }),
+        ...(animalWeightParam && { animalWeight: animalWeightParam }),
       },
       orderBy: { createdAt: "desc" },
       include: { supplier: { select: { name: true } } },
     }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.product.findMany({
+      select: { brand: true, animalType: true, animalSize: true, animalWeight: true },
+    }),
   ]);
 
-  const hasFilters = q || supplierIdParam;
+  const brandOptions = distinctValues(allProducts, "brand");
+  const animalTypeOptions = distinctValues(allProducts, "animalType");
+  const animalSizeOptions = distinctValues(allProducts, "animalSize");
+  const animalWeightOptions = distinctValues(allProducts, "animalWeight");
+
+  const hasFilters =
+    q || supplierIdParam || brandParam || animalTypeParam || animalSizeParam || animalWeightParam;
 
   return (
     <div>
@@ -63,6 +92,50 @@ export default async function ProductsPage(props: PageProps<"/products">) {
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Marca</span>
+          <select name="brand" defaultValue={brandParam} className="input">
+            <option value="">Todas</option>
+            {brandOptions.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Animal</span>
+          <select name="animalType" defaultValue={animalTypeParam} className="input">
+            <option value="">Todos</option>
+            {animalTypeOptions.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Tamaño</span>
+          <select name="animalSize" defaultValue={animalSizeParam} className="input">
+            <option value="">Todos</option>
+            {animalSizeOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Peso</span>
+          <select name="animalWeight" defaultValue={animalWeightParam} className="input">
+            <option value="">Todos</option>
+            {animalWeightOptions.map((w) => (
+              <option key={w} value={w}>
+                {w}
               </option>
             ))}
           </select>
