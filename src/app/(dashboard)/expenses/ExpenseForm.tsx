@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState, useEffect } from "react";
 import { Field } from "@/components/Field";
+import { Combobox } from "@/components/Combobox";
 import { formatMoney } from "@/lib/format";
 import { toDateInputValue, toMonthInputValue } from "@/lib/reports";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
@@ -96,18 +97,13 @@ export function ExpenseForm({
       <form ref={formRef} action={formAction} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Tipo de gasto" error={state.fieldErrors?.expenseTypeId}>
-            <select
+            <Combobox
               name="expenseTypeId"
               value={expenseTypeId}
-              onChange={(e) => setExpenseTypeId(e.target.value)}
-              className="input"
-            >
-              {expenseTypes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+              onChange={setExpenseTypeId}
+              placeholder="Buscar tipo de gasto…"
+              options={expenseTypes.map((t) => ({ value: t.id, label: t.name }))}
+            />
           </Field>
           <Field label="Monto" error={state.fieldErrors?.amount}>
             <input

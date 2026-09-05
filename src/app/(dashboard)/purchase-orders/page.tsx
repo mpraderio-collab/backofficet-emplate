@@ -4,6 +4,7 @@ import { formatDateOnly, formatMoney } from "@/lib/format";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { daysSince } from "@/lib/reports";
 import { ClickableRow } from "@/components/ClickableRow";
+import { FilterCombobox } from "@/components/FilterCombobox";
 
 const DELAYED_AFTER_DAYS = 7;
 
@@ -68,14 +69,17 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-soft">Proveedor</span>
-          <select name="supplierId" defaultValue={supplierIdParam} className="input">
-            <option value="">Todos</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <FilterCombobox
+            key={supplierIdParam}
+            name="supplierId"
+            defaultValue={supplierIdParam}
+            placeholder="Buscar proveedor…"
+            className="w-48"
+            options={[
+              { value: "", label: "Todos" },
+              ...suppliers.map((s) => ({ value: s.id, label: s.name })),
+            ]}
+          />
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-soft">Desde</span>

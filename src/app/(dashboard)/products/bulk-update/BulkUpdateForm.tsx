@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { Combobox } from "@/components/Combobox";
 import { formatMoney } from "@/lib/format";
 import { bulkUpdatePrices, type BulkUpdateState } from "./actions";
 
@@ -90,33 +91,29 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
       <div className="flex flex-wrap items-end gap-4 rounded-xl border border-line bg-surface p-4">
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Marca</span>
-          <select
+          <Combobox
             value={brandFilter}
-            onChange={(e) => setBrandFilter(e.target.value)}
-            className="input w-48"
-          >
-            <option value="">Todas las marcas</option>
-            {brands.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
+            onChange={setBrandFilter}
+            placeholder="Buscar marca…"
+            className="w-48"
+            options={[
+              { value: "", label: "Todas las marcas" },
+              ...brands.map((b) => ({ value: b, label: b })),
+            ]}
+          />
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Proveedor</span>
-          <select
+          <Combobox
             value={supplierFilter}
-            onChange={(e) => setSupplierFilter(e.target.value)}
-            className="input w-48"
-          >
-            <option value="">Todos los proveedores</option>
-            {suppliers.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+            onChange={setSupplierFilter}
+            placeholder="Buscar proveedor…"
+            className="w-48"
+            options={[
+              { value: "", label: "Todos los proveedores" },
+              ...suppliers.map((s) => ({ value: s, label: s })),
+            ]}
+          />
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">
