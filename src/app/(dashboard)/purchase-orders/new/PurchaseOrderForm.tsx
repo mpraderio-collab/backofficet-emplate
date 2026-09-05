@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
 import { Combobox } from "@/components/Combobox";
+import { toDateInputValue } from "@/lib/reports";
 import { createPurchaseOrder, type PurchaseOrderActionState } from "../actions";
 
 type ProductOption = {
@@ -51,6 +52,7 @@ export function PurchaseOrderForm({
   const [unitCost, setUnitCost] = useState(products[0]?.cost ?? 0);
   const [addError, setAddError] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [orderDate, setOrderDate] = useState(() => toDateInputValue(new Date()));
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
@@ -100,16 +102,27 @@ export function PurchaseOrderForm({
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">Proveedor</span>
-        <Combobox
-          className="max-w-sm"
-          value={supplierId}
-          onChange={setSupplierId}
-          options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
-          placeholder="Buscar proveedor…"
-        />
-      </label>
+      <div className="flex flex-wrap gap-4">
+        <label className="flex flex-1 flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Proveedor</span>
+          <Combobox
+            value={supplierId}
+            onChange={setSupplierId}
+            options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+            placeholder="Buscar proveedor…"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Fecha del pedido</span>
+          <input
+            type="date"
+            value={orderDate}
+            onChange={(e) => setOrderDate(e.target.value)}
+            className="input"
+          />
+        </label>
+      </div>
 
       <div className="rounded-xl border border-line bg-bg p-5">
         <p className="text-sm font-semibold text-ink">Agregar producto</p>
@@ -217,6 +230,7 @@ export function PurchaseOrderForm({
       >
         <input type="hidden" name="supplierId" value={supplierId} />
         <input type="hidden" name="items" value={JSON.stringify(items)} />
+        <input type="hidden" name="orderDate" value={orderDate} />
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Nota (opcional)</span>

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatDate } from "@/lib/format";
+import { formatDateOnly } from "@/lib/format";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 
 export default async function PurchaseOrdersPage() {
   const purchaseOrders = await db.purchaseOrder.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { orderDate: "desc" },
     include: { supplier: { select: { name: true } }, items: true },
   });
 
@@ -38,7 +38,7 @@ export default async function PurchaseOrdersPage() {
             <tbody>
               {purchaseOrders.map((po) => (
                 <tr key={po.id} className="border-b border-line-soft last:border-0">
-                  <td className="px-4 py-3 text-ink-soft">{formatDate(po.createdAt)}</td>
+                  <td className="px-4 py-3 text-ink-soft">{formatDateOnly(po.orderDate)}</td>
                   <td className="px-4 py-3 font-medium text-ink">{po.supplier.name}</td>
                   <td className="px-4 py-3 text-ink-soft">{po.items.length}</td>
                   <td className="px-4 py-3">

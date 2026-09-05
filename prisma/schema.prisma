@@ -130,26 +130,39 @@ model PurchaseOrder {
   supplierId String
   supplier   Supplier @relation(fields: [supplierId], references: [id])
   status     String   @default("pending") // pending | sent | received | cancelled
+  orderDate  DateTime @default(now()) // fecha del pedido (editable), distinta de createdAt
   note       String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  items       PurchaseOrderItem[]
-  ledgerEntry SupplierLedgerEntry?
+  items        PurchaseOrderItem[]
+  ledgerEntry  SupplierLedgerEntry?
+  statusEvents PurchaseOrderStatusEvent[]
 
   @@index([supplierId])
   @@index([status])
 }
 
 model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id])
+  quantity         Float // cantidad pedida, siempre en unidades completas (ej: bolsas)
+  unitCost         Int
+  receivedQuantity Float? // cantidad realmente recibida (puede diferir de lo pedido) — se completa al recibir
+  stockDelta       Float? // cuánto sumó al stock al recibirse (receivedQuantity * unitSize del producto en ese momento)
+
+  @@index([purchaseOrderId])
+}
+
+model PurchaseOrderStatusEvent {
   id              String        @id @default(cuid())
   purchaseOrderId String
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  productId       String
-  product         Product       @relation(fields: [productId], references: [id])
-  quantity        Float // siempre en unidades completas (ej: bolsas)
-  unitCost        Int
-  stockDelta      Float? // cuánto sumó al stock al recibirse (quantity * unitSize del producto en ese momento)
+  status          String
+  createdAt       DateTime      @default(now())
 
   @@index([purchaseOrderId])
 }

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { formatDate, formatMoney, formatQuantity } from "@/lib/format";
+import { formatDate, formatDateOnly, formatMoney, formatQuantity } from "@/lib/format";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { StatusActions } from "./StatusActions";
+import { ReceiveOrderForm } from "./ReceiveOrderForm";
 
 export default async function PurchaseOrderDetailPage(
   props: PageProps<"/purchase-orders/[id]">,
@@ -14,6 +15,7 @@ export default async function PurchaseOrderDetailPage(
     include: {
       supplier: true,
       items: { include: { product: { select: { name: true, fractionUnit: true } } } },
+      statusEvents: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!po) notFound();
@@ -26,7 +28,7 @@ export default async function PurchaseOrderDetailPage(
         <Link href="/purchase-orders" className="hover:text-accent">
           Pedidos a proveedores
         </Link>{" "}
-        / <span className="text-ink">{formatDate(po.createdAt)}</span>
+        / <span className="text-ink">{formatDateOnly(po.orderDate)}</span>
       </p>
       <div className="mt-1 flex items-center gap-3">
         <h1 className="text-2xl font-bold text-ink">Pedido a {po.supplier.name}</h1>
@@ -36,7 +38,7 @@ export default async function PurchaseOrderDetailPage(
           {purchaseOrderStatusLabels[po.status]}
         </span>
       </div>
-      <p className="mt-1 text-sm text-ink-soft">{formatDate(po.createdAt)}</p>
+      <p className="mt-1 text-sm text-ink-soft">Fecha del pedido: {formatDateOnly(po.orderDate)}</p>
 
       <div className="mt-6 max-w-2xl overflow-x-auto rounded-xl border border-line bg-bg">
         <table className="w-full text-left text-sm">
@@ -47,7 +49,10 @@ export default async function PurchaseOrderDetailPage(
               <th className="px-4 py-2 font-medium">Costo unit.</th>
               <th className="px-4 py-2 font-medium">Subtotal</th>
               {po.status === "received" && (
-                <th className="px-4 py-2 font-medium">Sumó al stock</th>
+                <>
+                  <th className="px-4 py-2 font-medium">Recibido</th>
+                  <th className="px-4 py-2 font-medium">Sumó al stock</th>
+                </>
               )}
             </tr>
           </thead>
@@ -61,11 +66,18 @@ export default async function PurchaseOrderDetailPage(
                   {formatMoney(item.unitCost * item.quantity)}
                 </td>
                 {po.status === "received" && (
-                  <td className="px-4 py-2 text-ink-soft">
-                    {item.stockDelta != null
-                      ? formatQuantity(item.stockDelta, item.product.fractionUnit)
-                      : "—"}
-                  </td>
+                  <>
+                    <td className="px-4 py-2 text-ink-soft">
+                      {item.receivedQuantity != null
+                        ? `${item.receivedQuantity} u.`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-ink-soft">
+                      {item.stockDelta != null
+                        ? formatQuantity(item.stockDelta, item.product.fractionUnit)
+                        : "—"}
+                    </td>
+                  </>
                 )}
               </tr>
             ))}
@@ -90,6 +102,36 @@ export default async function PurchaseOrderDetailPage(
           Ver cuenta corriente de {po.supplier.name} →
         </Link>
       </p>
+
+      {po.statusEvents.length > 0 && (
+        <div className="mt-6 max-w-2xl">
+          <p className="text-sm font-semibold text-ink">Seguimiento del pedido</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {po.statusEvents.map((event) => (
+              <li key={event.id} className="flex items-center gap-2 text-sm">
+                <span
+                  className={`rounded-md px-2 py-0.5 text-xs font-semibold ${purchaseOrderStatusColors[event.status]}`}
+                >
+                  {purchaseOrderStatusLabels[event.status] ?? event.status}
+                </span>
+                <span className="text-ink-soft">{formatDate(event.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {po.status === "sent" && (
+        <ReceiveOrderForm
+          purchaseOrderId={po.id}
+          items={po.items.map((item) => ({
+            id: item.id,
+            productName: item.product.name,
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+          }))}
+        />
+      )}
 
       <StatusActions id={po.id} status={po.status} />
     </div>

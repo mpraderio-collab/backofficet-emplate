@@ -9,14 +9,7 @@ const transitions: Record<string, { next: string; label: string; confirm?: strin
     { next: "sent", label: "Marcar como enviado" },
     { next: "cancelled", label: "Cancelar pedido" },
   ],
-  sent: [
-    {
-      next: "received",
-      label: "Marcar como recibido",
-      confirm: "Al recibir el pedido se suma el stock y se genera el cargo en la cuenta corriente del proveedor. ¿Confirmás?",
-    },
-    { next: "cancelled", label: "Cancelar pedido" },
-  ],
+  sent: [{ next: "cancelled", label: "Cancelar pedido" }],
   received: [],
   cancelled: [],
 };

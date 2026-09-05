@@ -98,9 +98,22 @@ export const purchaseOrderSchema = z.object({
   supplierId: z.string().min(1, "Elegí un proveedor"),
   note: z.string().trim().max(300).optional().or(z.literal("")),
   items: z.array(purchaseOrderItemSchema).min(1, "Agregá al menos un producto"),
+  orderDate: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce.date().optional(),
+  ),
 });
 
 export const purchaseOrderStatuses = ["pending", "sent", "received", "cancelled"] as const;
+
+export const receivePurchaseOrderItemSchema = z.object({
+  itemId: z.string().min(1),
+  receivedQuantity: z.coerce.number().nonnegative(),
+});
+
+export const receivePurchaseOrderSchema = z.object({
+  items: z.array(receivePurchaseOrderItemSchema).min(1),
+});
 
 export const userSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(120),

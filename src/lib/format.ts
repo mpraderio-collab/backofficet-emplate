@@ -20,3 +20,16 @@ export function formatDate(value: Date): string {
     year: "numeric",
   }).format(value);
 }
+
+// Para fechas sin hora (ej: la fecha de un pedido, elegida en un <input
+// type="date">): se guardan como medianoche UTC, así que hay que mostrarlas
+// también en UTC — si no, según la zona horaria del servidor o del navegador
+// pueden aparecer un día antes o después de lo que se eligió.
+export function formatDateOnly(value: Date): string {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(value);
+}
