@@ -72,6 +72,7 @@ export default async function PurchaseOrderDetailPage(
       <ExportActions
         fileName={`pedido-${po.supplier.name}-${formatDateOnly(po.orderDate).replaceAll("/", "-")}`}
         supplierName={po.supplier.name}
+        supplierPhone={po.supplier.phone}
         orderDate={formatDateOnly(po.orderDate)}
         items={po.items.map((item) => ({
           productName: item.product.name,
