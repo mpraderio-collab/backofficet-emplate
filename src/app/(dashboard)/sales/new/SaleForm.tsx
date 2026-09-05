@@ -41,7 +41,7 @@ export function SaleForm({
   const router = useRouter();
   const [state, formAction, pending] = useActionState(createSale, initialState);
 
-  const [customerId, setCustomerId] = useState(customers[0]?.id ?? "");
+  const [customerId, setCustomerId] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id ?? "");
   const [saleUnit, setSaleUnit] = useState<"unit" | "fraction">("unit");
@@ -50,6 +50,7 @@ export function SaleForm({
   const [addError, setAddError] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [initialPayment, setInitialPayment] = useState(0);
+  const [paymentTouched, setPaymentTouched] = useState(false);
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const isFractionable = Boolean(selectedProduct?.fractionUnit);
@@ -84,6 +85,16 @@ export function SaleForm({
     saleUnit === "unit" ? remainingStock / unitSizeForDelta : remainingStock;
 
   const total = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+
+  // Mientras el usuario no haya tocado el campo a mano, "Entrega al momento
+  // de la venta" sigue al total (por defecto se cobra todo). Ajustado
+  // durante el render (comparando el total anterior) en vez de un efecto,
+  // para no encadenar renders.
+  const [prevTotal, setPrevTotal] = useState(total);
+  if (total !== prevTotal) {
+    setPrevTotal(total);
+    if (!paymentTouched) setInitialPayment(total);
+  }
 
   function addItem() {
     setAddError(null);
@@ -157,10 +168,11 @@ export function SaleForm({
 
       <div className="rounded-xl border border-line bg-bg p-5">
         <p className="text-sm font-semibold text-ink">Agregar producto</p>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div className="mt-3 flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Producto</span>
             <Combobox
+              className="w-full"
               value={selectedProductId}
               onChange={selectProduct}
               options={products.map((p) => ({
@@ -176,53 +188,55 @@ export function SaleForm({
             />
           </label>
 
-          {isFractionable && (
+          <div className="flex flex-wrap items-end gap-3">
+            {isFractionable && (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs text-ink-soft">Modalidad</span>
+                <select
+                  value={saleUnit}
+                  onChange={(e) => selectSaleUnit(e.target.value as "unit" | "fraction")}
+                  className="input"
+                >
+                  <option value="unit">Unidad completa</option>
+                  <option value="fraction">Por {selectedProduct?.fractionUnit}</option>
+                </select>
+              </label>
+            )}
+
             <label className="flex flex-col gap-1.5">
-              <span className="text-xs text-ink-soft">Modalidad</span>
-              <select
-                value={saleUnit}
-                onChange={(e) => selectSaleUnit(e.target.value as "unit" | "fraction")}
-                className="input"
-              >
-                <option value="unit">Unidad completa</option>
-                <option value="fraction">Por {selectedProduct?.fractionUnit}</option>
-              </select>
+              <span className="text-xs text-ink-soft">
+                Cantidad {isFractionable && saleUnit === "fraction" ? `(${selectedProduct?.fractionUnit})` : ""}
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={saleUnit === "fraction" ? "any" : 1}
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                className="input w-24"
+              />
             </label>
-          )}
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-ink-soft">
-              Cantidad {isFractionable && saleUnit === "fraction" ? `(${selectedProduct?.fractionUnit})` : ""}
-            </span>
-            <input
-              type="number"
-              min={0}
-              step={saleUnit === "fraction" ? "any" : 1}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="input w-24"
-            />
-          </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-ink-soft">Precio unitario</span>
+              <input
+                type="number"
+                min={0}
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(Number(e.target.value))}
+                className="input w-28"
+              />
+            </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-ink-soft">Precio unitario</span>
-            <input
-              type="number"
-              min={0}
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(Number(e.target.value))}
-              className="input w-28"
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={addItem}
-            disabled={maxQuantityForSelection <= 0}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-          >
-            + Agregar
-          </button>
+            <button
+              type="button"
+              onClick={addItem}
+              disabled={maxQuantityForSelection <= 0}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              + Agregar
+            </button>
+          </div>
         </div>
         {maxQuantityForSelection <= 0 && (
           <p className="mt-2 text-xs text-err-ink">Sin stock disponible.</p>
@@ -294,7 +308,10 @@ export function SaleForm({
               max={total}
               step={1}
               value={initialPayment}
-              onChange={(e) => setInitialPayment(Number(e.target.value))}
+              onChange={(e) => {
+                setPaymentTouched(true);
+                setInitialPayment(Number(e.target.value));
+              }}
               className="input max-w-[200px]"
             />
           </label>
@@ -331,7 +348,7 @@ export function SaleForm({
 
         <button
           type="submit"
-          disabled={items.length === 0 || pending}
+          disabled={items.length === 0 || !customerId || pending}
           className="w-fit rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-white disabled:opacity-40"
         >
           {pending ? "Guardando…" : `Registrar venta — ${formatMoney(total)}`}
