@@ -11,7 +11,17 @@ type ProductOption = {
   cost: number | null;
   fractionUnit: string | null;
   unitSize: number | null;
+  brand: string | null;
+  animalType: string | null;
+  animalSize: string | null;
+  animalWeight: string | null;
 };
+
+function productCharacteristics(product: ProductOption): string {
+  return [product.brand, product.animalType, product.animalSize, product.animalWeight]
+    .filter(Boolean)
+    .join(" · ");
+}
 type SupplierOption = { id: string; name: string };
 
 type LineItem = {
@@ -114,11 +124,15 @@ export function PurchaseOrderForm({
               onChange={(e) => selectProduct(e.target.value)}
               className="input"
             >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {products.map((p) => {
+                const characteristics = productCharacteristics(p);
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {characteristics ? ` — ${characteristics}` : ""}
+                  </option>
+                );
+              })}
             </select>
           </label>
 
@@ -152,6 +166,11 @@ export function PurchaseOrderForm({
             + Agregar
           </button>
         </div>
+        {selectedProduct && productCharacteristics(selectedProduct) && (
+          <p className="mt-2 text-xs text-ink-faint">
+            {productCharacteristics(selectedProduct)}
+          </p>
+        )}
         {selectedProduct?.fractionUnit && (
           <p className="mt-2 text-xs text-ink-faint">
             Se pide por unidad completa (ej: bolsas) — cada una suma{" "}

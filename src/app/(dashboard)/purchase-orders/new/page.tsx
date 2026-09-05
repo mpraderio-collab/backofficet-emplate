@@ -6,7 +6,17 @@ export default async function NewPurchaseOrderPage() {
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.product.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true, cost: true, fractionUnit: true, unitSize: true },
+      select: {
+        id: true,
+        name: true,
+        cost: true,
+        fractionUnit: true,
+        unitSize: true,
+        brand: true,
+        animalType: true,
+        animalSize: true,
+        animalWeight: true,
+      },
     }),
   ]);
 
