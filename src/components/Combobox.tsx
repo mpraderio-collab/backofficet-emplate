@@ -27,9 +27,30 @@ export function Combobox({
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listId = useId();
+
+  function doOpen() {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    setClosing(false);
+    setOpen(true);
+  }
+
+  function doClose() {
+    setOpen(false);
+    setClosing(true);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => setClosing(false), 150);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   const selected = options.find((o) => o.value === value);
   const normalizedQuery = query.trim().toLowerCase();
@@ -51,7 +72,7 @@ export function Combobox({
   useEffect(() => {
     function handlePointerDown(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        doClose();
         setQuery("");
       }
     }
@@ -62,14 +83,14 @@ export function Combobox({
   function selectOption(option: ComboboxOption) {
     onChange(option.value);
     setQuery("");
-    setOpen(false);
+    doClose();
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (!open) {
       if (e.key === "ArrowDown" || e.key === "Enter") {
         e.preventDefault();
-        setOpen(true);
+        doOpen();
       }
       return;
     }
@@ -84,7 +105,7 @@ export function Combobox({
       const option = filtered[highlighted];
       if (option) selectOption(option);
     } else if (e.key === "Escape") {
-      setOpen(false);
+      doClose();
       setQuery("");
     }
   }
@@ -102,44 +123,45 @@ export function Combobox({
         value={open ? query : (selected?.label ?? "")}
         placeholder={placeholder}
         onFocus={() => {
-          setOpen(true);
+          doOpen();
           setQuery("");
         }}
         onChange={(e) => {
           setQuery(e.target.value);
-          setOpen(true);
+          doOpen();
         }}
         onKeyDown={handleKeyDown}
       />
-      {open && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-line bg-bg shadow-lg"
-        >
-          {filtered.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-ink-faint">{emptyMessage}</li>
-          ) : (
-            filtered.map((option, i) => (
-              <li
-                key={option.value}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectOption(option);
-                }}
-                className={`cursor-pointer px-3 py-2 text-sm ${
-                  i === highlighted ? "bg-accent-soft text-accent" : "text-ink"
-                }`}
-              >
-                {option.label}
-                {option.sublabel && (
-                  <span className="ml-1.5 text-xs text-ink-faint">{option.sublabel}</span>
-                )}
-              </li>
-            ))
-          )}
-        </ul>
-      )}
+      <ul
+        id={listId}
+        role="listbox"
+        data-origin="top-left"
+        className={`t-dropdown absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-line bg-bg shadow-lg ${
+          open ? "is-open" : closing ? "is-closing" : ""
+        }`}
+      >
+        {filtered.length === 0 ? (
+          <li className="px-3 py-2 text-sm text-ink-faint">{emptyMessage}</li>
+        ) : (
+          filtered.map((option, i) => (
+            <li
+              key={option.value}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                selectOption(option);
+              }}
+              className={`cursor-pointer px-3 py-2 text-sm ${
+                i === highlighted ? "bg-accent-soft text-accent" : "text-ink"
+              }`}
+            >
+              {option.label}
+              {option.sublabel && (
+                <span className="ml-1.5 text-xs text-ink-faint">{option.sublabel}</span>
+              )}
+            </li>
+          ))
+        )}
+      </ul>
     </div>
   );
 }
