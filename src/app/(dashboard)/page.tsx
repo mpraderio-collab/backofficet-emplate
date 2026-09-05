@@ -84,10 +84,9 @@ export default async function DashboardPage() {
   // tienen costo cargado (y, si son por fracción, unitSize) — las que no,
   // quedan afuera tanto del monto como del ingreso de referencia del %,
   // para no inflar ni diluir el margen con datos incompletos.
-  let totalMarginAmount = 0;
-  let totalMarginRevenue = 0;
   let revenueThisMonth = 0;
   let marginThisMonth = 0;
+  let marginRevenueThisMonth = 0;
   const marginByBucket = buckets.map(() => 0);
   for (const sale of salesForCharts) {
     const bucketIndex = buckets.findIndex(
@@ -105,14 +104,15 @@ export default async function DashboardPage() {
       if (itemCost == null) continue;
       const itemRevenue = item.unitPrice * item.quantity;
       const itemMargin = itemRevenue - itemCost;
-      totalMarginAmount += itemMargin;
-      totalMarginRevenue += itemRevenue;
       if (bucketIndex >= 0) marginByBucket[bucketIndex] += itemMargin;
-      if (isThisMonth) marginThisMonth += itemMargin;
+      if (isThisMonth) {
+        marginThisMonth += itemMargin;
+        marginRevenueThisMonth += itemRevenue;
+      }
     }
   }
-  const totalMarginPercent =
-    totalMarginRevenue > 0 ? (totalMarginAmount / totalMarginRevenue) * 100 : 0;
+  const marginPercentThisMonth =
+    marginRevenueThisMonth > 0 ? (marginThisMonth / marginRevenueThisMonth) * 100 : 0;
 
   const totalExpensesThisMonth = expensesThisMonth.reduce((sum, e) => sum + e.amount, 0);
   // Ganancia neta = margen (ingreso - costo de productos) menos los gastos
@@ -125,8 +125,8 @@ export default async function DashboardPage() {
     { label: "Facturado este mes", value: formatMoney(revenueThisMonth) },
     {
       label: "Margen total de ventas",
-      value: formatMoney(totalMarginAmount),
-      hint: `${totalMarginPercent.toFixed(1)}% · últimos ${buckets.length} meses`,
+      value: formatMoney(marginThisMonth),
+      hint: `${marginPercentThisMonth.toFixed(1)}% · este mes`,
     },
     { label: "Gastos del mes", value: formatMoney(totalExpensesThisMonth) },
     {
