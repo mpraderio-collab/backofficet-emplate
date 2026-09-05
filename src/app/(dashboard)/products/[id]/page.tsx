@@ -26,8 +26,15 @@ export default async function EditProductPage(
       <h1 className="text-2xl font-bold text-ink">{product.name}</h1>
       {margin && (
         <p className="mt-1 text-sm text-ink-soft">
-          Margen actual: <span className="font-semibold text-ink">{margin.percent.toFixed(1)}%</span>{" "}
-          ({formatMoney(margin.amount)} por unidad)
+          Margen actual: <span className="font-semibold text-ink">{formatMoney(margin.amount)}</span>{" "}
+          por unidad
+          {margin.percent != null && (
+            <>
+              {" "}
+              (<span className="font-semibold text-ink">{margin.percent.toFixed(1)}%</span> de
+              markup sobre el costo)
+            </>
+          )}
         </p>
       )}
       <p className="mt-1 text-sm text-ink-soft">

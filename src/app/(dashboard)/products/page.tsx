@@ -40,14 +40,17 @@ export default async function ProductsPage() {
                 <th className="px-4 py-3">Producto</th>
                 <th className="px-4 py-3">Proveedor</th>
                 <th className="px-4 py-3">Precio</th>
-                <th className="px-4 py-3">Margen</th>
+                <th className="px-4 py-3">Margen $</th>
+                <th className="px-4 py-3">Margen %</th>
                 <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {products.map((p) => {
+                const margin = calculateMargin(p.price, p.cost);
+                return (
                 <tr key={p.id} className="border-b border-line-soft last:border-0">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -88,8 +91,15 @@ export default async function ProductsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-ink-soft">
-                    {formatMarginPercent(calculateMargin(p.price, p.cost))}
+                    {margin ? (
+                      <span className={margin.amount < 0 ? "font-semibold text-err-ink" : undefined}>
+                        {formatMoney(margin.amount)}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </td>
+                  <td className="px-4 py-3 text-ink-soft">{formatMarginPercent(margin)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={
@@ -124,7 +134,8 @@ export default async function ProductsPage() {
                     </Link>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

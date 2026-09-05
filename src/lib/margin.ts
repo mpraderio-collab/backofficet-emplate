@@ -1,15 +1,19 @@
-export type Margin = { amount: number; percent: number };
+export type Margin = { amount: number; percent: number | null };
 
-// Margen sobre el precio de venta: (precio - costo) / precio.
+// Margen en $ (precio - costo) y % de markup sobre el costo — no margen
+// sobre el precio, que da un número distinto y confunde (ej: precio $150,
+// costo $100 → margen $50, markup 50%, no 33% que sería $50/$150). Con
+// costo $0 el % de markup queda indefinido (percent: null) en vez de
+// mostrar una división por cero. Mismo criterio que se corrigió en Finder.
 export function calculateMargin(price: number, cost: number | null | undefined): Margin | null {
   if (cost == null) return null;
   const amount = price - cost;
-  const percent = price > 0 ? (amount / price) * 100 : 0;
+  const percent = cost > 0 ? (amount / cost) * 100 : null;
   return { amount, percent };
 }
 
 export function formatMarginPercent(margin: Margin | null): string {
-  if (!margin) return "—";
+  if (!margin || margin.percent == null) return "—";
   return `${margin.percent.toFixed(1)}%`;
 }
 
