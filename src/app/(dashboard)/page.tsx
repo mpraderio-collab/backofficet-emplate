@@ -240,12 +240,7 @@ export default async function DashboardPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-line bg-bg p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-ink">Stock bajo</p>
-            <Link href="/products" className="text-sm font-semibold text-accent hover:underline">
-              Ver todos →
-            </Link>
-          </div>
+          <p className="text-sm font-semibold text-ink">Stock bajo</p>
           {lowStockProducts.length === 0 ? (
             <p className="mt-3 text-sm text-ink-soft">Todos los productos tienen stock suficiente.</p>
           ) : (
@@ -267,8 +262,11 @@ export default async function DashboardPage() {
         <div className="rounded-xl border border-line bg-bg p-5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-ink">Pedidos a proveedores en curso</p>
-            <Link href="/purchase-orders" className="text-sm font-semibold text-accent hover:underline">
-              Ver todos →
+            <Link
+              href="/purchase-orders?status=pending&status=sent"
+              className="text-sm font-semibold text-accent hover:underline"
+            >
+              Ver pedidos en curso →
             </Link>
           </div>
           {pendingPurchaseOrders.length === 0 ? (

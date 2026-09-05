@@ -10,7 +10,8 @@ const DELAYED_AFTER_DAYS = 7;
 
 export default async function PurchaseOrdersPage(props: PageProps<"/purchase-orders">) {
   const searchParams = await props.searchParams;
-  const statusParam = typeof searchParams?.status === "string" ? searchParams.status : "";
+  const rawStatus = searchParams?.status;
+  const statusParams = Array.isArray(rawStatus) ? rawStatus : rawStatus ? [rawStatus] : [];
   const supplierIdParam =
     typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
   const fromParam = typeof searchParams?.from === "string" ? searchParams.from : "";
@@ -19,7 +20,7 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
   const [purchaseOrders, suppliers] = await Promise.all([
     db.purchaseOrder.findMany({
       where: {
-        ...(statusParam && { status: statusParam }),
+        ...(statusParams.length > 0 && { status: { in: statusParams } }),
         ...(supplierIdParam && { supplierId: supplierIdParam }),
         ...((fromParam || toParam) && {
           orderDate: {
@@ -38,7 +39,7 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
-  const hasFilters = statusParam || supplierIdParam || fromParam || toParam;
+  const hasFilters = statusParams.length > 0 || supplierIdParam || fromParam || toParam;
 
   return (
     <div>
@@ -56,17 +57,26 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
         className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-line bg-surface p-4"
         method="get"
       >
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-soft">Estado</span>
-          <select name="status" defaultValue={statusParam} className="input">
-            <option value="">Todos</option>
+          <div className="flex flex-wrap gap-1.5">
             {Object.entries(purchaseOrderStatusLabels).map(([value, label]) => (
-              <option key={value} value={value}>
+              <label
+                key={value}
+                className="flex items-center gap-1.5 rounded-lg border border-border-input bg-bg px-2.5 py-1.5 text-xs font-medium text-ink has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent"
+              >
+                <input
+                  type="checkbox"
+                  name="status"
+                  value={value}
+                  defaultChecked={statusParams.includes(value)}
+                  className="h-3.5 w-3.5"
+                />
                 {label}
-              </option>
+              </label>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-soft">Proveedor</span>
           <FilterCombobox
