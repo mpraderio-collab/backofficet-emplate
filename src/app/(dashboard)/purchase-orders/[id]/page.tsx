@@ -5,6 +5,7 @@ import { formatDate, formatDateOnly, formatMoney, formatQuantity } from "@/lib/f
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 import { StatusActions } from "./StatusActions";
 import { ReceiveOrderForm } from "./ReceiveOrderForm";
+import { ExportActions } from "./ExportActions";
 
 function productCharacteristics(product: {
   brand: string | null;
@@ -49,7 +50,7 @@ export default async function PurchaseOrderDetailPage(
 
   return (
     <div>
-      <p className="text-sm text-ink-faint">
+      <p className="print:hidden text-sm text-ink-faint">
         <Link href="/purchase-orders" className="hover:text-accent">
           Pedidos a proveedores
         </Link>{" "}
@@ -58,12 +59,26 @@ export default async function PurchaseOrderDetailPage(
       <div className="mt-1 flex items-center gap-3">
         <h1 className="text-2xl font-bold text-ink">Pedido a {po.supplier.name}</h1>
         <span
-          className={`rounded-md px-2 py-0.5 text-xs font-semibold ${purchaseOrderStatusColors[po.status]}`}
+          className={`print:hidden rounded-md px-2 py-0.5 text-xs font-semibold ${purchaseOrderStatusColors[po.status]}`}
         >
           {purchaseOrderStatusLabels[po.status]}
         </span>
       </div>
       <p className="mt-1 text-sm text-ink-soft">Fecha del pedido: {formatDateOnly(po.orderDate)}</p>
+
+      <ExportActions
+        fileName={`pedido-${po.supplier.name}-${formatDateOnly(po.orderDate).replaceAll("/", "-")}`}
+        supplierName={po.supplier.name}
+        orderDate={formatDateOnly(po.orderDate)}
+        items={po.items.map((item) => ({
+          productName: item.product.name,
+          characteristics: productCharacteristics(item.product),
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          subtotal: item.unitCost * item.quantity,
+        }))}
+        total={total}
+      />
 
       <div className="mt-6 max-w-2xl overflow-x-auto rounded-xl border border-line bg-bg">
         <table className="w-full text-left text-sm">
@@ -126,7 +141,7 @@ export default async function PurchaseOrderDetailPage(
         </p>
       )}
 
-      <p className="mt-4 text-sm">
+      <p className="print:hidden mt-4 text-sm">
         <Link
           href={`/suppliers/${po.supplierId}`}
           className="font-semibold text-accent hover:underline"
@@ -153,21 +168,23 @@ export default async function PurchaseOrderDetailPage(
         </div>
       )}
 
-      {po.status === "sent" && (
-        <ReceiveOrderForm
-          purchaseOrderId={po.id}
-          items={po.items.map((item) => ({
-            id: item.id,
-            productName: item.product.name,
-            productCharacteristics: productCharacteristics(item.product),
-            quantity: item.quantity,
-            unitCost: item.unitCost,
-            currentCost: item.product.cost,
-          }))}
-        />
-      )}
+      <div className="print:hidden">
+        {po.status === "sent" && (
+          <ReceiveOrderForm
+            purchaseOrderId={po.id}
+            items={po.items.map((item) => ({
+              id: item.id,
+              productName: item.product.name,
+              productCharacteristics: productCharacteristics(item.product),
+              quantity: item.quantity,
+              unitCost: item.unitCost,
+              currentCost: item.product.cost,
+            }))}
+          />
+        )}
 
-      <StatusActions id={po.id} status={po.status} />
+        <StatusActions id={po.id} status={po.status} />
+      </div>
     </div>
   );
 }

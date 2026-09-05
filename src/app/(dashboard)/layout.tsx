@@ -18,11 +18,13 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-surface md:flex-row">
-      <MobileNav
-        userLabel={`${session.user.name} · ${session.user.email}`}
-        signOutAction={handleSignOut}
-      />
-      <aside className="hidden w-[236px] shrink-0 flex-col bg-primary text-white md:flex">
+      <div className="print:hidden">
+        <MobileNav
+          userLabel={`${session.user.name} · ${session.user.email}`}
+          signOutAction={handleSignOut}
+        />
+      </div>
+      <aside className="print:hidden hidden w-[236px] shrink-0 flex-col bg-primary text-white md:flex">
         <div className="px-6 py-6">
           <p className="text-lg font-bold text-white">Backoffice</p>
           <p className="mt-1 text-xs text-white/60">Gestión interna</p>
@@ -42,7 +44,7 @@ export default async function DashboardLayout({
           </form>
         </div>
       </aside>
-      <main className="flex-1 px-6 py-8 md:px-10">{children}</main>
+      <main className="flex-1 px-6 py-8 md:px-10 print:p-0">{children}</main>
     </div>
   );
 }
