@@ -28,13 +28,25 @@ export function oneYearAgo(): Date {
   return d;
 }
 
+// Fecha local en formato "YYYY-MM-DD" para un <input type="date"> — a
+// propósito NO usa toISOString() (que convierte a UTC): las fechas que
+// recibe (startOfToday, endOfToday, o un "YYYY-MM-DDT00:00:00" parseado
+// desde la URL) están construidas en hora local, así que convertir a UTC
+// puede correr la fecha un día para adelante o atrás según el huso horario
+// del servidor, y ese corrimiento se acumula en cada ida y vuelta por la URL.
 export function toDateInputValue(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-// Formato "YYYY-MM" para un <input type="month">.
+// Formato "YYYY-MM" para un <input type="month"> — mismo criterio en hora
+// local que toDateInputValue.
 export function toMonthInputValue(d: Date): string {
-  return d.toISOString().slice(0, 7);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
 }
 
 const MONTH_NAMES_LONG = [

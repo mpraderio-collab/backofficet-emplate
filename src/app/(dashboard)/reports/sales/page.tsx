@@ -58,6 +58,9 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
     { label: "Este mes", from: startOfMonth(), to: endOfToday() },
     { label: "Este año", from: startOfYear(), to: endOfToday() },
   ];
+  const activeRangeLabel = quickRanges.find(
+    (r) => toDateInputValue(r.from) === toDateInputValue(from) && toDateInputValue(r.to) === toDateInputValue(to),
+  )?.label;
 
   const exportRows: (string | number)[][] = [
     [`Informe de ventas: ${toDateInputValue(from)} a ${toDateInputValue(to)}`],
@@ -109,15 +112,23 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
           </button>
         </form>
         <div className="flex gap-2">
-          {quickRanges.map((r) => (
-            <Link
-              key={r.label}
-              href={`/reports/sales?from=${toDateInputValue(r.from)}&to=${toDateInputValue(r.to)}`}
-              className="rounded-lg border border-border-input bg-bg px-3 py-2 text-xs font-semibold text-ink hover:bg-surface"
-            >
-              {r.label}
-            </Link>
-          ))}
+          {quickRanges.map((r) => {
+            const isActive = r.label === activeRangeLabel;
+            return (
+              <Link
+                key={r.label}
+                href={`/reports/sales?from=${toDateInputValue(r.from)}&to=${toDateInputValue(r.to)}`}
+                className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                  isActive
+                    ? "border-accent bg-accent-soft text-accent"
+                    : "border-border-input bg-bg text-ink hover:bg-surface"
+                }`}
+              >
+                {isActive && "✓ "}
+                {r.label}
+              </Link>
+            );
+          })}
           {hasFilters && (
             <Link
               href="/reports/sales"
