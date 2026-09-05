@@ -13,6 +13,9 @@ export default async function DashboardPage() {
   const buckets = monthBuckets(6);
   const rangeStart = buckets[0].start;
 
+  const monthStart = startOfMonth();
+  const monthEnd = endOfToday();
+
   const [
     productCount,
     activeProducts,
@@ -21,7 +24,7 @@ export default async function DashboardPage() {
     supplierBalances,
     recentSales,
     salesForCharts,
-    salesThisMonth,
+    expensesThisMonth,
   ] = await Promise.all([
     db.product.count({ where: { status: "active" } }),
     db.product.findMany({
@@ -57,9 +60,9 @@ export default async function DashboardPage() {
         },
       },
     }),
-    db.sale.findMany({
-      where: { status: "confirmed", createdAt: { gte: startOfMonth(), lte: endOfToday() } },
-      select: { total: true },
+    db.expense.findMany({
+      where: { date: { gte: monthStart, lte: monthEnd } },
+      select: { amount: true },
     }),
   ]);
 
@@ -77,19 +80,21 @@ export default async function DashboardPage() {
     0,
   );
 
-  const revenueThisMonth = salesThisMonth.reduce((sum, s) => sum + s.total, 0);
-
   // Margen = ingreso - costo estimado, sumado solo sobre las líneas que
   // tienen costo cargado (y, si son por fracción, unitSize) — las que no,
   // quedan afuera tanto del monto como del ingreso de referencia del %,
   // para no inflar ni diluir el margen con datos incompletos.
   let totalMarginAmount = 0;
   let totalMarginRevenue = 0;
+  let revenueThisMonth = 0;
+  let marginThisMonth = 0;
   const marginByBucket = buckets.map(() => 0);
   for (const sale of salesForCharts) {
     const bucketIndex = buckets.findIndex(
       (b) => sale.createdAt >= b.start && sale.createdAt < b.end,
     );
+    const isThisMonth = sale.createdAt >= monthStart && sale.createdAt <= monthEnd;
+    if (isThisMonth) revenueThisMonth += sale.total;
     for (const item of sale.items) {
       const itemCost = estimateItemCost(
         item.saleUnit,
@@ -103,10 +108,17 @@ export default async function DashboardPage() {
       totalMarginAmount += itemMargin;
       totalMarginRevenue += itemRevenue;
       if (bucketIndex >= 0) marginByBucket[bucketIndex] += itemMargin;
+      if (isThisMonth) marginThisMonth += itemMargin;
     }
   }
   const totalMarginPercent =
     totalMarginRevenue > 0 ? (totalMarginAmount / totalMarginRevenue) * 100 : 0;
+
+  const totalExpensesThisMonth = expensesThisMonth.reduce((sum, e) => sum + e.amount, 0);
+  // Ganancia neta = margen (ingreso - costo de productos) menos los gastos
+  // del negocio del mes — a propósito separada de "Margen total de ventas"
+  // para no mezclar el margen bruto con los gastos.
+  const netProfitThisMonth = marginThisMonth - totalExpensesThisMonth;
 
   const stats = [
     { label: "Productos activos", value: productCount },
@@ -115,6 +127,12 @@ export default async function DashboardPage() {
       label: "Margen total de ventas",
       value: formatMoney(totalMarginAmount),
       hint: `${totalMarginPercent.toFixed(1)}% · últimos ${buckets.length} meses`,
+    },
+    { label: "Gastos del mes", value: formatMoney(totalExpensesThisMonth) },
+    {
+      label: "Ganancia neta del mes",
+      value: formatMoney(netProfitThisMonth),
+      hint: `Margen ${formatMoney(marginThisMonth)} − gastos ${formatMoney(totalExpensesThisMonth)}`,
     },
     { label: "Por cobrar a clientes", value: formatMoney(totalReceivable) },
     { label: "Por pagar a proveedores", value: formatMoney(totalPayable) },
@@ -153,7 +171,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-xl border border-line bg-bg p-[18px]">
             <p className="text-[13px] text-ink-soft">{stat.label}</p>

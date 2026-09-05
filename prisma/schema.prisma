@@ -184,3 +184,29 @@ model SupplierLedgerEntry {
 
   @@index([supplierId])
 }
+
+// Gastos del negocio (impuestos, luz, gas, alquiler, etc.) — independientes
+// de Proveedores/Pedidos, para poder calcular la ganancia neta (margen de
+// ventas menos gastos) por separado del margen bruto.
+model ExpenseType {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+
+  expenses  Expense[]
+}
+
+model Expense {
+  id            String      @id @default(cuid())
+  expenseTypeId String
+  expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [id])
+  amount        Int
+  date          DateTime // fecha del gasto (puede no ser el día que se carga)
+  paymentMethod String // cash | transfer | card | other
+  isRecurring   Boolean     @default(false) // ej: alquiler, luz — se repite todos los meses
+  note          String?
+  createdAt     DateTime    @default(now())
+
+  @@index([expenseTypeId])
+  @@index([date])
+}

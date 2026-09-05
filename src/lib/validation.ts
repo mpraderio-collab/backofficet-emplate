@@ -126,6 +126,22 @@ export const receivePurchaseOrderSchema = z.object({
   items: z.array(receivePurchaseOrderItemSchema).min(1),
 });
 
+export const expenseTypeSchema = z.object({
+  name: z.string().trim().min(2, "El nombre es muy corto").max(80),
+});
+
+export const expenseSchema = z.object({
+  expenseTypeId: z.string().min(1, "Elegí un tipo de gasto"),
+  amount: z.coerce
+    .number({ message: "El monto tiene que ser un número" })
+    .int("El monto no puede tener centavos")
+    .positive("El monto tiene que ser mayor a cero"),
+  date: z.coerce.date({ message: "Elegí una fecha válida" }),
+  paymentMethod: z.enum(paymentMethods).default("cash"),
+  isRecurring: z.coerce.boolean().default(false),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+});
+
 export const userSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(120),
   email: z.string().trim().email("El email no es válido"),
