@@ -51,6 +51,7 @@ export function SaleForm({
   const [note, setNote] = useState("");
   const [initialPayment, setInitialPayment] = useState(0);
   const [paymentTouched, setPaymentTouched] = useState(false);
+  const [billViaArca, setBillViaArca] = useState(false);
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const isFractionable = Boolean(selectedProduct?.fractionUnit);
@@ -340,6 +341,17 @@ export function SaleForm({
             rows={2}
             className="input"
           />
+        </label>
+
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            name="billViaArca"
+            checked={billViaArca}
+            onChange={(e) => setBillViaArca(e.target.checked)}
+            className="h-4 w-4"
+          />
+          Facturar por ARCA (Factura C)
         </label>
 
         {state.error && (

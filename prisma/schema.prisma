@@ -102,21 +102,50 @@ model Supplier {
 }
 
 model Sale {
-  id         String   @id @default(cuid())
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id])
-  total      Int
-  status     String   @default("confirmed") // confirmed | cancelled
-  note       String?
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  total       Int
+  status      String   @default("confirmed") // confirmed | cancelled
+  note        String?
+  billViaArca Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   createdByUserId String?
   createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
 
   items       SaleItem[]
   ledgerEntry CustomerLedgerEntry?
+  arcaInvoice ArcaInvoice?
 
   @@index([customerId])
+}
+
+// Factura electrónica emitida (o intentada) en ARCA (ex AFIP) para una
+// venta puntual — el emisor factura como monotributista, siempre Factura C.
+model ArcaInvoice {
+  id            String    @id @default(cuid())
+  saleId        String    @unique
+  sale          Sale      @relation(fields: [saleId], references: [id])
+  status        String    @default("pending") // pending | issued | error
+  voucherType   Int       @default(11) // 11 = Factura C
+  pointOfSale   Int?
+  invoiceNumber Int?
+  cae           String?
+  caeExpiration DateTime?
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Ticket de acceso (WSAA) reutilizado entre invocaciones para no volver a
+// autenticarse contra ARCA en cada factura — pisa el error "ya posee un TA
+// válido" que tira ARCA si se pide un ticket nuevo estando uno vigente.
+model ArcaTicket {
+  id             String   @id // ej: "wsfe-homologacion" | "wsfe-produccion"
+  data           Json
+  expirationDate DateTime
+  updatedAt      DateTime @updatedAt
 }
 
 model SaleItem {

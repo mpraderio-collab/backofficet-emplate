@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { saleSchema } from "@/lib/validation";
+import { issueArcaInvoiceForSale } from "@/lib/arca/invoice";
 
 async function requireAuth() {
   const session = await auth();
@@ -38,6 +39,7 @@ export async function createSale(
     items: itemsRaw,
     initialPayment: formData.get("initialPayment"),
     initialPaymentMethod: formData.get("initialPaymentMethod"),
+    billViaArca: formData.get("billViaArca"),
   });
   if (!result.success) {
     return { error: result.error.issues[0]?.message ?? "Revisá los datos." };
@@ -91,6 +93,7 @@ export async function createSale(
           customerId: data.customerId,
           total,
           note: data.note || null,
+          billViaArca: data.billViaArca,
           createdByUserId: userId,
           items: { create: saleItemsData },
         },
@@ -124,6 +127,8 @@ export async function createSale(
       return created;
     });
 
+    if (sale.billViaArca) await issueArcaInvoiceForSale(sale.id);
+
     revalidatePath("/sales");
     revalidatePath("/products");
     revalidatePath(`/customers/${data.customerId}`);
@@ -133,6 +138,15 @@ export async function createSale(
     if (err instanceof SaleError) return { error: err.message };
     throw err;
   }
+}
+
+// Reintenta emitir la factura ARCA de una venta que quedó en error (o
+// pendiente) — no vuelve a tocar el resto de la venta.
+export async function retryArcaInvoice(saleId: string): Promise<{ error?: string }> {
+  await requireAuth();
+  await issueArcaInvoiceForSale(saleId);
+  revalidatePath(`/sales/${saleId}`);
+  return {};
 }
 
 // Cancela la venta: repone el stock y anula el cargo que había generado en

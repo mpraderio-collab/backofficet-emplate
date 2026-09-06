@@ -3,6 +3,19 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney, formatQuantity } from "@/lib/format";
 import { CancelSaleButton } from "./CancelSaleButton";
+import { RetryArcaInvoiceButton } from "./RetryArcaInvoiceButton";
+
+const arcaStatusLabels: Record<string, string> = {
+  pending: "Pendiente",
+  issued: "Emitida",
+  error: "Error",
+};
+
+const arcaStatusColors: Record<string, string> = {
+  pending: "bg-line-soft text-ink-faint",
+  issued: "bg-ok-bg text-ok-ink",
+  error: "bg-err-bg text-err-ink",
+};
 
 export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
   const { id } = await props.params;
@@ -12,6 +25,7 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
       customer: true,
       items: { include: { product: { select: { name: true, fractionUnit: true } } } },
       createdByUser: { select: { name: true } },
+      arcaInvoice: true,
     },
   });
   if (!sale) notFound();
@@ -70,6 +84,36 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
           Total: {formatMoney(sale.total)}
         </div>
       </div>
+
+      {sale.billViaArca && (
+        <div className="mt-4 max-w-2xl rounded-xl border border-line bg-bg p-4">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-ink">Factura ARCA</p>
+            {sale.arcaInvoice && (
+              <span
+                className={`rounded-md px-2 py-0.5 text-xs font-semibold ${arcaStatusColors[sale.arcaInvoice.status]}`}
+              >
+                {arcaStatusLabels[sale.arcaInvoice.status]}
+              </span>
+            )}
+          </div>
+          {sale.arcaInvoice?.status === "issued" && (
+            <p className="mt-1 text-sm text-ink-soft">
+              Factura C N.° {sale.arcaInvoice.pointOfSale?.toString().padStart(4, "0")}-
+              {sale.arcaInvoice.invoiceNumber?.toString().padStart(8, "0")} · CAE{" "}
+              {sale.arcaInvoice.cae}
+              {sale.arcaInvoice.caeExpiration &&
+                ` (vence ${formatDate(sale.arcaInvoice.caeExpiration)})`}
+            </p>
+          )}
+          {sale.arcaInvoice?.status === "error" && (
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <p className="text-sm text-err-ink">{sale.arcaInvoice.errorMessage}</p>
+              <RetryArcaInvoiceButton saleId={sale.id} />
+            </div>
+          )}
+        </div>
+      )}
 
       {sale.note && (
         <p className="mt-4 max-w-2xl text-sm text-ink-soft">

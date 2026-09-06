@@ -18,6 +18,7 @@
   "dependencies": {
     "@prisma/client": "6.19.3",
     "@vercel/blob": "^2.8.0",
+    "afip.ts": "^3.2.2",
     "bcryptjs": "^3.0.3",
     "next": "16.3.4",
     "next-auth": "^5.0.0-beta.32",

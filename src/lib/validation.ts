@@ -94,6 +94,7 @@ export const saleSchema = z.object({
   items: z.array(saleItemSchema).min(1, "Agregá al menos un producto"),
   initialPayment: z.coerce.number().int().nonnegative().optional().default(0),
   initialPaymentMethod: z.enum(paymentMethods).default("cash"),
+  billViaArca: z.coerce.boolean().default(false),
 });
 
 export const purchaseOrderItemSchema = z.object({
