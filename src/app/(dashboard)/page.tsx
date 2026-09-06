@@ -26,6 +26,7 @@ export default async function DashboardPage() {
     salesForCharts,
     expensesThisMonth,
     unpaidExpensesDueThisMonth,
+    supplierPaymentsThisMonth,
   ] = await Promise.all([
     db.product.findMany({
       where: { status: "active" },
@@ -65,6 +66,10 @@ export default async function DashboardPage() {
       where: { dueDate: { gte: monthStart, lte: endOfMonth() }, paidDate: null },
       orderBy: { dueDate: "asc" },
       include: { expenseType: { select: { name: true } } },
+    }),
+    db.supplierLedgerEntry.aggregate({
+      where: { type: "payment", createdAt: { gte: monthStart, lte: monthEnd } },
+      _sum: { amount: true },
     }),
   ]);
 
@@ -117,10 +122,13 @@ export default async function DashboardPage() {
     marginRevenueThisMonth > 0 ? (marginThisMonth / marginRevenueThisMonth) * 100 : 0;
 
   const totalExpensesThisMonth = expensesThisMonth.reduce((sum, e) => sum + e.amount, 0);
+  const totalPaidToSuppliersThisMonth = supplierPaymentsThisMonth._sum.amount ?? 0;
   // Ganancia neta = margen (ingreso - costo de productos) menos los gastos
-  // del negocio del mes — a propósito separada de "Margen total de ventas"
-  // para no mezclar el margen bruto con los gastos.
-  const netProfitThisMonth = marginThisMonth - totalExpensesThisMonth;
+  // del negocio del mes y lo pagado a proveedores en el mes — a propósito
+  // separada de "Margen total de ventas" para no mezclar el margen bruto
+  // con los gastos y pagos reales.
+  const netProfitThisMonth =
+    marginThisMonth - totalExpensesThisMonth - totalPaidToSuppliersThisMonth;
 
   // "in" = entrada de dinero (o a favor nuestro), "out" = salida de dinero
   // (o compromiso pendiente), "neutral" = no es un monto de dinero.
@@ -134,13 +142,18 @@ export default async function DashboardPage() {
     },
     { label: "Gastos del mes", value: formatMoney(totalExpensesThisMonth), tone: "out" },
     {
-      label: "Ganancia neta del mes",
-      value: formatMoney(netProfitThisMonth),
-      hint: `Margen ${formatMoney(marginThisMonth)} − gastos ${formatMoney(totalExpensesThisMonth)}`,
-      tone: netProfitThisMonth >= 0 ? "in" : "out",
+      label: "Pagado a proveedores este mes",
+      value: formatMoney(totalPaidToSuppliersThisMonth),
+      tone: "out",
     },
     { label: "Por cobrar a clientes", value: formatMoney(totalReceivable), tone: "in" },
     { label: "Por pagar a proveedores", value: formatMoney(totalPayable), tone: "out" },
+    {
+      label: "Ganancia neta del mes",
+      value: formatMoney(netProfitThisMonth),
+      hint: `Margen ${formatMoney(marginThisMonth)} − gastos ${formatMoney(totalExpensesThisMonth)} − pagos a proveedores ${formatMoney(totalPaidToSuppliersThisMonth)}`,
+      tone: netProfitThisMonth >= 0 ? "in" : "out",
+    },
   ];
 
   const statToneClass: Record<"in" | "out" | "neutral", string> = {
