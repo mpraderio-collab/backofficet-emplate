@@ -70,8 +70,8 @@ function parseExpenseForm(formData: FormData) {
   return expenseSchema.safeParse({
     expenseTypeId: formData.get("expenseTypeId"),
     amount: formData.get("amount"),
-    date: formData.get("date"),
-    referenceMonth: formData.get("referenceMonth"),
+    dueDate: formData.get("dueDate"),
+    markAsPaid: formData.get("markAsPaid"),
     paymentMethod: formData.get("paymentMethod"),
     isRecurring: formData.get("isRecurring"),
     note: formData.get("note"),
@@ -98,8 +98,8 @@ export async function createExpense(
     data: {
       expenseTypeId: result.data.expenseTypeId,
       amount: result.data.amount,
-      date: result.data.date,
-      referenceMonth: result.data.referenceMonth,
+      dueDate: result.data.dueDate,
+      paidDate: result.data.markAsPaid ? new Date() : null,
       paymentMethod: result.data.paymentMethod,
       isRecurring: result.data.isRecurring,
       note: result.data.note || null,
@@ -116,6 +116,15 @@ export async function deleteExpense(id: string): Promise<{ error?: string }> {
   await requireAuth();
 
   await db.expense.delete({ where: { id } });
+  revalidatePath("/expenses");
+  revalidatePath("/");
+  return {};
+}
+
+export async function markExpenseAsPaid(id: string): Promise<{ error?: string }> {
+  await requireAuth();
+
+  await db.expense.update({ where: { id }, data: { paidDate: new Date() } });
   revalidatePath("/expenses");
   revalidatePath("/");
   return {};

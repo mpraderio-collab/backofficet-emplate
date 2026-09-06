@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatDateOnly, formatMoney } from "@/lib/format";
 import { paymentMethodLabels, type PaymentMethod } from "@/lib/payment-method";
 import {
   endOfToday,
-  formatMonth,
   startOfMonth,
   startOfToday,
+  startOfTodayUTC,
   startOfYear,
   toDateInputValue,
 } from "@/lib/reports";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { getExpenseStatus, expenseStatusLabels, expenseStatusColors } from "@/lib/expense-status";
 import { DeleteExpenseButton } from "./DeleteExpenseButton";
+import { MarkExpensePaidButton } from "./MarkExpensePaidButton";
 
 export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const searchParams = await props.searchParams;
@@ -23,15 +25,20 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const hasFilters = Boolean(fromParam || toParam);
 
   const expenses = await db.expense.findMany({
-    where: { date: { gte: from, lte: to } },
-    orderBy: { date: "desc" },
+    where: { dueDate: { gte: from, lte: to } },
+    orderBy: { dueDate: "desc" },
     include: {
       expenseType: { select: { name: true } },
       createdByUser: { select: { name: true } },
     },
   });
 
+  const today = startOfTodayUTC();
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const overdueExpenses = expenses.filter(
+    (e) => getExpenseStatus(e.dueDate, e.paidDate, today) === "overdue",
+  );
+  const totalOverdue = overdueExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   const byType = new Map<string, number>();
   for (const e of expenses) {
@@ -53,17 +60,18 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const exportRows: (string | number)[][] = [
     [`Gastos: ${toDateInputValue(from)} a ${toDateInputValue(to)}`],
     [],
-    ["Fecha", "Mes", "Tipo", "Método", "Monto", "Nota"],
+    ["Vencimiento", "Estado", "Fecha de pago", "Tipo", "Método", "Monto", "Nota"],
     ...expenses.map((e) => [
-      formatDate(e.date),
-      e.referenceMonth ? formatMonth(e.referenceMonth) : "",
+      formatDateOnly(e.dueDate),
+      expenseStatusLabels[getExpenseStatus(e.dueDate, e.paidDate, today)],
+      e.paidDate ? formatDate(e.paidDate) : "",
       e.expenseType.name,
       paymentMethodLabels[e.paymentMethod as PaymentMethod] ?? e.paymentMethod,
       e.amount,
       e.note ?? "",
     ]),
     [],
-    ["Total", "", "", "", totalExpenses, ""],
+    ["Total", "", "", "", "", totalExpenses, ""],
   ];
 
   return (
@@ -135,7 +143,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-line bg-bg p-[18px]">
           <p className="text-[13px] text-ink-soft">Total de gastos</p>
           <p className="mt-1 text-2xl font-bold text-ink">{formatMoney(totalExpenses)}</p>
@@ -143,6 +151,15 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
         <div className="rounded-xl border border-line bg-bg p-[18px]">
           <p className="text-[13px] text-ink-soft">Cantidad de gastos</p>
           <p className="mt-1 text-2xl font-bold text-ink">{expenses.length}</p>
+        </div>
+        <div className="rounded-xl border border-line bg-bg p-[18px]">
+          <p className="text-[13px] text-ink-soft">Vencidos y sin pagar</p>
+          <p className="mt-1 text-2xl font-bold text-err-ink">{formatMoney(totalOverdue)}</p>
+          {overdueExpenses.length > 0 && (
+            <p className="mt-0.5 text-xs text-ink-faint">
+              {overdueExpenses.length} gasto{overdueExpenses.length === 1 ? "" : "s"}
+            </p>
+          )}
         </div>
       </div>
 
@@ -178,11 +195,11 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
           <p className="mt-2 text-sm text-ink-soft">No hay gastos en este período.</p>
         ) : (
           <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-bg">
-            <table className="w-full min-w-[700px] text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
                 <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
-                  <th className="px-4 py-3">Fecha</th>
-                  <th className="px-4 py-3">Mes</th>
+                  <th className="px-4 py-3">Vencimiento</th>
+                  <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Método</th>
                   <th className="px-4 py-3">Monto</th>
@@ -192,11 +209,18 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                 </tr>
               </thead>
               <tbody>
-                {expenses.map((e) => (
+                {expenses.map((e) => {
+                  const status = getExpenseStatus(e.dueDate, e.paidDate, today);
+                  return (
                   <tr key={e.id} className="border-b border-line-soft last:border-0">
-                    <td className="px-4 py-3 text-ink-soft">{formatDate(e.date)}</td>
-                    <td className="px-4 py-3 text-ink-soft">
-                      {e.referenceMonth ? formatMonth(e.referenceMonth) : "—"}
+                    <td className="px-4 py-3 text-ink-soft">{formatDateOnly(e.dueDate)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-xs font-semibold ${expenseStatusColors[status]}`}
+                        title={e.paidDate ? `Pagado el ${formatDate(e.paidDate)}` : undefined}
+                      >
+                        {expenseStatusLabels[status]}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-ink">
                       {e.expenseType.name}
@@ -213,10 +237,14 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                     <td className="px-4 py-3 text-ink-soft">{e.note ?? "—"}</td>
                     <td className="px-4 py-3 text-ink-soft">{e.createdByUser?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-right">
-                      <DeleteExpenseButton id={e.id} />
+                      <div className="flex items-center justify-end gap-3">
+                        {!e.paidDate && <MarkExpensePaidButton id={e.id} />}
+                        <DeleteExpenseButton id={e.id} />
+                      </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

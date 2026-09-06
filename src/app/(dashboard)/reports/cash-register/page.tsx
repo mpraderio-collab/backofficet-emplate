@@ -23,7 +23,9 @@ export default async function CashRegisterReportPage(props: PageProps<"/reports/
       select: { amount: true, paymentMethod: true },
     }),
     db.expense.findMany({
-      where: { date: { gte: day, lte: dayEnd } },
+      // Caja = movimientos de plata reales ese día, así que se filtra por
+      // paidDate (cuándo se pagó), no por dueDate (cuándo vencía).
+      where: { paidDate: { gte: day, lte: dayEnd } },
       select: { amount: true, paymentMethod: true },
     }),
   ]);

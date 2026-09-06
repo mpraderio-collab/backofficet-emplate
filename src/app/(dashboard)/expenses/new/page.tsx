@@ -9,7 +9,7 @@ export default async function NewExpensePage() {
     db.expenseType.findMany({ orderBy: { name: "asc" } }),
     db.expense.findMany({
       where: { isRecurring: true },
-      orderBy: { date: "desc" },
+      orderBy: { dueDate: "desc" },
       include: { expenseType: { select: { name: true } } },
     }),
     db.expense.groupBy({ by: ["expenseTypeId"], _count: { _all: true } }),

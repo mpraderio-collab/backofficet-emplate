@@ -4,7 +4,7 @@ import { useActionState, useRef, useState, useEffect } from "react";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { formatMoney } from "@/lib/format";
-import { toDateInputValue, toMonthInputValue } from "@/lib/reports";
+import { toDateInputValue } from "@/lib/reports";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import { createExpense, type ExpenseActionState } from "./actions";
 
@@ -30,10 +30,10 @@ export function ExpenseForm({
 
   const [expenseTypeId, setExpenseTypeId] = useState(expenseTypes[0]?.id ?? "");
   const [amount, setAmount] = useState<number | "">("");
-  const [date, setDate] = useState(() => toDateInputValue(new Date()));
-  const [referenceMonth, setReferenceMonth] = useState(() => toMonthInputValue(new Date()));
+  const [dueDate, setDueDate] = useState(() => toDateInputValue(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [isRecurring, setIsRecurring] = useState(false);
+  const [markAsPaid, setMarkAsPaid] = useState(false);
   const [note, setNote] = useState("");
 
   // Al terminar un submit exitoso, limpiar el formulario — ajustando el
@@ -46,8 +46,8 @@ export function ExpenseForm({
       setAmount("");
       setNote("");
       setIsRecurring(false);
-      setDate(toDateInputValue(new Date()));
-      setReferenceMonth(toMonthInputValue(new Date()));
+      setMarkAsPaid(false);
+      setDueDate(toDateInputValue(new Date()));
     }
   }
 
@@ -60,13 +60,7 @@ export function ExpenseForm({
     setAmount(s.amount);
     setPaymentMethod(s.paymentMethod);
     setIsRecurring(true);
-    setDate(toDateInputValue(new Date()));
-    setReferenceMonth(toMonthInputValue(new Date()));
-  }
-
-  function handleDateChange(value: string) {
-    setDate(value);
-    if (value) setReferenceMonth(value.slice(0, 7));
+    setDueDate(toDateInputValue(new Date()));
   }
 
   return (
@@ -120,29 +114,16 @@ export function ExpenseForm({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Fecha" error={state.fieldErrors?.date}>
+          <Field label="Fecha de vencimiento" error={state.fieldErrors?.dueDate}>
             <input
-              name="date"
+              name="dueDate"
               type="date"
-              value={date}
-              onChange={(e) => handleDateChange(e.target.value)}
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
               required
               className="input"
             />
           </Field>
-          <Field label="Mes al que corresponde" error={state.fieldErrors?.referenceMonth}>
-            <input
-              name="referenceMonth"
-              type="month"
-              value={referenceMonth}
-              onChange={(e) => setReferenceMonth(e.target.value)}
-              required
-              className="input"
-            />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <Field label="Método de pago" error={state.fieldErrors?.paymentMethod}>
             <select
               name="paymentMethod"
@@ -169,6 +150,22 @@ export function ExpenseForm({
           />
           Es un gasto recurrente (se repite todos los meses, ej: alquiler, luz)
         </label>
+
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            name="markAsPaid"
+            checked={markAsPaid}
+            onChange={(e) => setMarkAsPaid(e.target.checked)}
+            className="h-4 w-4"
+          />
+          Ya está pagado (se marca como pagado hoy)
+        </label>
+        {!markAsPaid && (
+          <p className="-mt-2 text-xs text-ink-soft">
+            Si no lo marcás, el gasto queda como impago y podés pagarlo más tarde desde el listado.
+          </p>
+        )}
 
         <Field label="Nota (opcional)" error={state.fieldErrors?.note}>
           <input name="note" value={note} onChange={(e) => setNote(e.target.value)} className="input" />

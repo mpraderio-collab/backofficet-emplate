@@ -52,6 +52,16 @@ model Product {
   animalSize  String? // ej: pequeño, mediano, grande
   animalWeight String? // ej: "1-10 kg" — texto libre, no siempre es un rango exacto
 
+  // Fecha de alta: cuándo el producto empezó a estar disponible para la
+  // venta (puede ser anterior al día en que se cargó en el sistema).
+  // Opcional para no romper productos ya cargados antes de este campo —
+  // el formulario de creación siempre la pide de acá en adelante.
+  registeredAt DateTime?
+
+  // Última vez que cambió el precio o el costo (alta, edición manual,
+  // actualización por lote, o recepción de un pedido con costo nuevo).
+  priceUpdatedAt DateTime?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -223,9 +233,8 @@ model Expense {
   expenseTypeId String
   expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [id])
   amount        Int
-  date          DateTime // fecha del gasto (puede no ser el día que se carga)
-  referenceMonth DateTime? // primer día del mes al que corresponde el gasto — puede diferir
-  // del mes de `date` (ej: alquiler de diciembre pagado el 3 de enero)
+  dueDate       DateTime // fecha de vencimiento del gasto
+  paidDate      DateTime? // fecha en que se pagó — null significa impago
   paymentMethod String // cash | transfer | card | other
   isRecurring   Boolean     @default(false) // ej: alquiler, luz — se repite todos los meses
   note          String?
@@ -235,6 +244,6 @@ model Expense {
   createdByUser   User?     @relation(fields: [createdByUserId], references: [id])
 
   @@index([expenseTypeId])
-  @@index([date])
-  @@index([referenceMonth])
+  @@index([dueDate])
+  @@index([paidDate])
 }

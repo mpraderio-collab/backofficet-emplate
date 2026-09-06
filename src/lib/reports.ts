@@ -4,6 +4,15 @@ export function startOfToday(): Date {
   return d;
 }
 
+// Medianoche UTC del día de hoy (según fecha local) — para comparar contra
+// fechas "solo fecha" como Expense.dueDate, que por venir de un <input
+// type="date"> (ej: "2026-08-20") se parsean con z.coerce.date() como
+// medianoche UTC, no medianoche local. Mismo criterio que formatDateOnly.
+export function startOfTodayUTC(): Date {
+  const d = new Date();
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+
 export function endOfToday(): Date {
   const d = new Date();
   d.setHours(23, 59, 59, 999);
@@ -13,6 +22,11 @@ export function endOfToday(): Date {
 export function startOfMonth(): Date {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+export function endOfMonth(): Date {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
 export function startOfYear(): Date {
@@ -25,6 +39,15 @@ export function startOfYear(): Date {
 export function oneYearAgo(): Date {
   const d = new Date();
   d.setFullYear(d.getFullYear() - 1);
+  return d;
+}
+
+// Fecha de hace 6 meses — un producto nunca vendido recién se considera
+// "parado" después de este período de gracia desde su fecha de alta, para
+// no marcar como parado algo recién cargado.
+export function sixMonthsAgo(): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 6);
   return d;
 }
 
@@ -41,33 +64,14 @@ export function toDateInputValue(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// Formato "YYYY-MM" para un <input type="month"> — mismo criterio en hora
-// local que toDateInputValue.
-export function toMonthInputValue(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-}
-
-const MONTH_NAMES_LONG = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
-
-// "septiembre 2026" a partir de una fecha que representa el primer día de un
-// mes (guardada en UTC), sin depender de la zona horaria del navegador.
-export function formatMonth(d: Date): string {
-  return `${MONTH_NAMES_LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+// Igual que toDateInputValue, pero en UTC — para fechas "solo fecha"
+// guardadas como medianoche UTC (ej: Product.registeredAt, Expense.dueDate),
+// que vinieron de z.coerce.date() sobre un string sin hora.
+export function toDateInputValueUTC(d: Date): string {
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 // Envuelve Date.now() en una función plana para no llamarlo directo en el

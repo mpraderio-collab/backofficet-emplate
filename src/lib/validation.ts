@@ -49,6 +49,7 @@ export const productSchema = z.object({
   animalType: z.string().trim().max(60).optional().or(z.literal("")),
   animalSize: z.string().trim().max(60).optional().or(z.literal("")),
   animalWeight: z.string().trim().max(60).optional().or(z.literal("")),
+  registeredAt: z.coerce.date({ message: "Elegí una fecha de alta válida" }),
 }).refine((data) => !data.fractionUnit || (data.unitSize && data.fractionPrice != null), {
   message: "Completá el tamaño de la unidad y el precio por fracción",
   path: ["unitSize"],
@@ -136,11 +137,8 @@ export const expenseSchema = z.object({
     .number({ message: "El monto tiene que ser un número" })
     .int("El monto no puede tener centavos")
     .positive("El monto tiene que ser mayor a cero"),
-  date: z.coerce.date({ message: "Elegí una fecha válida" }),
-  referenceMonth: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/, "Elegí un mes válido")
-    .transform((value) => new Date(`${value}-01T00:00:00.000Z`)),
+  dueDate: z.coerce.date({ message: "Elegí una fecha de vencimiento válida" }),
+  markAsPaid: z.coerce.boolean().default(false),
   paymentMethod: z.enum(paymentMethods).default("cash"),
   isRecurring: z.coerce.boolean().default(false),
   note: z.string().trim().max(300).optional().or(z.literal("")),

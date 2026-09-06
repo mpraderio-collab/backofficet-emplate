@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatMoney, formatQuantity } from "@/lib/format";
+import { formatDateOnly, formatMoney, formatQuantity } from "@/lib/format";
+import { getExpenseStatus, expenseStatusLabels, expenseStatusColors } from "@/lib/expense-status";
+import { MarkExpensePaidButton } from "./expenses/MarkExpensePaidButton";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
-import { monthBuckets, startOfMonth, endOfToday, daysSince } from "@/lib/reports";
+import { monthBuckets, startOfMonth, endOfMonth, startOfTodayUTC, endOfToday, daysSince } from "@/lib/reports";
 import { estimateItemCost } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { BarChart } from "@/components/charts/BarChart";
@@ -24,6 +26,7 @@ export default async function DashboardPage() {
     supplierBalances,
     salesForCharts,
     expensesThisMonth,
+    unpaidExpensesDueThisMonth,
   ] = await Promise.all([
     db.product.count({ where: { status: "active" } }),
     db.product.findMany({
@@ -57,8 +60,13 @@ export default async function DashboardPage() {
       },
     }),
     db.expense.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: { dueDate: { gte: monthStart, lte: monthEnd } },
       select: { amount: true },
+    }),
+    db.expense.findMany({
+      where: { dueDate: { gte: monthStart, lte: endOfMonth() }, paidDate: null },
+      orderBy: { dueDate: "asc" },
+      include: { expenseType: { select: { name: true } } },
     }),
   ]);
 
@@ -300,6 +308,43 @@ export default async function DashboardPage() {
             </ul>
           )}
         </div>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-line bg-bg p-5">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-ink">Gastos por pagar este mes</p>
+          <Link href="/expenses" className="text-sm font-semibold text-accent hover:underline">
+            Ver gastos →
+          </Link>
+        </div>
+        {unpaidExpensesDueThisMonth.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-soft">
+            No hay gastos impagos con vencimiento este mes.
+          </p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-2">
+            {unpaidExpensesDueThisMonth.map((e) => {
+              const status = getExpenseStatus(e.dueDate, e.paidDate, startOfTodayUTC());
+              return (
+                <li key={e.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-ink-soft">
+                    {e.expenseType.name}{" "}
+                    <span className="text-ink-faint">· vence {formatDateOnly(e.dueDate)}</span>
+                    <span
+                      className={`ml-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${expenseStatusColors[status]}`}
+                    >
+                      {expenseStatusLabels[status]}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <span className="font-semibold text-ink">{formatMoney(e.amount)}</span>
+                    <MarkExpensePaidButton id={e.id} />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );
