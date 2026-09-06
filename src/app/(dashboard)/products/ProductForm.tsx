@@ -5,6 +5,7 @@ import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { DEFAULT_MIN_STOCK } from "@/lib/stock";
 import { calculateMargin } from "@/lib/margin";
+import { toDateInputValue } from "@/lib/reports";
 import type { ProductActionState } from "./actions";
 
 type Supplier = { id: string; name: string };
@@ -31,6 +32,7 @@ type Props = {
     animalType: string | null;
     animalSize: string | null;
     animalWeight: string | null;
+    registeredAt?: string;
     imageUrl?: string | null;
   };
   submitLabel: string;
@@ -44,6 +46,9 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
     Boolean(defaultValues?.fractionUnit),
   );
   const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? "");
+  const [registeredAt, setRegisteredAt] = useState(
+    () => defaultValues?.registeredAt ?? toDateInputValue(new Date()),
+  );
   const [imagePreview, setImagePreview] = useState(defaultValues?.imageUrl ?? "");
   const [removeImage, setRemoveImage] = useState(false);
 
@@ -125,7 +130,7 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
         )}
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Field label="SKU / código" error={state.fieldErrors?.sku} hint="Opcional">
           <input
             name="sku"
@@ -143,6 +148,20 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
               { value: "", label: "Sin proveedor asignado" },
               ...suppliers.map((s) => ({ value: s.id, label: s.name })),
             ]}
+          />
+        </Field>
+        <Field
+          label="Fecha de alta"
+          error={state.fieldErrors?.registeredAt}
+          hint="Cuándo empezó a venderse"
+        >
+          <input
+            name="registeredAt"
+            type="date"
+            value={registeredAt}
+            onChange={(e) => setRegisteredAt(e.target.value)}
+            required
+            className="input"
           />
         </Field>
       </div>

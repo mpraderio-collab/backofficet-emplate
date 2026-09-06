@@ -51,6 +51,7 @@ function parseForm(formData: FormData) {
     animalType: formData.get("animalType"),
     animalSize: formData.get("animalSize"),
     animalWeight: formData.get("animalWeight"),
+    registeredAt: formData.get("registeredAt"),
   });
 }
 
@@ -95,7 +96,7 @@ export async function createProduct(
   let productId: string;
   try {
     const product = await db.product.create({
-      data: { ...toProductData(result.data), imageUrl },
+      data: { ...toProductData(result.data), imageUrl, priceUpdatedAt: new Date() },
     });
     productId = product.id;
   } catch (err) {
@@ -127,12 +128,21 @@ export async function updateProduct(
   const imageUrl = await uploadProductImage(formData);
   const removeImage = formData.get("removeImage") === "on";
 
+  const existing = await db.product.findUnique({
+    where: { id },
+    select: { price: true, cost: true },
+  });
+  const priceChanged =
+    existing != null &&
+    (existing.price !== result.data.price || existing.cost !== (result.data.cost ?? null));
+
   try {
     await db.product.update({
       where: { id },
       data: {
         ...toProductData(result.data),
         ...(imageUrl ? { imageUrl } : removeImage ? { imageUrl: null } : {}),
+        ...(priceChanged ? { priceUpdatedAt: new Date() } : {}),
       },
     });
   } catch (err) {

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatDate, formatMoney } from "@/lib/format";
 import { calculateMargin } from "@/lib/margin";
 import { getLastSaleDateForProduct } from "@/lib/product-sales";
+import { toDateInputValue, toDateInputValueUTC } from "@/lib/reports";
 import { updateProduct } from "../actions";
 import { ProductForm } from "../ProductForm";
 import { ProductDangerZone } from "./ProductDangerZone";
@@ -20,6 +21,9 @@ export default async function EditProductPage(
 
   const boundAction = updateProduct.bind(null, product.id);
   const margin = calculateMargin(product.price, product.cost);
+  const registeredAtValue = product.registeredAt
+    ? toDateInputValueUTC(product.registeredAt)
+    : toDateInputValue(product.createdAt);
 
   return (
     <div>
@@ -43,6 +47,12 @@ export default async function EditProductPage(
           {lastSaleDate ? formatDate(lastSaleDate) : "Todavía no se vendió"}
         </span>
       </p>
+      {product.priceUpdatedAt && (
+        <p className="mt-1 text-sm text-ink-soft">
+          Último cambio de precio/costo:{" "}
+          <span className="font-semibold text-ink">{formatDate(product.priceUpdatedAt)}</span>
+        </p>
+      )}
       <div className="mt-6">
         <ProductForm
           action={boundAction}
@@ -64,6 +74,7 @@ export default async function EditProductPage(
             animalType: product.animalType,
             animalSize: product.animalSize,
             animalWeight: product.animalWeight,
+            registeredAt: registeredAtValue,
             imageUrl: product.imageUrl,
           }}
         />

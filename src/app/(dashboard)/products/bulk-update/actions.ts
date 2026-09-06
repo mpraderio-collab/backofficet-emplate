@@ -45,6 +45,7 @@ export async function bulkUpdatePrices(
           price: Math.round(p.price * factor),
           cost: p.cost != null ? Math.round(p.cost * factor) : undefined,
           fractionPrice: p.fractionPrice != null ? Math.round(p.fractionPrice * factor) : undefined,
+          priceUpdatedAt: new Date(),
         },
       }),
     ),

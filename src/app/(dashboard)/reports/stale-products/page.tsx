@@ -1,22 +1,34 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate, formatQuantity } from "@/lib/format";
-import { oneYearAgo } from "@/lib/reports";
+import { oneYearAgo, sixMonthsAgo } from "@/lib/reports";
 import { getLastSaleDatesByProduct } from "@/lib/product-sales";
 
 export default async function StaleProductsReportPage() {
   const [activeProducts, lastSaleByProduct] = await Promise.all([
     db.product.findMany({
       where: { status: "active" },
-      select: { id: true, name: true, stock: true, fractionUnit: true },
+      select: {
+        id: true,
+        name: true,
+        stock: true,
+        fractionUnit: true,
+        registeredAt: true,
+        createdAt: true,
+      },
     }),
     getLastSaleDatesByProduct(),
   ]);
 
   const staleThreshold = oneYearAgo();
+  const graceThreshold = sixMonthsAgo();
   const staleProducts = activeProducts
     .map((p) => ({ ...p, lastSaleDate: lastSaleByProduct.get(p.id) ?? null }))
-    .filter((p) => !p.lastSaleDate || p.lastSaleDate < staleThreshold)
+    .filter((p) =>
+      p.lastSaleDate
+        ? p.lastSaleDate < staleThreshold
+        : (p.registeredAt ?? p.createdAt) < graceThreshold,
+    )
     .sort((a, b) => {
       if (!a.lastSaleDate && !b.lastSaleDate) return a.name.localeCompare(b.name);
       if (!a.lastSaleDate) return -1;
@@ -34,7 +46,8 @@ export default async function StaleProductsReportPage() {
       </p>
       <h1 className="mt-1 text-2xl font-bold text-ink">Productos parados</h1>
       <p className="mt-1 text-sm text-ink-soft">
-        Productos activos sin ventas en el último año, o que nunca se vendieron.
+        Productos activos sin ventas en el último año, o que nunca se vendieron y ya pasaron 6
+        meses desde su fecha de alta.
       </p>
 
       {staleProducts.length === 0 ? (
