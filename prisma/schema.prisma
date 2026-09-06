@@ -49,8 +49,10 @@ model Product {
   // Datos específicos para productos de mascotas/veterinaria (opcionales).
   brand       String?
   animalType  String? // ej: perro, gato
-  animalSize  String? // ej: pequeño, mediano, grande
   animalWeight String? // ej: "1-10 kg" — texto libre, no siempre es un rango exacto
+
+  subrubroId String
+  subrubro   Subrubro @relation(fields: [subrubroId], references: [id])
 
   // Fecha de alta: cuándo el producto empezó a estar disponible para la
   // venta (puede ser anterior al día en que se cargó en el sistema).
@@ -70,6 +72,28 @@ model Product {
 
   @@index([status])
   @@index([supplierId])
+  @@index([subrubroId])
+}
+
+// Clasificación de productos en dos niveles — ej: rubro "Alimento
+// balanceado" con subrubros "Mordida chica" / "Mordida grande".
+model Rubro {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  subrubros Subrubro[]
+}
+
+model Subrubro {
+  id        String   @id @default(cuid())
+  name      String
+  rubroId   String
+  rubro     Rubro    @relation(fields: [rubroId], references: [id])
+  createdAt DateTime @default(now())
+
+  products Product[]
+
+  @@unique([rubroId, name])
 }
 
 model Customer {

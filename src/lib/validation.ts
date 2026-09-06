@@ -47,12 +47,21 @@ export const productSchema = z.object({
   ),
   brand: z.string().trim().max(80).optional().or(z.literal("")),
   animalType: z.string().trim().max(60).optional().or(z.literal("")),
-  animalSize: z.string().trim().max(60).optional().or(z.literal("")),
   animalWeight: z.string().trim().max(60).optional().or(z.literal("")),
+  subrubroId: z.string().min(1, "Elegí un rubro y subrubro"),
   registeredAt: z.coerce.date({ message: "Elegí una fecha de alta válida" }),
 }).refine((data) => !data.fractionUnit || (data.unitSize && data.fractionPrice != null), {
   message: "Completá el tamaño de la unidad y el precio por fracción",
   path: ["unitSize"],
+});
+
+export const rubroSchema = z.object({
+  name: z.string().trim().min(2, "El nombre es muy corto").max(80),
+});
+
+export const subrubroSchema = z.object({
+  name: z.string().trim().min(2, "El nombre es muy corto").max(80),
+  rubroId: z.string().min(1, "Elegí un rubro"),
 });
 
 export const customerSchema = z.object({

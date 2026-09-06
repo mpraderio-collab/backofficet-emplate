@@ -21,26 +21,30 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const brandParam = typeof searchParams?.brand === "string" ? searchParams.brand : "";
   const animalTypeParam =
     typeof searchParams?.animalType === "string" ? searchParams.animalType : "";
-  const animalSizeParam =
-    typeof searchParams?.animalSize === "string" ? searchParams.animalSize : "";
+  const subrubroIdParam =
+    typeof searchParams?.subrubroId === "string" ? searchParams.subrubroId : "";
   const animalWeightParam =
     typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
-  const [products, suppliers, allProducts, soldItems] = await Promise.all([
+  const [products, suppliers, rubros, allProducts, soldItems] = await Promise.all([
     db.product.findMany({
       where: {
         ...(supplierIdParam && { supplierId: supplierIdParam }),
         ...(brandParam && { brand: brandParam }),
         ...(animalTypeParam && { animalType: animalTypeParam }),
-        ...(animalSizeParam && { animalSize: animalSizeParam }),
+        ...(subrubroIdParam && { subrubroId: subrubroIdParam }),
         ...(animalWeightParam && { animalWeight: animalWeightParam }),
       },
       orderBy: { createdAt: "desc" },
-      include: { supplier: { select: { name: true } } },
+      include: { supplier: { select: { name: true } }, subrubro: { include: { rubro: true } } },
     }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.rubro.findMany({
+      orderBy: { name: "asc" },
+      include: { subrubros: { orderBy: { name: "asc" } } },
+    }),
     db.product.findMany({
-      select: { brand: true, animalType: true, animalSize: true, animalWeight: true },
+      select: { brand: true, animalType: true, animalWeight: true },
     }),
     db.saleItem.findMany({
       where: { sale: { status: "confirmed" } },
@@ -50,8 +54,10 @@ export default async function ProductsPage(props: PageProps<"/products">) {
 
   const brandOptions = distinctValues(allProducts, "brand");
   const animalTypeOptions = distinctValues(allProducts, "animalType");
-  const animalSizeOptions = distinctValues(allProducts, "animalSize");
   const animalWeightOptions = distinctValues(allProducts, "animalWeight");
+  const subrubroOptions = rubros.flatMap((r) =>
+    r.subrubros.map((s) => ({ value: s.id, label: `${r.name} › ${s.name}` })),
+  );
 
   const soldByProductId = new Map<string, { unitCount: number; fractionQuantity: number }>();
   for (const item of soldItems) {
@@ -62,7 +68,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   }
 
   const hasFilters = Boolean(
-    supplierIdParam || brandParam || animalTypeParam || animalSizeParam || animalWeightParam,
+    supplierIdParam || brandParam || animalTypeParam || subrubroIdParam || animalWeightParam,
   );
 
   const rows: ProductRow[] = products.map((p) => {
@@ -83,7 +89,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       name: p.name,
       sku: p.sku,
       imageUrl: p.imageUrl,
-      characteristics: [p.brand, p.animalType, p.animalSize, p.animalWeight]
+      characteristics: [p.brand, p.animalType, p.subrubro.name, p.animalWeight]
         .filter(Boolean)
         .join(" · "),
       supplierName: p.supplier?.name ?? null,
@@ -104,6 +110,12 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink">Productos</h1>
         <div className="flex gap-3">
+          <Link
+            href="/products/rubros"
+            className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
+          >
+            Rubros y subrubros
+          </Link>
           <Link
             href="/products/bulk-update"
             className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
@@ -163,17 +175,14 @@ export default async function ProductsPage(props: PageProps<"/products">) {
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Tamaño</span>
+          <span className="text-xs text-ink-soft">Rubro / Subrubro</span>
           <FilterCombobox
-            key={animalSizeParam}
-            name="animalSize"
-            defaultValue={animalSizeParam}
-            placeholder="Buscar tamaño…"
-            className="w-36"
-            options={[
-              { value: "", label: "Todos" },
-              ...animalSizeOptions.map((s) => ({ value: s, label: s })),
-            ]}
+            key={subrubroIdParam}
+            name="subrubroId"
+            defaultValue={subrubroIdParam}
+            placeholder="Buscar rubro o subrubro…"
+            className="w-48"
+            options={[{ value: "", label: "Todos" }, ...subrubroOptions]}
           />
         </label>
         <label className="flex flex-col gap-1.5">

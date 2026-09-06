@@ -12,9 +12,13 @@ export default async function EditProductPage(
   props: PageProps<"/products/[id]">,
 ) {
   const { id } = await props.params;
-  const [product, suppliers, lastSaleDate] = await Promise.all([
+  const [product, suppliers, rubros, lastSaleDate] = await Promise.all([
     db.product.findUnique({ where: { id } }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.rubro.findMany({
+      orderBy: { name: "asc" },
+      include: { subrubros: { orderBy: { name: "asc" } } },
+    }),
     getLastSaleDateForProduct(id),
   ]);
   if (!product) notFound();
@@ -57,6 +61,7 @@ export default async function EditProductPage(
         <ProductForm
           action={boundAction}
           suppliers={suppliers}
+          rubros={rubros}
           submitLabel="Guardar cambios"
           defaultValues={{
             name: product.name,
@@ -72,8 +77,8 @@ export default async function EditProductPage(
             fractionPrice: product.fractionPrice,
             brand: product.brand,
             animalType: product.animalType,
-            animalSize: product.animalSize,
             animalWeight: product.animalWeight,
+            subrubroId: product.subrubroId,
             registeredAt: registeredAtValue,
             imageUrl: product.imageUrl,
           }}

@@ -10,10 +10,10 @@ import { ExportActions } from "./ExportActions";
 function productCharacteristics(product: {
   brand: string | null;
   animalType: string | null;
-  animalSize: string | null;
   animalWeight: string | null;
+  subrubro: { name: string } | null;
 }): string {
-  return [product.brand, product.animalType, product.animalSize, product.animalWeight]
+  return [product.brand, product.animalType, product.subrubro?.name, product.animalWeight]
     .filter(Boolean)
     .join(" · ");
 }
@@ -35,8 +35,8 @@ export default async function PurchaseOrderDetailPage(
               cost: true,
               brand: true,
               animalType: true,
-              animalSize: true,
               animalWeight: true,
+              subrubro: { select: { name: true } },
             },
           },
         },

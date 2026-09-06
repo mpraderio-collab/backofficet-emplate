@@ -49,8 +49,8 @@ function parseForm(formData: FormData) {
     fractionPrice: formData.get("fractionPrice") ?? "",
     brand: formData.get("brand"),
     animalType: formData.get("animalType"),
-    animalSize: formData.get("animalSize"),
     animalWeight: formData.get("animalWeight"),
+    subrubroId: formData.get("subrubroId"),
     registeredAt: formData.get("registeredAt"),
   });
 }

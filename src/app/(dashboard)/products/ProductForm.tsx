@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
@@ -9,6 +10,7 @@ import { toDateInputValue } from "@/lib/reports";
 import type { ProductActionState } from "./actions";
 
 type Supplier = { id: string; name: string };
+type Rubro = { id: string; name: string; subrubros: { id: string; name: string }[] };
 
 type Props = {
   action: (
@@ -16,6 +18,7 @@ type Props = {
     formData: FormData,
   ) => Promise<ProductActionState>;
   suppliers: Supplier[];
+  rubros: Rubro[];
   defaultValues?: {
     name: string;
     sku: string | null;
@@ -30,8 +33,8 @@ type Props = {
     fractionPrice: number | null;
     brand: string | null;
     animalType: string | null;
-    animalSize: string | null;
     animalWeight: string | null;
+    subrubroId: string;
     registeredAt?: string;
     imageUrl?: string | null;
   };
@@ -40,12 +43,26 @@ type Props = {
 
 const initialState: ProductActionState = {};
 
-export function ProductForm({ action, suppliers, defaultValues, submitLabel }: Props) {
+export function ProductForm({ action, suppliers, rubros, defaultValues, submitLabel }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [sellsByFraction, setSellsByFraction] = useState(
     Boolean(defaultValues?.fractionUnit),
   );
   const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? "");
+  const defaultRubroId =
+    rubros.find((r) => r.subrubros.some((s) => s.id === defaultValues?.subrubroId))?.id ??
+    rubros[0]?.id ??
+    "";
+  const [rubroId, setRubroId] = useState(defaultRubroId);
+  const [subrubroId, setSubrubroId] = useState(defaultValues?.subrubroId ?? "");
+  const subrubroOptions = rubros.find((r) => r.id === rubroId)?.subrubros ?? [];
+
+  function handleRubroChange(value: string) {
+    setRubroId(value);
+    const options = rubros.find((r) => r.id === value)?.subrubros ?? [];
+    setSubrubroId(options[0]?.id ?? "");
+  }
+
   const [registeredAt, setRegisteredAt] = useState(
     () => defaultValues?.registeredAt ?? toDateInputValue(new Date()),
   );
@@ -186,17 +203,6 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
             className="input"
           />
         </Field>
-        <Field label="Tamaño de la mordida" error={state.fieldErrors?.animalSize} hint="Opcional">
-          <select
-            name="animalSize"
-            defaultValue={defaultValues?.animalSize ?? ""}
-            className="input"
-          >
-            <option value="">Sin especificar</option>
-            <option value="Chica">Chica</option>
-            <option value="Grande">Grande</option>
-          </select>
-        </Field>
         <Field label="Peso del animal" error={state.fieldErrors?.animalWeight} hint='Opcional. Ej: "1-10 kg"'>
           <input
             name="animalWeight"
@@ -205,6 +211,31 @@ export function ProductForm({ action, suppliers, defaultValues, submitLabel }: P
           />
         </Field>
       </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Rubro" error={state.fieldErrors?.subrubroId}>
+          <Combobox
+            value={rubroId}
+            onChange={handleRubroChange}
+            placeholder="Buscar rubro…"
+            options={rubros.map((r) => ({ value: r.id, label: r.name }))}
+          />
+        </Field>
+        <Field label="Subrubro" error={state.fieldErrors?.subrubroId}>
+          <input type="hidden" name="subrubroId" value={subrubroId} />
+          <Combobox
+            value={subrubroId}
+            onChange={setSubrubroId}
+            placeholder="Buscar subrubro…"
+            options={subrubroOptions.map((s) => ({ value: s.id, label: s.name }))}
+          />
+        </Field>
+      </div>
+      <p className="-mt-3 text-xs text-ink-soft">
+        <Link href="/products/rubros" className="text-accent hover:underline">
+          Gestionar rubros y subrubros
+        </Link>
+      </p>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <Field
