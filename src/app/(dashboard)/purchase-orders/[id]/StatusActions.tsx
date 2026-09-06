@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updatePurchaseOrderStatus } from "../actions";
@@ -11,7 +12,10 @@ const transitions: Record<string, { next: string; label: string; confirm?: strin
     { next: "sent", label: "Marcar como enviado" },
     { next: "cancelled", label: "Cancelar pedido", confirm: CANCEL_CONFIRM },
   ],
-  sent: [{ next: "cancelled", label: "Cancelar pedido", confirm: CANCEL_CONFIRM }],
+  sent: [
+    { next: "pending", label: "Volver a pendiente" },
+    { next: "cancelled", label: "Cancelar pedido", confirm: CANCEL_CONFIRM },
+  ],
   received: [],
   cancelled: [],
 };
@@ -22,12 +26,20 @@ export function StatusActions({ id, status }: { id: string; status: string }) {
   const router = useRouter();
 
   const options = transitions[status] ?? [];
-  if (options.length === 0) return null;
+  if (options.length === 0 && status !== "pending") return null;
 
   return (
     <div className="mt-6">
       {error && <p className="mb-2 text-sm text-err-ink">{error}</p>}
       <div className="flex flex-wrap gap-3">
+        {status === "pending" && (
+          <Link
+            href={`/purchase-orders/${id}/edit`}
+            className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
+          >
+            Editar pedido
+          </Link>
+        )}
         {options.map((opt) => (
           <button
             key={opt.next}

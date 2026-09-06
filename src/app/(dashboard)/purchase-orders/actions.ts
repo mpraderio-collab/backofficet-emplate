@@ -124,7 +124,7 @@ export async function updatePurchaseOrder(
 
 const allowedTransitions: Record<string, string[]> = {
   pending: ["sent", "cancelled"],
-  sent: ["cancelled"],
+  sent: ["pending", "cancelled"],
   received: [],
   cancelled: [],
 };

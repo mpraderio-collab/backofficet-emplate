@@ -66,14 +66,6 @@ export default async function PurchaseOrderDetailPage(
         >
           {purchaseOrderStatusLabels[po.status]}
         </span>
-        {po.status === "pending" && (
-          <Link
-            href={`/purchase-orders/${po.id}/edit`}
-            className="print:hidden text-sm font-semibold text-accent hover:underline"
-          >
-            Editar pedido
-          </Link>
-        )}
       </div>
       <p className="mt-1 text-sm text-ink-soft">Fecha del pedido: {formatDateOnly(po.orderDate)}</p>
 
