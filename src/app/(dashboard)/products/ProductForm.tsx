@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
+import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -162,11 +163,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-5">
-      {state.error && (
-        <p className="rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Alert variant="error">{state.error}</Alert>}
 
       <Field label="Nombre" error={state.fieldErrors?.name}>
         <input name="name" defaultValue={defaultValues?.name} required className="input" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useEffect } from "react";
+import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import { createUser, type UserActionState } from "./actions";
 
@@ -21,9 +22,9 @@ export function UserForm() {
       className="flex flex-col gap-4 rounded-xl border border-line bg-bg p-5 sm:flex-row sm:items-start sm:flex-wrap"
     >
       {state.error && (
-        <p className="w-full rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink">
+        <Alert variant="error" className="w-full">
           {state.error}
-        </p>
+        </Alert>
       )}
       <Field label="Nombre" error={state.fieldErrors?.name}>
         <input name="name" required className="input sm:w-48" />

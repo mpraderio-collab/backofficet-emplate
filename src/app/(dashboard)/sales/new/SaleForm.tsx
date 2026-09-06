@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, formatQuantity } from "@/lib/format";
+import { Alert } from "@/components/Alert";
 import { Combobox } from "@/components/Combobox";
 import { MoneyInput } from "@/components/MoneyInput";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
@@ -162,10 +163,10 @@ export function SaleForm({
       </label>
 
       {selectedCustomer && selectedCustomer.balance > 0 && (
-        <p className="rounded-lg bg-warn-bg px-3 py-2 text-sm text-warn-ink">
+        <Alert variant="warning">
           {selectedCustomer.name} ya tiene un saldo pendiente de{" "}
           <strong>{formatMoney(selectedCustomer.balance)}</strong> en su cuenta corriente.
-        </p>
+        </Alert>
       )}
 
       <div className="rounded-xl border border-line bg-bg p-5">
@@ -350,9 +351,7 @@ export function SaleForm({
           Facturar por ARCA (Factura C)
         </label>
 
-        {state.error && (
-          <p className="rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink">{state.error}</p>
-        )}
+        {state.error && <Alert variant="error">{state.error}</Alert>}
 
         <button
           type="submit"

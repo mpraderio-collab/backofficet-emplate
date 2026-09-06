@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, formatQuantity } from "@/lib/format";
+import { Alert } from "@/components/Alert";
 import { Combobox } from "@/components/Combobox";
 import { MoneyInput } from "@/components/MoneyInput";
 import { toDateInputValue } from "@/lib/reports";
@@ -299,9 +300,7 @@ export function PurchaseOrderForm({
           />
         </label>
 
-        {state.error && (
-          <p className="rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink">{state.error}</p>
-        )}
+        {state.error && <Alert variant="error">{state.error}</Alert>}
 
         <button
           type="submit"

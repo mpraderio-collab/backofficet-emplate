@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { signIn, auth } from "@/auth";
 import { AuthError } from "next-auth";
+import { Alert } from "@/components/Alert";
 
 async function login(formData: FormData) {
   "use server";
@@ -33,11 +34,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <h1 className="text-2xl font-bold text-ink">Backoffice</h1>
         <p className="mt-1 text-sm text-ink-soft">Ingresá con tu cuenta.</p>
         <form action={login} className="mt-6 flex flex-col gap-4">
-          {hasError && (
-            <p className="rounded-lg border border-err-line bg-err-bg px-3 py-2 text-sm text-err-ink">
-              Email o contraseña incorrectos.
-            </p>
-          )}
+          {hasError && <Alert variant="error">Email o contraseña incorrectos.</Alert>}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-[13px] font-semibold text-ink">
               Email

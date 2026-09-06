@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import type { SupplierActionState } from "./actions";
 
@@ -27,9 +28,7 @@ export function SupplierForm({ action, defaultValues, submitLabel }: Props) {
 
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-5">
-      {state.error && (
-        <p className="rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink">{state.error}</p>
-      )}
+      {state.error && <Alert variant="error">{state.error}</Alert>}
 
       <Field label="Nombre / razón social" error={state.fieldErrors?.name}>
         <input name="name" defaultValue={defaultValues?.name} required className="input" />

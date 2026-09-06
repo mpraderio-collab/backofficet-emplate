@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import { MoneyInput } from "@/components/MoneyInput";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
@@ -18,9 +19,9 @@ export function PaymentForm({
   return (
     <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
       {state.error && (
-        <p className="rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink sm:hidden">
+        <Alert variant="error" className="sm:hidden">
           {state.error}
-        </p>
+        </Alert>
       )}
       <Field label="Monto del pago">
         <MoneyInput name="amount" required className="sm:w-40" />

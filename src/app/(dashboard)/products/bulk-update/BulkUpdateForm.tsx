@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { Alert } from "@/components/Alert";
 import { Combobox } from "@/components/Combobox";
 import { formatMoney } from "@/lib/format";
 import { bulkUpdatePrices, type BulkUpdateState } from "./actions";
@@ -139,13 +140,11 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
         </button>
       </div>
 
-      {state.error && (
-        <p className="rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink">{state.error}</p>
-      )}
+      {state.error && <Alert variant="error">{state.error}</Alert>}
       {state.updatedCount != null && (
-        <p className="rounded-lg bg-ok-bg px-3 py-2 text-sm text-ok-ink">
+        <Alert variant="success">
           Se actualizaron {state.updatedCount} producto{state.updatedCount === 1 ? "" : "s"}.
-        </p>
+        </Alert>
       )}
 
       <div className="overflow-x-auto rounded-xl border border-line bg-bg">

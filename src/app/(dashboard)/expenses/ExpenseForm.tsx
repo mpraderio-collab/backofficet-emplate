@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, useEffect } from "react";
+import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -163,9 +164,7 @@ export function ExpenseForm({
           <input name="note" value={note} onChange={(e) => setNote(e.target.value)} className="input" />
         </Field>
 
-        {state.error && (
-          <p className="rounded-lg bg-err-bg px-3 py-2 text-sm text-err-ink">{state.error}</p>
-        )}
+        {state.error && <Alert variant="error">{state.error}</Alert>}
 
         <button
           type="submit"

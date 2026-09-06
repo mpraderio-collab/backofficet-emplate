@@ -20,8 +20,10 @@
 
   /* estados */
   --color-ok-bg: #ecfdf5;
+  --color-ok-line: #a7f3d0;
   --color-ok-ink: #047857;
   --color-warn-bg: #fffbeb;
+  --color-warn-line: #fde68a;
   --color-warn-ink: #92400e;
   --color-err-bg: #fef2f2;
   --color-err-line: #fecaca;
@@ -45,8 +47,10 @@
   --color-border-input: var(--color-border-input);
 
   --color-ok-bg: var(--color-ok-bg);
+  --color-ok-line: var(--color-ok-line);
   --color-ok-ink: var(--color-ok-ink);
   --color-warn-bg: var(--color-warn-bg);
+  --color-warn-line: var(--color-warn-line);
   --color-warn-ink: var(--color-warn-ink);
   --color-err-bg: var(--color-err-bg);
   --color-err-line: var(--color-err-line);
@@ -244,6 +248,27 @@ button:not(:disabled) {
     transform: none !important;
   }
 }
+
+/* Aparición leve para los mensajes de alerta (Alert) — fade + subida corta. */
+.t-alert {
+  animation: t-alert-in 220ms ease-out;
+}
+@keyframes t-alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-alert {
+    animation: none !important;
+  }
+}
+
 .t-input.is-shaking {
   animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
 }
