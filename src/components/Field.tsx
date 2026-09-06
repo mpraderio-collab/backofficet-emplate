@@ -39,7 +39,18 @@ export function Field({
       <div ref={boxRef} className="t-input">
         {children}
       </div>
-      {hint && !error && <span className="text-xs text-ink-soft">{hint}</span>}
+      {hint && !error && (
+        <span className="flex items-center gap-1 text-xs text-ink-faint">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden className="h-3 w-3 shrink-0">
+            <path
+              fillRule="evenodd"
+              d="M18 10A8 8 0 1 1 2 10a8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a1 1 0 0 0 0 2h.25v3H9a1 1 0 1 0 0 2h2.5a1 1 0 1 0 0-2H11v-4a1 1 0 0 0-1-1H9Z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {hint}
+        </span>
+      )}
       {error && (
         <span className="t-error-msg flex items-center gap-1 text-xs font-medium text-err-ink">
           <svg

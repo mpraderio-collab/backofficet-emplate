@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Alert } from "@/components/Alert";
 import { deleteExpense } from "./actions";
 
 export function DeleteExpenseButton({ id }: { id: string }) {
@@ -10,7 +11,7 @@ export function DeleteExpenseButton({ id }: { id: string }) {
   const router = useRouter();
 
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="flex flex-col items-start gap-1.5">
       <button
         type="button"
         disabled={pending}
@@ -29,7 +30,7 @@ export function DeleteExpenseButton({ id }: { id: string }) {
       >
         Borrar
       </button>
-      {error && <span className="text-xs text-err-ink">{error}</span>}
+      {error && <Alert variant="error">{error}</Alert>}
     </span>
   );
 }

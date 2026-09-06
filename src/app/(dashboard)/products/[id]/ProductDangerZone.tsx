@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Alert } from "@/components/Alert";
 import { archiveProduct, deleteProduct, restoreProduct } from "../actions";
 
 export function ProductDangerZone({ id, status }: { id: string; status: string }) {
@@ -16,7 +17,11 @@ export function ProductDangerZone({ id, status }: { id: string; status: string }
         Un producto archivado no aparece para nuevas ventas ni pedidos, pero
         conserva su historial.
       </p>
-      {error && <p className="mt-2 text-sm text-err-ink">{error}</p>}
+      {error && (
+        <Alert variant="error" className="mt-2">
+          {error}
+        </Alert>
+      )}
       <div className="mt-3 flex flex-wrap gap-3">
         {status === "active" ? (
           <button
