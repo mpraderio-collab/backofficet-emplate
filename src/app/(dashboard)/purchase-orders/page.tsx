@@ -22,10 +22,14 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
       where: {
         ...(statusParams.length > 0 && { status: { in: statusParams } }),
         ...(supplierIdParam && { supplierId: supplierIdParam }),
+        // orderDate se guarda como medianoche UTC (viene de un <input
+        // type="date"> sin hora) — construir los límites en UTC acá
+        // también, si no un pedido con fecha el día 1 del rango queda
+        // afuera en un servidor con huso horario negativo.
         ...((fromParam || toParam) && {
           orderDate: {
-            ...(fromParam && { gte: new Date(`${fromParam}T00:00:00`) }),
-            ...(toParam && { lte: new Date(`${toParam}T23:59:59`) }),
+            ...(fromParam && { gte: new Date(`${fromParam}T00:00:00Z`) }),
+            ...(toParam && { lte: new Date(`${toParam}T23:59:59Z`) }),
           },
         }),
       },
