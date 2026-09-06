@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState, useEffect } from "react";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
+import { MoneyInput } from "@/components/MoneyInput";
 import { formatMoney } from "@/lib/format";
 import { toDateInputValue } from "@/lib/reports";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
@@ -100,16 +101,7 @@ export function ExpenseForm({
             />
           </Field>
           <Field label="Monto" error={state.fieldErrors?.amount}>
-            <input
-              name="amount"
-              type="number"
-              min={1}
-              step={1}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-              className="input"
-            />
+            <MoneyInput name="amount" value={amount} onChange={setAmount} required />
           </Field>
         </div>
 

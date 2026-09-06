@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
+import { MoneyInput } from "@/components/MoneyInput";
 import { receivePurchaseOrder } from "../actions";
 
 type Item = {
@@ -91,15 +92,12 @@ export function ReceiveOrderForm({ purchaseOrderId, items }: { purchaseOrderId: 
                   />
                 </td>
                 <td className="px-3 py-2">
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
+                  <MoneyInput
                     value={costs[item.id] ?? 0}
-                    onChange={(e) =>
-                      setCosts((prev) => ({ ...prev, [item.id]: Number(e.target.value) }))
+                    onChange={(v) =>
+                      setCosts((prev) => ({ ...prev, [item.id]: v === "" ? 0 : v }))
                     }
-                    className="input w-28"
+                    className="w-28"
                   />
                 </td>
                 <td className="px-3 py-2 text-ink-soft">

@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { Combobox } from "@/components/Combobox";
+import { MoneyInput } from "@/components/MoneyInput";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import { createSale, type SaleActionState } from "../actions";
 
@@ -220,12 +221,10 @@ export function SaleForm({
 
             <label className="flex flex-col gap-1.5">
               <span className="text-xs text-ink-soft">Precio unitario</span>
-              <input
-                type="number"
-                min={0}
+              <MoneyInput
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(Number(e.target.value))}
-                className="input w-28"
+                onChange={(v) => setUnitPrice(v === "" ? 0 : v)}
+                className="w-28"
               />
             </label>
 
@@ -302,18 +301,15 @@ export function SaleForm({
             <span className="text-sm font-medium text-ink">
               Entrega al momento de la venta (opcional)
             </span>
-            <input
+            <MoneyInput
               name="initialPayment"
-              type="number"
-              min={0}
-              max={total}
-              step={1}
               value={initialPayment}
-              onChange={(e) => {
+              max={total}
+              onChange={(v) => {
                 setPaymentTouched(true);
-                setInitialPayment(Number(e.target.value));
+                setInitialPayment(v === "" ? 0 : v);
               }}
-              className="input max-w-[200px]"
+              className="max-w-[200px]"
             />
           </label>
           <label className="flex flex-col gap-1.5">

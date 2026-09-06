@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Field } from "@/components/Field";
+import { MoneyInput } from "@/components/MoneyInput";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import type { PaymentActionState } from "../actions";
 
@@ -22,14 +23,7 @@ export function PaymentForm({
         </p>
       )}
       <Field label="Monto del pago">
-        <input
-          name="amount"
-          type="number"
-          min={1}
-          step={1}
-          required
-          className="input sm:w-40"
-        />
+        <MoneyInput name="amount" required className="sm:w-40" />
       </Field>
       <Field label="Método de pago">
         <select name="paymentMethod" defaultValue="cash" className="input sm:w-40">

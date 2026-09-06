@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
+import { MoneyInput } from "@/components/MoneyInput";
 import { DEFAULT_MIN_STOCK } from "@/lib/stock";
 import { calculateMargin } from "@/lib/margin";
 import { toDateInputValue } from "@/lib/reports";
@@ -387,15 +388,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
           hint="Opcional, solo referencia interna"
           labelClassName="min-h-10"
         >
-          <input
-            name="cost"
-            type="number"
-            min={0}
-            step={1}
-            value={cost}
-            onChange={(e) => handleCostChange(e.target.value === "" ? "" : Number(e.target.value))}
-            className="input"
-          />
+          <MoneyInput name="cost" value={cost} onChange={handleCostChange} />
         </Field>
         <Field label="% de margen" hint="Sobre el costo" labelClassName="min-h-10">
           <input
@@ -414,16 +407,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
           error={state.fieldErrors?.price}
           labelClassName="min-h-10"
         >
-          <input
-            name="price"
-            type="number"
-            min={0}
-            step={1}
-            value={price}
-            onChange={(e) => handlePriceChange(e.target.value === "" ? "" : Number(e.target.value))}
-            required
-            className="input"
-          />
+          <MoneyInput name="price" value={price} onChange={handlePriceChange} required />
         </Field>
         <Field
           label={sellsByFraction ? `Stock (${defaultValues?.fractionUnit || "unidad"})` : "Stock"}
@@ -504,14 +488,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
             hint="Ej: precio por kg"
             labelClassName="min-h-10"
           >
-            <input
-              name="fractionPrice"
-              type="number"
-              min={0}
-              step={1}
-              defaultValue={defaultValues?.fractionPrice ?? ""}
-              className="input"
-            />
+            <MoneyInput name="fractionPrice" defaultValue={defaultValues?.fractionPrice ?? ""} />
           </Field>
         </div>
       )}

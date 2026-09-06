@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { Combobox } from "@/components/Combobox";
+import { MoneyInput } from "@/components/MoneyInput";
 import { toDateInputValue } from "@/lib/reports";
 import { isLowStock } from "@/lib/stock";
 import { createPurchaseOrder, type PurchaseOrderActionState } from "../actions";
@@ -210,12 +211,10 @@ export function PurchaseOrderForm({
 
             <label className="flex flex-col gap-1.5">
               <span className="text-xs text-ink-soft">Costo unitario</span>
-              <input
-                type="number"
-                min={0}
+              <MoneyInput
                 value={unitCost}
-                onChange={(e) => setUnitCost(Number(e.target.value))}
-                className="input w-24"
+                onChange={(v) => setUnitCost(v === "" ? 0 : v)}
+                className="w-24"
               />
             </label>
 
