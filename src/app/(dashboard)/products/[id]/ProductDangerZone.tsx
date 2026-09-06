@@ -24,6 +24,9 @@ export function ProductDangerZone({ id, status }: { id: string; status: string }
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
+                if (!confirm("¿Archivar este producto? Deja de aparecer para ventas y pedidos nuevos.")) {
+                  return;
+                }
                 await archiveProduct(id);
                 router.refresh();
               })

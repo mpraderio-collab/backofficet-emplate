@@ -4,12 +4,14 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updatePurchaseOrderStatus } from "../actions";
 
+const CANCEL_CONFIRM = "¿Cancelar este pedido? No se puede deshacer.";
+
 const transitions: Record<string, { next: string; label: string; confirm?: string }[]> = {
   pending: [
     { next: "sent", label: "Marcar como enviado" },
-    { next: "cancelled", label: "Cancelar pedido" },
+    { next: "cancelled", label: "Cancelar pedido", confirm: CANCEL_CONFIRM },
   ],
-  sent: [{ next: "cancelled", label: "Cancelar pedido" }],
+  sent: [{ next: "cancelled", label: "Cancelar pedido", confirm: CANCEL_CONFIRM }],
   received: [],
   cancelled: [],
 };
