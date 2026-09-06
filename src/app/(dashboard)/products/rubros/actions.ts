@@ -48,6 +48,32 @@ export async function createRubro(
   return {};
 }
 
+export type CreateRubroInlineResult = { id: string; name: string } | { error: string };
+
+// Versión liviana de createRubro para crear un rubro sin salir del
+// formulario de producto — devuelve el registro creado en vez de un
+// ActionState, para poder seleccionarlo al toque en el combo.
+export async function createRubroInline(name: string): Promise<CreateRubroInlineResult> {
+  await requireAuth();
+
+  const result = rubroSchema.safeParse({ name });
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? "Nombre inválido" };
+  }
+
+  try {
+    const rubro = await db.rubro.create({ data: { name: result.data.name } });
+    revalidatePath("/products/rubros");
+    revalidatePath("/products");
+    return { id: rubro.id, name: rubro.name };
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "Ya existe un rubro con ese nombre." };
+    }
+    throw err;
+  }
+}
+
 export async function deleteRubro(id: string): Promise<{ error?: string }> {
   await requireAuth();
 
@@ -101,6 +127,36 @@ export async function createSubrubro(
   revalidatePath("/products/rubros");
   revalidatePath("/products");
   return {};
+}
+
+export type CreateSubrubroInlineResult = { id: string; name: string } | { error: string };
+
+// Versión liviana de createSubrubro para crear un subrubro sin salir del
+// formulario de producto.
+export async function createSubrubroInline(
+  rubroId: string,
+  name: string,
+): Promise<CreateSubrubroInlineResult> {
+  await requireAuth();
+
+  const result = subrubroSchema.safeParse({ name, rubroId });
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  try {
+    const subrubro = await db.subrubro.create({
+      data: { name: result.data.name, rubroId: result.data.rubroId },
+    });
+    revalidatePath("/products/rubros");
+    revalidatePath("/products");
+    return { id: subrubro.id, name: subrubro.name };
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "Ya existe un subrubro con ese nombre en este rubro." };
+    }
+    throw err;
+  }
 }
 
 export async function deleteSubrubro(id: string): Promise<{ error?: string }> {

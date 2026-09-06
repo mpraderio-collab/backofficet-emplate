@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { DEFAULT_MIN_STOCK } from "@/lib/stock";
 import { calculateMargin } from "@/lib/margin";
 import { toDateInputValue } from "@/lib/reports";
+import { createRubroInline, createSubrubroInline } from "./rubros/actions";
 import type { ProductActionState } from "./actions";
 
 type Supplier = { id: string; name: string };
@@ -49,18 +50,79 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
     Boolean(defaultValues?.fractionUnit),
   );
   const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? "");
+  const [rubroList, setRubroList] = useState(rubros);
   const defaultRubroId =
-    rubros.find((r) => r.subrubros.some((s) => s.id === defaultValues?.subrubroId))?.id ??
-    rubros[0]?.id ??
+    rubroList.find((r) => r.subrubros.some((s) => s.id === defaultValues?.subrubroId))?.id ??
+    rubroList[0]?.id ??
     "";
   const [rubroId, setRubroId] = useState(defaultRubroId);
   const [subrubroId, setSubrubroId] = useState(defaultValues?.subrubroId ?? "");
-  const subrubroOptions = rubros.find((r) => r.id === rubroId)?.subrubros ?? [];
+  const subrubroOptions = rubroList.find((r) => r.id === rubroId)?.subrubros ?? [];
 
   function handleRubroChange(value: string) {
     setRubroId(value);
-    const options = rubros.find((r) => r.id === value)?.subrubros ?? [];
+    const options = rubroList.find((r) => r.id === value)?.subrubros ?? [];
     setSubrubroId(options[0]?.id ?? "");
+  }
+
+  const [addingRubro, setAddingRubro] = useState(false);
+  const [newRubroName, setNewRubroName] = useState("");
+  const [rubroError, setRubroError] = useState<string | null>(null);
+  const [rubroPending, startRubroTransition] = useTransition();
+
+  function submitNewRubro() {
+    const name = newRubroName.trim();
+    if (!name) return;
+    startRubroTransition(async () => {
+      const res = await createRubroInline(name);
+      if ("error" in res) {
+        setRubroError(res.error);
+        return;
+      }
+      setRubroList((prev) =>
+        [...prev, { id: res.id, name: res.name, subrubros: [] }].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
+      );
+      setRubroId(res.id);
+      setSubrubroId("");
+      setNewRubroName("");
+      setRubroError(null);
+      setAddingRubro(false);
+    });
+  }
+
+  const [addingSubrubro, setAddingSubrubro] = useState(false);
+  const [newSubrubroName, setNewSubrubroName] = useState("");
+  const [subrubroError, setSubrubroError] = useState<string | null>(null);
+  const [subrubroPending, startSubrubroTransition] = useTransition();
+
+  function submitNewSubrubro() {
+    const name = newSubrubroName.trim();
+    if (!name || !rubroId) return;
+    startSubrubroTransition(async () => {
+      const res = await createSubrubroInline(rubroId, name);
+      if ("error" in res) {
+        setSubrubroError(res.error);
+        return;
+      }
+      setRubroList((prev) =>
+        prev.map((r) =>
+          r.id === rubroId
+            ? {
+                ...r,
+                subrubros: [...r.subrubros, { id: res.id, name: res.name }].sort((a, b) =>
+                  a.name.localeCompare(b.name),
+                ),
+              }
+            : r,
+        ),
+      );
+      setSubrubroId(res.id);
+      setNewSubrubroName("");
+      setSubrubroError(null);
+      setAddingSubrubro(false);
+    });
   }
 
   const [registeredAt, setRegisteredAt] = useState(
@@ -196,23 +258,104 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
         <Field label="Marca" error={state.fieldErrors?.brand} hint="Opcional">
           <input name="brand" defaultValue={defaultValues?.brand ?? ""} className="input" />
         </Field>
-        <Field label="Rubro" error={state.fieldErrors?.subrubroId}>
-          <Combobox
-            value={rubroId}
-            onChange={handleRubroChange}
-            placeholder="Buscar rubro…"
-            options={rubros.map((r) => ({ value: r.id, label: r.name }))}
-          />
-        </Field>
-        <Field label="Subrubro" error={state.fieldErrors?.subrubroId}>
-          <input type="hidden" name="subrubroId" value={subrubroId} />
-          <Combobox
-            value={subrubroId}
-            onChange={setSubrubroId}
-            placeholder="Buscar subrubro…"
-            options={subrubroOptions.map((s) => ({ value: s.id, label: s.name }))}
-          />
-        </Field>
+        <div className="flex flex-col gap-1.5">
+          <Field label="Rubro" error={state.fieldErrors?.subrubroId}>
+            <Combobox
+              value={rubroId}
+              onChange={handleRubroChange}
+              placeholder="Buscar rubro…"
+              options={rubroList.map((r) => ({ value: r.id, label: r.name }))}
+            />
+          </Field>
+          {addingRubro ? (
+            <div className="flex gap-2">
+              <input
+                value={newRubroName}
+                onChange={(e) => setNewRubroName(e.target.value)}
+                placeholder="Nombre del rubro"
+                className="input flex-1"
+              />
+              <button
+                type="button"
+                onClick={submitNewRubro}
+                disabled={rubroPending}
+                className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddingRubro(false);
+                  setNewRubroName("");
+                  setRubroError(null);
+                }}
+                className="shrink-0 text-xs font-semibold text-ink-soft hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingRubro(true)}
+              className="w-fit text-xs font-semibold text-accent hover:underline"
+            >
+              + Agregar rubro
+            </button>
+          )}
+          {rubroError && <p className="text-xs text-err-ink">{rubroError}</p>}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Field label="Subrubro" error={state.fieldErrors?.subrubroId}>
+            <input type="hidden" name="subrubroId" value={subrubroId} />
+            <Combobox
+              value={subrubroId}
+              onChange={setSubrubroId}
+              placeholder="Buscar subrubro…"
+              options={subrubroOptions.map((s) => ({ value: s.id, label: s.name }))}
+            />
+          </Field>
+          {addingSubrubro ? (
+            <div className="flex gap-2">
+              <input
+                value={newSubrubroName}
+                onChange={(e) => setNewSubrubroName(e.target.value)}
+                placeholder="Nombre del subrubro"
+                className="input flex-1"
+              />
+              <button
+                type="button"
+                onClick={submitNewSubrubro}
+                disabled={subrubroPending || !rubroId}
+                className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddingSubrubro(false);
+                  setNewSubrubroName("");
+                  setSubrubroError(null);
+                }}
+                className="shrink-0 text-xs font-semibold text-ink-soft hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingSubrubro(true)}
+              disabled={!rubroId}
+              className="w-fit text-xs font-semibold text-accent hover:underline disabled:opacity-50"
+            >
+              + Agregar subrubro
+            </button>
+          )}
+          {subrubroError && <p className="text-xs text-err-ink">{subrubroError}</p>}
+        </div>
       </div>
       <p className="-mt-3 text-xs text-ink-soft">
         <Link href="/products/rubros" className="text-accent hover:underline">
