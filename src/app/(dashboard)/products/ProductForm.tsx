@@ -192,7 +192,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Field label="Marca" error={state.fieldErrors?.brand} hint="Opcional">
           <input name="brand" defaultValue={defaultValues?.brand ?? ""} className="input" />
         </Field>
@@ -203,16 +203,6 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
             className="input"
           />
         </Field>
-        <Field label="Peso del animal" error={state.fieldErrors?.animalWeight} hint='Opcional. Ej: "1-10 kg"'>
-          <input
-            name="animalWeight"
-            defaultValue={defaultValues?.animalWeight ?? ""}
-            className="input"
-          />
-        </Field>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <Field label="Rubro" error={state.fieldErrors?.subrubroId}>
           <Combobox
             value={rubroId}
@@ -236,6 +226,16 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
           Gestionar rubros y subrubros
         </Link>
       </p>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Peso del animal" error={state.fieldErrors?.animalWeight} hint='Opcional. Ej: "1-10 kg"'>
+          <input
+            name="animalWeight"
+            defaultValue={defaultValues?.animalWeight ?? ""}
+            className="input"
+          />
+        </Field>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <Field
