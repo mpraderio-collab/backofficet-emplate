@@ -19,7 +19,6 @@ export default async function DashboardPage() {
   const monthEnd = endOfToday();
 
   const [
-    productCount,
     activeProducts,
     pendingPurchaseOrders,
     customerBalances,
@@ -28,7 +27,6 @@ export default async function DashboardPage() {
     expensesThisMonth,
     unpaidExpensesDueThisMonth,
   ] = await Promise.all([
-    db.product.count({ where: { status: "active" } }),
     db.product.findMany({
       where: { status: "active" },
       select: { id: true, name: true, stock: true, fractionUnit: true, minStock: true },
@@ -127,7 +125,6 @@ export default async function DashboardPage() {
   // "in" = entrada de dinero (o a favor nuestro), "out" = salida de dinero
   // (o compromiso pendiente), "neutral" = no es un monto de dinero.
   const stats: { label: string; value: string | number; hint?: string; tone: "in" | "out" | "neutral" }[] = [
-    { label: "Productos activos", value: productCount, tone: "neutral" },
     { label: "Facturado este mes", value: formatMoney(revenueThisMonth), tone: "in" },
     {
       label: "Margen total de ventas",
