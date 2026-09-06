@@ -192,16 +192,9 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-4">
         <Field label="Marca" error={state.fieldErrors?.brand} hint="Opcional">
           <input name="brand" defaultValue={defaultValues?.brand ?? ""} className="input" />
-        </Field>
-        <Field label="Animal" error={state.fieldErrors?.animalType} hint='Opcional. Ej: "perro", "gato"'>
-          <input
-            name="animalType"
-            defaultValue={defaultValues?.animalType ?? ""}
-            className="input"
-          />
         </Field>
         <Field label="Rubro" error={state.fieldErrors?.subrubroId}>
           <Combobox
@@ -228,6 +221,13 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
       </p>
 
       <div className="grid grid-cols-2 gap-4">
+        <Field label="Animal" error={state.fieldErrors?.animalType} hint='Opcional. Ej: "perro", "gato"'>
+          <input
+            name="animalType"
+            defaultValue={defaultValues?.animalType ?? ""}
+            className="input"
+          />
+        </Field>
         <Field label="Peso del animal" error={state.fieldErrors?.animalWeight} hint='Opcional. Ej: "1-10 kg"'>
           <input
             name="animalWeight"
