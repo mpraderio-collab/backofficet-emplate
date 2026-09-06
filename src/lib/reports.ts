@@ -29,6 +29,30 @@ export function endOfMonth(): Date {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
+// Iguales a startOfMonth/endOfMonth pero en UTC — para filtrar fechas
+// "solo fecha" como Expense.dueDate (medianoche UTC). Usar las versiones
+// locales para esto corre el límite del mes unas horas según el huso
+// horario del servidor, y puede dejar afuera un vencimiento el día 1.
+export function startOfMonthUTC(): Date {
+  const d = new Date();
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
+}
+
+export function endOfMonthUTC(): Date {
+  const d = new Date();
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999));
+}
+
+export function endOfTodayUTC(): Date {
+  const d = new Date();
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999));
+}
+
+export function startOfYearUTC(): Date {
+  const d = new Date();
+  return new Date(Date.UTC(d.getFullYear(), 0, 1));
+}
+
 export function startOfYear(): Date {
   const d = new Date();
   return new Date(d.getFullYear(), 0, 1);

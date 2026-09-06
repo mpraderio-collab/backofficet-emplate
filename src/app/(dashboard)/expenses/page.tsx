@@ -3,12 +3,11 @@ import { db } from "@/lib/db";
 import { formatDate, formatDateOnly, formatMoney } from "@/lib/format";
 import { paymentMethodLabels, type PaymentMethod } from "@/lib/payment-method";
 import {
-  endOfToday,
-  startOfMonth,
-  startOfToday,
+  endOfTodayUTC,
+  startOfMonthUTC,
   startOfTodayUTC,
-  startOfYear,
-  toDateInputValue,
+  startOfYearUTC,
+  toDateInputValueUTC,
 } from "@/lib/reports";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { getExpenseStatus, expenseStatusLabels, expenseStatusColors } from "@/lib/expense-status";
@@ -20,8 +19,11 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const fromParam = typeof searchParams?.from === "string" ? searchParams.from : undefined;
   const toParam = typeof searchParams?.to === "string" ? searchParams.to : undefined;
 
-  const from = fromParam ? new Date(`${fromParam}T00:00:00`) : startOfMonth();
-  const to = toParam ? new Date(`${toParam}T23:59:59`) : endOfToday();
+  // dueDate se guarda como medianoche UTC (viene de un <input type="date">
+  // sin hora) — armar estos límites en UTC para no dejar afuera un
+  // vencimiento justo en el primer o último día del rango.
+  const from = fromParam ? new Date(`${fromParam}T00:00:00Z`) : startOfMonthUTC();
+  const to = toParam ? new Date(`${toParam}T23:59:59Z`) : endOfTodayUTC();
   const hasFilters = Boolean(fromParam || toParam);
 
   const expenses = await db.expense.findMany({
@@ -49,16 +51,18 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
     .sort((a, b) => b.total - a.total);
 
   const quickRanges = [
-    { label: "Hoy", from: startOfToday(), to: endOfToday() },
-    { label: "Este mes", from: startOfMonth(), to: endOfToday() },
-    { label: "Este año", from: startOfYear(), to: endOfToday() },
+    { label: "Hoy", from: startOfTodayUTC(), to: endOfTodayUTC() },
+    { label: "Este mes", from: startOfMonthUTC(), to: endOfTodayUTC() },
+    { label: "Este año", from: startOfYearUTC(), to: endOfTodayUTC() },
   ];
   const activeRangeLabel = quickRanges.find(
-    (r) => toDateInputValue(r.from) === toDateInputValue(from) && toDateInputValue(r.to) === toDateInputValue(to),
+    (r) =>
+      toDateInputValueUTC(r.from) === toDateInputValueUTC(from) &&
+      toDateInputValueUTC(r.to) === toDateInputValueUTC(to),
   )?.label;
 
   const exportRows: (string | number)[][] = [
-    [`Gastos: ${toDateInputValue(from)} a ${toDateInputValue(to)}`],
+    [`Gastos: ${toDateInputValueUTC(from)} a ${toDateInputValueUTC(to)}`],
     [],
     ["Vencimiento", "Estado", "Fecha de pago", "Tipo", "Método", "Monto", "Nota"],
     ...expenses.map((e) => [
@@ -85,7 +89,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
         </div>
         <div className="flex gap-3">
           <ExportCsvButton
-            fileName={`gastos-${toDateInputValue(from)}-a-${toDateInputValue(to)}`}
+            fileName={`gastos-${toDateInputValueUTC(from)}-a-${toDateInputValueUTC(to)}`}
             rows={exportRows}
           />
           <Link
@@ -101,11 +105,11 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
         <form className="flex flex-wrap items-end gap-3" method="get">
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Desde</span>
-            <input type="date" name="from" defaultValue={toDateInputValue(from)} className="input" />
+            <input type="date" name="from" defaultValue={toDateInputValueUTC(from)} className="input" />
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Hasta</span>
-            <input type="date" name="to" defaultValue={toDateInputValue(to)} className="input" />
+            <input type="date" name="to" defaultValue={toDateInputValueUTC(to)} className="input" />
           </label>
           <button
             type="submit"
@@ -120,7 +124,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
             return (
               <Link
                 key={r.label}
-                href={`/expenses?from=${toDateInputValue(r.from)}&to=${toDateInputValue(r.to)}`}
+                href={`/expenses?from=${toDateInputValueUTC(r.from)}&to=${toDateInputValueUTC(r.to)}`}
                 className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
                   isActive
                     ? "border-accent bg-accent-soft text-accent"

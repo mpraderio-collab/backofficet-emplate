@@ -5,7 +5,16 @@ import { getExpenseStatus, expenseStatusLabels, expenseStatusColors } from "@/li
 import { MarkExpensePaidButton } from "./expenses/MarkExpensePaidButton";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
 import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
-import { monthBuckets, startOfMonth, endOfMonth, startOfTodayUTC, endOfToday, daysSince } from "@/lib/reports";
+import {
+  monthBuckets,
+  startOfMonth,
+  endOfToday,
+  startOfMonthUTC,
+  endOfMonthUTC,
+  endOfTodayUTC,
+  startOfTodayUTC,
+  daysSince,
+} from "@/lib/reports";
 import { estimateItemCost } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { BarChart } from "@/components/charts/BarChart";
@@ -17,6 +26,11 @@ export default async function DashboardPage() {
 
   const monthStart = startOfMonth();
   const monthEnd = endOfToday();
+  // Límites en UTC, solo para filtrar Expense.dueDate (fecha "solo fecha",
+  // guardada como medianoche UTC) — usar los locales de arriba corre el
+  // límite del mes y puede dejar afuera un vencimiento el día 1.
+  const monthStartUTC = startOfMonthUTC();
+  const monthEndUTC = endOfMonthUTC();
 
   const [
     activeProducts,
@@ -59,11 +73,11 @@ export default async function DashboardPage() {
       },
     }),
     db.expense.findMany({
-      where: { dueDate: { gte: monthStart, lte: monthEnd } },
+      where: { dueDate: { gte: monthStartUTC, lte: endOfTodayUTC() } },
       select: { amount: true },
     }),
     db.expense.findMany({
-      where: { dueDate: { gte: monthStart, lte: endOfMonth() }, paidDate: null },
+      where: { dueDate: { gte: monthStartUTC, lte: monthEndUTC }, paidDate: null },
       orderBy: { dueDate: "asc" },
       include: { expenseType: { select: { name: true } } },
     }),
