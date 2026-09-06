@@ -213,16 +213,36 @@ button:not(:disabled) {
 .t-error-msg {
   opacity: 0;
   visibility: hidden;
+  transform: translateY(-2px);
   transition:
     opacity var(--revert-dur, 280ms) ease-out,
+    transform var(--revert-dur, 280ms) ease-out,
     visibility 0s linear var(--revert-dur, 280ms);
 }
 .t-input-wrap.is-error .t-error-msg {
   opacity: 1;
   visibility: visible;
+  transform: translateY(0);
   transition:
     opacity var(--revert-dur, 280ms) ease-out,
+    transform var(--revert-dur, 280ms) ease-out,
     visibility 0s linear 0s;
+}
+
+/* Borde y fondo tenue en rojo mientras el campo tiene error — no solo el
+   sacudido momentáneo, para que se note incluso después de que termina. */
+.t-input-wrap.is-error .input {
+  border-color: var(--color-err-line);
+  background: var(--color-err-bg);
+}
+.t-input-wrap.is-error .input:focus {
+  border-color: var(--color-err-ink);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-error-msg {
+    transform: none !important;
+  }
 }
 .t-input.is-shaking {
   animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
