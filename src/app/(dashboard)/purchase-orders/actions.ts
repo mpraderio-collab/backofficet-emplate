@@ -63,6 +63,65 @@ export async function createPurchaseOrder(
   return { purchaseOrderId: purchaseOrder.id };
 }
 
+// Solo se puede seguir editando un pedido mientras está en "pending" —
+// una vez enviado, cambiar los ítems desincronizaría lo que el proveedor
+// ya recibió como pedido.
+export async function updatePurchaseOrder(
+  id: string,
+  _prev: PurchaseOrderActionState,
+  formData: FormData,
+): Promise<PurchaseOrderActionState> {
+  await requireAuth();
+
+  let itemsRaw: unknown;
+  try {
+    itemsRaw = JSON.parse(String(formData.get("items") ?? "[]"));
+  } catch {
+    return { error: "Los ítems del pedido no son válidos." };
+  }
+
+  const result = purchaseOrderSchema.safeParse({
+    supplierId: formData.get("supplierId"),
+    note: formData.get("note"),
+    items: itemsRaw,
+    orderDate: formData.get("orderDate"),
+  });
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? "Revisá los datos." };
+  }
+
+  const po = await db.purchaseOrder.findUnique({ where: { id } });
+  if (!po) return { error: "El pedido ya no existe." };
+  if (po.status !== "pending") {
+    return { error: `Solo se puede modificar un pedido en estado "pending" (este está "${po.status}").` };
+  }
+
+  const data = result.data;
+
+  await db.$transaction([
+    db.purchaseOrderItem.deleteMany({ where: { purchaseOrderId: id } }),
+    db.purchaseOrder.update({
+      where: { id },
+      data: {
+        supplierId: data.supplierId,
+        note: data.note || null,
+        ...(data.orderDate ? { orderDate: data.orderDate } : {}),
+        items: {
+          create: data.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+          })),
+        },
+      },
+    }),
+  ]);
+
+  revalidatePath("/purchase-orders");
+  revalidatePath(`/purchase-orders/${id}`);
+  return { purchaseOrderId: id };
+}
+
 const allowedTransitions: Record<string, string[]> = {
   pending: ["sent", "cancelled"],
   sent: ["cancelled"],
@@ -155,7 +214,7 @@ export async function receivePurchaseOrder(
         where: { id: item.productId },
         data: {
           stock: { increment: stockDelta },
-          ...(newCost != null ? { cost: newCost } : {}),
+          ...(newCost != null ? { cost: newCost, priceUpdatedAt: new Date() } : {}),
         },
       });
     }),

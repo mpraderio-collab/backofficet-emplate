@@ -43,21 +43,37 @@ const initialState: PurchaseOrderActionState = {};
 export function PurchaseOrderForm({
   suppliers,
   products,
+  action,
+  submitLabel = "Crear pedido",
+  defaultValues,
 }: {
   suppliers: SupplierOption[];
   products: ProductOption[];
+  action?: (
+    state: PurchaseOrderActionState,
+    formData: FormData,
+  ) => Promise<PurchaseOrderActionState>;
+  submitLabel?: string;
+  defaultValues?: {
+    supplierId: string;
+    orderDate: string;
+    note: string;
+    items: LineItem[];
+  };
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(createPurchaseOrder, initialState);
+  const [state, formAction, pending] = useActionState(action ?? createPurchaseOrder, initialState);
 
-  const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
-  const [items, setItems] = useState<LineItem[]>([]);
+  const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? suppliers[0]?.id ?? "");
+  const [items, setItems] = useState<LineItem[]>(defaultValues?.items ?? []);
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(products[0]?.cost ?? 0);
   const [addError, setAddError] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [orderDate, setOrderDate] = useState(() => toDateInputValue(new Date()));
+  const [note, setNote] = useState(defaultValues?.note ?? "");
+  const [orderDate, setOrderDate] = useState(
+    () => defaultValues?.orderDate ?? toDateInputValue(new Date()),
+  );
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
@@ -293,7 +309,7 @@ export function PurchaseOrderForm({
           disabled={items.length === 0 || pending}
           className="w-fit rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-white disabled:opacity-40"
         >
-          {pending ? "Guardando…" : `Crear pedido — ${formatMoney(total)}`}
+          {pending ? "Guardando…" : `${submitLabel} — ${formatMoney(total)}`}
         </button>
       </form>
     </div>
