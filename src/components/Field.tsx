@@ -33,7 +33,9 @@ export function Field({
 
   return (
     <label className={`t-input-wrap flex flex-col gap-1.5 ${error ? "is-error" : ""}`}>
-      <span className={`text-sm font-medium text-ink ${labelClassName}`}>{label}</span>
+      <span className={`flex items-end text-sm font-medium text-ink ${labelClassName}`}>
+        {label}
+      </span>
       <div ref={boxRef} className="t-input">
         {children}
       </div>
