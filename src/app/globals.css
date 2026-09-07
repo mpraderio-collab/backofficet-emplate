@@ -269,6 +269,39 @@ button:not(:disabled) {
   }
 }
 
+/* Modal de confirmación (ConfirmDialog): fondo con fade, panel con
+   scale-up + fade — reemplaza al confirm() nativo del navegador. */
+.t-modal-backdrop {
+  animation: t-modal-backdrop-in 150ms ease-out;
+}
+.t-modal {
+  animation: t-modal-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes t-modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes t-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-modal-backdrop,
+  .t-modal {
+    animation: none !important;
+  }
+}
+
 .t-input.is-shaking {
   animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
 }

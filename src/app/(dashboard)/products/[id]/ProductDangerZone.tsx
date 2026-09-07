@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/Alert";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { archiveProduct, deleteProduct, restoreProduct } from "../actions";
 
 export function ProductDangerZone({ id, status }: { id: string; status: string }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { confirm, dialog } = useConfirm();
 
   return (
     <div className="mt-10 max-w-2xl rounded-xl border border-err-line bg-err-bg p-5">
@@ -27,15 +29,17 @@ export function ProductDangerZone({ id, status }: { id: string; status: string }
           <button
             type="button"
             disabled={pending}
-            onClick={() =>
+            onClick={async () => {
+              const ok = await confirm(
+                "¿Archivar este producto? Deja de aparecer para ventas y pedidos nuevos.",
+                { confirmLabel: "Archivar", danger: false },
+              );
+              if (!ok) return;
               startTransition(async () => {
-                if (!confirm("¿Archivar este producto? Deja de aparecer para ventas y pedidos nuevos.")) {
-                  return;
-                }
                 await archiveProduct(id);
                 router.refresh();
-              })
-            }
+              });
+            }}
             className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface disabled:opacity-50"
           >
             Archivar producto
@@ -58,22 +62,26 @@ export function ProductDangerZone({ id, status }: { id: string; status: string }
         <button
           type="button"
           disabled={pending}
-          onClick={() =>
+          onClick={async () => {
+            const ok = await confirm("¿Borrar este producto definitivamente?", {
+              confirmLabel: "Borrar",
+            });
+            if (!ok) return;
             startTransition(async () => {
-              if (!confirm("¿Borrar este producto definitivamente?")) return;
               const res = await deleteProduct(id);
               if (res.error) {
                 setError(res.error);
                 return;
               }
               router.push("/products");
-            })
-          }
+            });
+          }}
           className="rounded-lg border border-err-line bg-bg px-4 py-2 text-sm font-semibold text-err-ink hover:bg-err-bg disabled:opacity-50"
         >
           Borrar definitivamente
         </button>
       </div>
+      {dialog}
     </div>
   );
 }
