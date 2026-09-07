@@ -16,7 +16,7 @@ export function ClickableRow({
   return (
     <tr
       onClick={() => router.push(href)}
-      className={`cursor-pointer transition-colors hover:bg-surface ${className ?? ""}`}
+      className={`group cursor-pointer transition-colors hover:bg-surface ${className ?? ""}`}
     >
       {children}
     </tr>

@@ -89,7 +89,9 @@ export function SuppliersTable({ suppliers }: { suppliers: SupplierRow[] }) {
                   href={`/suppliers/${s.id}`}
                   className="border-b border-line-soft last:border-0"
                 >
-                  <td className="px-4 py-3 font-medium text-ink">{s.name}</td>
+                  <td className="px-4 py-3 font-medium text-ink transition-colors group-hover:text-accent">
+                    {s.name}
+                  </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {s.phone ? (
                       <WhatsAppLink

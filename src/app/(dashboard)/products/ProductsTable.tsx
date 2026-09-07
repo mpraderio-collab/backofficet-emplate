@@ -124,7 +124,9 @@ export function ProductsTable({
                         <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
                       )}
                       <div>
-                        <p className="font-medium text-ink">{p.name}</p>
+                        <p className="font-medium text-ink transition-colors group-hover:text-accent">
+                          {p.name}
+                        </p>
                         {p.sku && <p className="font-mono text-xs text-ink-faint">{p.sku}</p>}
                         {p.characteristics && (
                           <p className="text-xs text-ink-faint">{p.characteristics}</p>

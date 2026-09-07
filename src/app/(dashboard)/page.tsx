@@ -251,16 +251,16 @@ export default async function DashboardPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-line bg-bg p-5">
-          <p className="text-sm font-semibold text-ink">Productos más vendidos</p>
-          <p className="text-xs text-ink-faint">Por facturación, últimos {buckets.length} meses</p>
+          <p className="text-sm font-semibold text-ink">Productos más vendidos por facturación</p>
+          <p className="text-xs text-ink-faint">Últimos {buckets.length} meses</p>
           <div className="mt-4">
             <DonutChart data={topProducts} formatValue={(v) => formatMoney(v)} />
           </div>
         </div>
 
         <div className="rounded-xl border border-line bg-bg p-5">
-          <p className="text-sm font-semibold text-ink">Productos más vendidos</p>
-          <p className="text-xs text-ink-faint">Por cantidad de ventas, últimos {buckets.length} meses</p>
+          <p className="text-sm font-semibold text-ink">Productos más vendidos por cantidad de ventas</p>
+          <p className="text-xs text-ink-faint">Últimos {buckets.length} meses</p>
           <div className="mt-4">
             <DonutChart
               data={topProductsByQuantity}

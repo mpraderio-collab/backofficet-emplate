@@ -150,7 +150,9 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                   className="border-b border-line-soft last:border-0"
                 >
                   <td className="px-4 py-3 text-ink-soft">{formatDateOnly(po.orderDate)}</td>
-                  <td className="px-4 py-3 font-medium text-ink">{po.supplier.name}</td>
+                  <td className="px-4 py-3 font-medium text-ink transition-colors group-hover:text-accent">
+                    {po.supplier.name}
+                  </td>
                   <td className="px-4 py-3 text-ink-soft">{po.items.length}</td>
                   <td className="px-4 py-3 font-medium text-ink">{formatMoney(total)}</td>
                   <td className="px-4 py-3">

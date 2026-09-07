@@ -117,7 +117,9 @@ export default async function SalesPage(props: PageProps<"/sales">) {
                   className="border-b border-line-soft last:border-0"
                 >
                   <td className="px-4 py-3 text-ink-soft">{formatDate(sale.createdAt)}</td>
-                  <td className="px-4 py-3 font-medium text-ink">{sale.customer.name}</td>
+                  <td className="px-4 py-3 font-medium text-ink transition-colors group-hover:text-accent">
+                    {sale.customer.name}
+                  </td>
                   <td className="px-4 py-3 text-ink">{formatMoney(sale.total)}</td>
                   <td className="px-4 py-3">
                     <span

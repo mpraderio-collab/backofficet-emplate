@@ -89,7 +89,9 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                   href={`/customers/${c.id}`}
                   className="border-b border-line-soft last:border-0"
                 >
-                  <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
+                  <td className="px-4 py-3 font-medium text-ink transition-colors group-hover:text-accent">
+                    {c.name}
+                  </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {c.phone ? (
                       <WhatsAppLink
