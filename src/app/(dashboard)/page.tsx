@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatDateOnly, formatMoney, formatQuantity } from "@/lib/format";
+import { formatDate, formatDateOnly, formatMoney, formatQuantity } from "@/lib/format";
 import { getExpenseStatus, expenseStatusLabels, expenseStatusColors } from "@/lib/expense-status";
 import { MarkExpensePaidButton } from "./expenses/MarkExpensePaidButton";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
@@ -14,9 +14,12 @@ import {
   endOfTodayUTC,
   startOfTodayUTC,
   daysSince,
+  oneYearAgo,
+  sixMonthsAgo,
 } from "@/lib/reports";
 import { estimateItemCost } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
+import { getLastSaleDatesByProduct } from "@/lib/product-sales";
 import { BarChart } from "@/components/charts/BarChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 
@@ -41,10 +44,19 @@ export default async function DashboardPage() {
     expensesThisMonth,
     unpaidExpensesDueThisMonth,
     supplierPaymentsThisMonth,
+    lastSaleByProduct,
   ] = await Promise.all([
     db.product.findMany({
       where: { status: "active" },
-      select: { id: true, name: true, stock: true, fractionUnit: true, minStock: true },
+      select: {
+        id: true,
+        name: true,
+        stock: true,
+        fractionUnit: true,
+        minStock: true,
+        registeredAt: true,
+        createdAt: true,
+      },
     }),
     db.purchaseOrder.findMany({
       where: { status: { in: ["pending", "sent"] } },
@@ -85,11 +97,31 @@ export default async function DashboardPage() {
       where: { type: "payment", createdAt: { gte: monthStart, lte: monthEnd } },
       _sum: { amount: true },
     }),
+    getLastSaleDatesByProduct(),
   ]);
 
   const lowStockProducts = activeProducts
     .filter((p) => isLowStock(p.stock, p.minStock))
     .sort((a, b) => a.stock - effectiveMinStock(a.minStock) - (b.stock - effectiveMinStock(b.minStock)))
+    .slice(0, 6);
+
+  // Mismo criterio que /reports/stale-products: sin ventas en el último año,
+  // o nunca vendido y con más de 6 meses desde el alta.
+  const staleThreshold = oneYearAgo();
+  const graceThreshold = sixMonthsAgo();
+  const staleProducts = activeProducts
+    .map((p) => ({ ...p, lastSaleDate: lastSaleByProduct.get(p.id) ?? null }))
+    .filter((p) =>
+      p.lastSaleDate
+        ? p.lastSaleDate < staleThreshold
+        : (p.registeredAt ?? p.createdAt) < graceThreshold,
+    )
+    .sort((a, b) => {
+      if (!a.lastSaleDate && !b.lastSaleDate) return a.name.localeCompare(b.name);
+      if (!a.lastSaleDate) return -1;
+      if (!b.lastSaleDate) return 1;
+      return a.lastSaleDate.getTime() - b.lastSaleDate.getTime();
+    })
     .slice(0, 6);
 
   const totalReceivable = [...customerBalances.values()].reduce(
@@ -270,60 +302,40 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-line bg-bg p-5">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-ink">Gastos por pagar este mes</p>
-          <Link href="/expenses" className="text-sm font-semibold text-accent hover:underline">
-            Ver gastos →
-          </Link>
-        </div>
-        {unpaidExpensesDueThisMonth.length === 0 ? (
-          <p className="mt-3 text-sm text-ink-soft">
-            No hay gastos impagos con vencimiento este mes.
-          </p>
-        ) : (
-          <ul className="mt-3 flex flex-col gap-2">
-            {unpaidExpensesDueThisMonth.map((e) => {
-              const status = getExpenseStatus(e.dueDate, e.paidDate, startOfTodayUTC());
-              return (
-                <li key={e.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-ink-soft">
-                    {e.expenseType.name}{" "}
-                    <span className="text-ink-faint">· vence {formatDateOnly(e.dueDate)}</span>
-                    <span
-                      className={`ml-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${expenseStatusColors[status]}`}
-                    >
-                      {expenseStatusLabels[status]}
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <span className="font-semibold text-ink">{formatMoney(e.amount)}</span>
-                    <MarkExpensePaidButton id={e.id} />
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-line bg-bg p-5">
-          <p className="text-sm font-semibold text-ink">Stock bajo</p>
-          {lowStockProducts.length === 0 ? (
-            <p className="mt-3 text-sm text-ink-soft">Todos los productos tienen stock suficiente.</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink">Gastos por pagar este mes</p>
+            <Link href="/expenses" className="text-sm font-semibold text-accent hover:underline">
+              Ver gastos →
+            </Link>
+          </div>
+          {unpaidExpensesDueThisMonth.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-soft">
+              No hay gastos impagos con vencimiento este mes.
+            </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
-              {lowStockProducts.map((p) => (
-                <li key={p.id} className="flex items-center justify-between text-sm">
-                  <span className="text-ink-soft">{p.name}</span>
-                  <span
-                    className={p.stock === 0 ? "font-semibold text-err-ink" : "font-semibold text-warn-ink"}
-                  >
-                    {p.stock === 0 ? "sin stock" : formatQuantity(p.stock, p.fractionUnit)}
-                  </span>
-                </li>
-              ))}
+              {unpaidExpensesDueThisMonth.map((e) => {
+                const status = getExpenseStatus(e.dueDate, e.paidDate, startOfTodayUTC());
+                return (
+                  <li key={e.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-ink-soft">
+                      {e.expenseType.name}{" "}
+                      <span className="text-ink-faint">· vence {formatDateOnly(e.dueDate)}</span>
+                      <span
+                        className={`ml-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${expenseStatusColors[status]}`}
+                      >
+                        {expenseStatusLabels[status]}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="font-semibold text-ink">{formatMoney(e.amount)}</span>
+                      <MarkExpensePaidButton id={e.id} />
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -366,6 +378,56 @@ export default async function DashboardPage() {
                   </li>
                 );
               })}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">Stock bajo</p>
+          {lowStockProducts.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-soft">Todos los productos tienen stock suficiente.</p>
+          ) : (
+            <ul className="mt-3 flex flex-col gap-2">
+              {lowStockProducts.map((p) => (
+                <li key={p.id} className="flex items-center justify-between text-sm">
+                  <span className="text-ink-soft">{p.name}</span>
+                  <span
+                    className={p.stock === 0 ? "font-semibold text-err-ink" : "font-semibold text-warn-ink"}
+                  >
+                    {p.stock === 0 ? "sin stock" : formatQuantity(p.stock, p.fractionUnit)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink">Productos parados</p>
+            <Link
+              href="/reports/stale-products"
+              className="text-sm font-semibold text-accent hover:underline"
+            >
+              Ver productos parados →
+            </Link>
+          </div>
+          {staleProducts.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-soft">No hay productos parados.</p>
+          ) : (
+            <ul className="mt-3 flex flex-col gap-2">
+              {staleProducts.map((p) => (
+                <li key={p.id} className="flex items-center justify-between text-sm">
+                  <Link href={`/products/${p.id}`} className="text-ink-soft hover:text-accent">
+                    {p.name}
+                  </Link>
+                  <span className="text-ink-faint">
+                    {p.lastSaleDate ? `Última venta ${formatDate(p.lastSaleDate)}` : "Nunca se vendió"}
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
         </div>
