@@ -177,9 +177,7 @@ export async function restoreProduct(id: string) {
   revalidatePath("/products");
 }
 
-export async function deleteProduct(id: string): Promise<{ error?: string }> {
-  await requireAuth();
-
+async function checkProductHasHistory(id: string): Promise<{ error?: string }> {
   const [saleCount, purchaseCount] = await Promise.all([
     db.saleItem.count({ where: { productId: id } }),
     db.purchaseOrderItem.count({ where: { productId: id } }),
@@ -189,6 +187,19 @@ export async function deleteProduct(id: string): Promise<{ error?: string }> {
       error: "Este producto tiene ventas o pedidos asociados. Archivalo en vez de borrarlo.",
     };
   }
+  return {};
+}
+
+export async function canDeleteProduct(id: string): Promise<{ error?: string }> {
+  await requireAuth();
+  return checkProductHasHistory(id);
+}
+
+export async function deleteProduct(id: string): Promise<{ error?: string }> {
+  await requireAuth();
+
+  const check = await checkProductHasHistory(id);
+  if (check.error) return check;
 
   await db.product.delete({ where: { id } });
   revalidatePath("/products");

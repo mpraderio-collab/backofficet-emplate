@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/Alert";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { archiveProduct, deleteProduct, restoreProduct } from "../actions";
+import { archiveProduct, canDeleteProduct, deleteProduct, restoreProduct } from "../actions";
 
 export function ProductDangerZone({ id, status }: { id: string; status: string }) {
   const [pending, startTransition] = useTransition();
@@ -63,6 +63,12 @@ export function ProductDangerZone({ id, status }: { id: string; status: string }
           type="button"
           disabled={pending}
           onClick={async () => {
+            setError(null);
+            const check = await canDeleteProduct(id);
+            if (check.error) {
+              setError(check.error);
+              return;
+            }
             const ok = await confirm("¿Borrar este producto definitivamente?", {
               confirmLabel: "Borrar",
             });

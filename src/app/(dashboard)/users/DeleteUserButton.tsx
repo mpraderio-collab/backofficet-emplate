@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/Alert";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { deleteUser } from "./actions";
+import { canDeleteUser, deleteUser } from "./actions";
 
 export function DeleteUserButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition();
@@ -18,6 +18,12 @@ export function DeleteUserButton({ id }: { id: string }) {
         type="button"
         disabled={pending}
         onClick={async () => {
+          setError(null);
+          const check = await canDeleteUser();
+          if (check.error) {
+            setError(check.error);
+            return;
+          }
           if (!(await confirm("¿Borrar este usuario?"))) return;
           startTransition(async () => {
             const res = await deleteUser(id);

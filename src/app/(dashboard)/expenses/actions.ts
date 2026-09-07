@@ -48,6 +48,15 @@ export async function createExpenseType(
   return {};
 }
 
+export async function canDeleteExpenseType(id: string): Promise<{ error?: string }> {
+  await requireAuth();
+  const count = await db.expense.count({ where: { expenseTypeId: id } });
+  if (count > 0) {
+    return { error: "Este tipo de gasto tiene gastos cargados. No se puede borrar." };
+  }
+  return {};
+}
+
 export async function deleteExpenseType(id: string): Promise<{ error?: string }> {
   await requireAuth();
 

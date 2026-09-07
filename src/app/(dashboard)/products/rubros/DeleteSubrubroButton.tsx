@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/Alert";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { deleteSubrubro } from "./actions";
+import { canDeleteSubrubro, deleteSubrubro } from "./actions";
 
 export function DeleteSubrubroButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition();
@@ -18,6 +18,12 @@ export function DeleteSubrubroButton({ id }: { id: string }) {
         type="button"
         disabled={pending}
         onClick={async () => {
+          setError(null);
+          const check = await canDeleteSubrubro(id);
+          if (check.error) {
+            setError(check.error);
+            return;
+          }
           if (!(await confirm("¿Borrar este subrubro?"))) return;
           startTransition(async () => {
             const res = await deleteSubrubro(id);

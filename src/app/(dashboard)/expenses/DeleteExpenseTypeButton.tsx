@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/Alert";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { deleteExpenseType } from "./actions";
+import { canDeleteExpenseType, deleteExpenseType } from "./actions";
 
 export function DeleteExpenseTypeButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition();
@@ -18,6 +18,12 @@ export function DeleteExpenseTypeButton({ id }: { id: string }) {
         type="button"
         disabled={pending}
         onClick={async () => {
+          setError(null);
+          const check = await canDeleteExpenseType(id);
+          if (check.error) {
+            setError(check.error);
+            return;
+          }
           if (!(await confirm("¿Borrar este tipo de gasto?"))) return;
           startTransition(async () => {
             const res = await deleteExpenseType(id);

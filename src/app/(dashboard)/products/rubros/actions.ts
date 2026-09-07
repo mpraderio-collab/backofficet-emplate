@@ -74,6 +74,17 @@ export async function createRubroInline(name: string): Promise<CreateRubroInline
   }
 }
 
+// Chequea si se puede borrar sin borrar todavía — se llama antes de mostrar
+// la confirmación, para no preguntar "¿borrar?" si de entrada no se puede.
+export async function canDeleteRubro(id: string): Promise<{ error?: string }> {
+  await requireAuth();
+  const count = await db.subrubro.count({ where: { rubroId: id } });
+  if (count > 0) {
+    return { error: "Este rubro tiene subrubros cargados. Borralos primero." };
+  }
+  return {};
+}
+
 export async function deleteRubro(id: string): Promise<{ error?: string }> {
   await requireAuth();
 
@@ -157,6 +168,15 @@ export async function createSubrubroInline(
     }
     throw err;
   }
+}
+
+export async function canDeleteSubrubro(id: string): Promise<{ error?: string }> {
+  await requireAuth();
+  const count = await db.product.count({ where: { subrubroId: id } });
+  if (count > 0) {
+    return { error: "Este subrubro tiene productos cargados. No se puede borrar." };
+  }
+  return {};
 }
 
 export async function deleteSubrubro(id: string): Promise<{ error?: string }> {

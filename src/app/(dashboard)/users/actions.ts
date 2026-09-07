@@ -58,6 +58,15 @@ export async function createUser(
   return {};
 }
 
+export async function canDeleteUser(): Promise<{ error?: string }> {
+  await requireAuth();
+  const count = await db.user.count();
+  if (count <= 1) {
+    return { error: "No se puede borrar el único usuario del sistema." };
+  }
+  return {};
+}
+
 export async function deleteUser(id: string): Promise<{ error?: string }> {
   await requireAuth();
 
