@@ -12,6 +12,11 @@ export type ComboboxOption = {
   imageUrl?: string | null;
   description?: string | null;
   priceLabel?: string;
+  // Texto adicional que participa en la búsqueda pero no se muestra (ej:
+  // código de barras / SKU) — así un lector de código de barras, que
+  // escanea y tipea el código en este mismo input, también encuentra la
+  // opción por más que la lista solo muestre el nombre.
+  keywords?: string | null;
 };
 
 export function Combobox({
@@ -62,7 +67,7 @@ export function Combobox({
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = normalizedQuery
     ? options.filter((o) =>
-        `${o.label} ${o.sublabel ?? ""}`.toLowerCase().includes(normalizedQuery),
+        `${o.label} ${o.sublabel ?? ""} ${o.keywords ?? ""}`.toLowerCase().includes(normalizedQuery),
       )
     : options;
 

@@ -102,8 +102,8 @@ export async function createProduct(
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return {
-        error: "Ya existe un producto con ese SKU.",
-        fieldErrors: { sku: "Este SKU ya está en uso" },
+        error: "Ya existe un producto con ese código de barras / SKU.",
+        fieldErrors: { sku: "Este código de barras / SKU ya está en uso" },
       };
     }
     throw err;
@@ -148,8 +148,8 @@ export async function updateProduct(
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return {
-        error: "Ya existe un producto con ese SKU.",
-        fieldErrors: { sku: "Este SKU ya está en uso" },
+        error: "Ya existe un producto con ese código de barras / SKU.",
+        fieldErrors: { sku: "Este código de barras / SKU ya está en uso" },
       };
     }
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {

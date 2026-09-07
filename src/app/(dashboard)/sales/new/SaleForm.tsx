@@ -239,6 +239,7 @@ export function SaleForm({
                   ? `${p.description} · ${formatQuantity(p.stock, p.fractionUnit)} disp.`
                   : `${formatQuantity(p.stock, p.fractionUnit)} disp.`,
                 priceLabel: formatMoney(p.price),
+                keywords: p.sku,
               }))}
               placeholder="Buscar producto…"
             />

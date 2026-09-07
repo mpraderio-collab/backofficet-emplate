@@ -9,6 +9,7 @@ export default async function NewPurchaseOrderPage() {
       select: {
         id: true,
         name: true,
+        sku: true,
         cost: true,
         fractionUnit: true,
         unitSize: true,

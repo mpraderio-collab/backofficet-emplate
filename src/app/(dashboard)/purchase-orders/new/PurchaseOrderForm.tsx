@@ -13,6 +13,7 @@ import { createPurchaseOrder, type PurchaseOrderActionState } from "../actions";
 type ProductOption = {
   id: string;
   name: string;
+  sku: string | null;
   cost: number | null;
   fractionUnit: string | null;
   unitSize: number | null;
@@ -193,6 +194,7 @@ export function PurchaseOrderForm({
                 imageUrl: p.imageUrl,
                 description: productCharacteristics(p) || undefined,
                 priceLabel: p.cost != null ? formatMoney(p.cost) : undefined,
+                keywords: p.sku,
               }))}
               placeholder="Buscar producto…"
             />

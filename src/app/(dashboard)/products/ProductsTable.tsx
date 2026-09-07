@@ -35,7 +35,11 @@ export function ProductsTable({
 
   const normalized = query.trim().toLowerCase();
   const filtered = normalized
-    ? products.filter((p) => p.name.toLowerCase().includes(normalized))
+    ? products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(normalized) ||
+          p.sku?.toLowerCase().includes(normalized),
+      )
     : products;
   const suggestions = filtered.slice(0, 8);
   const hasFilters = hasOtherFilters || Boolean(query);
@@ -54,7 +58,7 @@ export function ProductsTable({
             }}
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
-            placeholder="Ej: Alimento"
+            placeholder="Ej: Alimento, o escaneá el código de barras"
             className="input"
           />
         </label>
