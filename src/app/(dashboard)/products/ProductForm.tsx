@@ -208,7 +208,11 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
       </Field>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Field label="SKU / código" error={state.fieldErrors?.sku} hint="Opcional">
+        <Field
+          label="Código de barras / SKU"
+          error={state.fieldErrors?.sku}
+          hint="Opcional — escaneá el código con el lector o tipealo a mano"
+        >
           <input
             name="sku"
             defaultValue={defaultValues?.sku ?? ""}

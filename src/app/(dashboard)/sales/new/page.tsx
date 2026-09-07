@@ -18,6 +18,7 @@ export default async function NewSalePage() {
         fractionUnit: true,
         unitSize: true,
         fractionPrice: true,
+        sku: true,
       },
     }),
     getAllCustomerBalances(),

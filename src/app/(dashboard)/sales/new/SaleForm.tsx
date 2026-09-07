@@ -19,6 +19,7 @@ type ProductOption = {
   fractionUnit: string | null;
   unitSize: number | null;
   fractionPrice: number | null;
+  sku: string | null;
 };
 type CustomerOption = { id: string; name: string; balance: number };
 
@@ -50,6 +51,7 @@ export function SaleForm({
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(products[0]?.price ?? 0);
   const [addError, setAddError] = useState<string | null>(null);
+  const [barcode, setBarcode] = useState("");
   const [note, setNote] = useState("");
   const [initialPayment, setInitialPayment] = useState(0);
   const [paymentTouched, setPaymentTouched] = useState(false);
@@ -127,6 +129,41 @@ export function SaleForm({
     setQuantity(1);
   }
 
+  // Un lector de código de barras funciona como un teclado: tipea el
+  // código y manda un Enter. No necesita ninguna integración especial,
+  // solo capturar ese Enter en un input enfocado.
+  function scanBarcode() {
+    const code = barcode.trim();
+    if (!code) return;
+    const product = products.find((p) => p.sku?.toLowerCase() === code.toLowerCase());
+    if (!product) {
+      setAddError(`No se encontró ningún producto con el código "${code}".`);
+      return;
+    }
+    const alreadyReservedForProduct = items
+      .filter((i) => i.productId === product.id)
+      .reduce((sum, i) => sum + i.stockDelta, 0);
+    const stockDelta = product.unitSize ?? 1;
+    if (stockDelta > product.stock - alreadyReservedForProduct) {
+      setAddError(`"${product.name}" no tiene stock disponible.`);
+      return;
+    }
+    setAddError(null);
+    setItems((prev) => [
+      ...prev,
+      {
+        productId: product.id,
+        productName: product.name,
+        saleUnit: "unit",
+        quantity: 1,
+        unitPrice: product.price,
+        stockDelta,
+      },
+    ]);
+    selectProduct(product.id);
+    setBarcode("");
+  }
+
   function removeItem(index: number) {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
@@ -172,6 +209,22 @@ export function SaleForm({
       <div className="rounded-xl border border-line bg-bg p-5">
         <p className="text-sm font-semibold text-ink">Agregar producto</p>
         <div className="mt-3 flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-ink-soft">Código de barras</span>
+            <input
+              type="text"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                scanBarcode();
+              }}
+              placeholder="Escaneá o tipeá el código y presioná Enter"
+              className="input w-full"
+            />
+          </label>
+
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Producto</span>
             <Combobox
