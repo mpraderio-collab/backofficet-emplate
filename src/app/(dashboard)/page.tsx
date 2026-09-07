@@ -138,11 +138,11 @@ export default async function DashboardPage() {
   const totalExpensesThisMonth = expensesThisMonth.reduce((sum, e) => sum + e.amount, 0);
   const totalPaidToSuppliersThisMonth = supplierPaymentsThisMonth._sum.amount ?? 0;
   // Ganancia neta = margen (ingreso - costo de productos) menos los gastos
-  // del negocio del mes y lo pagado a proveedores en el mes — a propósito
-  // separada de "Margen total de ventas" para no mezclar el margen bruto
-  // con los gastos y pagos reales.
-  const netProfitThisMonth =
-    marginThisMonth - totalExpensesThisMonth - totalPaidToSuppliersThisMonth;
+  // del negocio del mes. Lo pagado a proveedores NO se resta acá: ya está
+  // reflejado en el costo estimado de cada venta (product.cost), y es un
+  // movimiento de caja (cancelar una deuda), no un gasto del período —
+  // restarlo de nuevo duplicaría ese costo.
+  const netProfitThisMonth = marginThisMonth - totalExpensesThisMonth;
 
   // "in" = entrada de dinero (o a favor nuestro), "out" = salida de dinero
   // (o compromiso pendiente), "neutral" = no es un monto de dinero.
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
     {
       label: "Ganancia neta del mes",
       value: formatMoney(netProfitThisMonth),
-      hint: `Margen ${formatMoney(marginThisMonth)} − gastos ${formatMoney(totalExpensesThisMonth)} − pagos a proveedores ${formatMoney(totalPaidToSuppliersThisMonth)}`,
+      hint: `Margen ${formatMoney(marginThisMonth)} − gastos ${formatMoney(totalExpensesThisMonth)}`,
       tone: netProfitThisMonth >= 0 ? "in" : "out",
     },
   ];
