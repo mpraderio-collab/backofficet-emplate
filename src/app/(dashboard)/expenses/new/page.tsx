@@ -1,10 +1,28 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { getActiveBranch } from "@/lib/branch";
 import { ExpenseTypeForm } from "../ExpenseTypeForm";
 import { DeleteExpenseTypeButton } from "../DeleteExpenseTypeButton";
 import { ExpenseForm } from "../ExpenseForm";
 
 export default async function NewExpensePage() {
+  const { active, branches } = await getActiveBranch();
+
+  if (!active) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-ink">Nuevo gasto</h1>
+        <p className="mt-6 text-ink-soft">
+          Todavía no hay ninguna sucursal cargada. Creá una primero desde{" "}
+          <a href="/branches" className="font-semibold text-accent hover:underline">
+            Sucursales
+          </a>
+          .
+        </p>
+      </div>
+    );
+  }
+
   const [expenseTypes, recurringExpenses, expenseCountByType] = await Promise.all([
     db.expenseType.findMany({ orderBy: { name: "asc" } }),
     db.expense.findMany({
@@ -48,6 +66,8 @@ export default async function NewExpensePage() {
             ) : (
               <ExpenseForm
                 expenseTypes={expenseTypes.map((t) => ({ id: t.id, name: t.name }))}
+                branches={branches}
+                activeBranchId={active.id}
                 recurringSuggestions={recurringSuggestions.map((e) => ({
                   expenseTypeId: e.expenseTypeId,
                   expenseTypeName: e.expenseType.name,

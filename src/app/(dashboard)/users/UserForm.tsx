@@ -35,6 +35,12 @@ export function UserForm() {
       <Field label="Contraseña" error={state.fieldErrors?.password}>
         <input name="password" type="password" required minLength={6} className="input sm:w-40" />
       </Field>
+      <Field label="Rol" error={state.fieldErrors?.role}>
+        <select name="role" defaultValue="employee" className="input sm:w-36">
+          <option value="employee">Empleado</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </Field>
       <div className="flex flex-col gap-1.5">
         <span aria-hidden className="text-sm font-medium text-transparent select-none">
           Acción

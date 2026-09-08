@@ -13,6 +13,7 @@ export default async function EditPurchaseOrderPage(
     where: { id },
     include: {
       supplier: { select: { name: true } },
+      branch: { select: { name: true } },
       items: { include: { product: { select: { name: true } } } },
     },
   });
@@ -35,12 +36,17 @@ export default async function EditPurchaseOrderPage(
         animalWeight: true,
         subrubro: { select: { name: true } },
         supplierId: true,
-        stock: true,
-        minStock: true,
         imageUrl: true,
+        stocks: { where: { branchId: po.branchId }, select: { stock: true, minStock: true } },
       },
     }),
   ]);
+
+  const productsWithStock = products.map((p) => ({
+    ...p,
+    stock: p.stocks[0]?.stock ?? 0,
+    minStock: p.stocks[0]?.minStock ?? null,
+  }));
 
   const boundAction = updatePurchaseOrder.bind(null, po.id);
 
@@ -53,10 +59,13 @@ export default async function EditPurchaseOrderPage(
         / <span className="text-ink">Editar</span>
       </p>
       <h1 className="mt-1 text-2xl font-bold text-ink">Editar pedido a {po.supplier.name}</h1>
+      <p className="mt-1 text-sm text-ink-soft">
+        Sucursal: <span className="font-semibold text-ink">{po.branch.name}</span>
+      </p>
       <div className="mt-6">
         <PurchaseOrderForm
           suppliers={suppliers}
-          products={products}
+          products={productsWithStock}
           action={boundAction}
           submitLabel="Guardar cambios"
           defaultValues={{

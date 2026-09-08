@@ -9,21 +9,32 @@ import {
   toDateInputValue,
 } from "@/lib/reports";
 import { ClickableRow } from "@/components/ClickableRow";
+import { FilterCombobox } from "@/components/FilterCombobox";
 
 export default async function SalesPage(props: PageProps<"/sales">) {
   const searchParams = await props.searchParams;
   const fromParam = typeof searchParams?.from === "string" ? searchParams.from : undefined;
   const toParam = typeof searchParams?.to === "string" ? searchParams.to : undefined;
+  const branchIdParam = typeof searchParams?.branchId === "string" ? searchParams.branchId : "";
+  const userIdParam = typeof searchParams?.userId === "string" ? searchParams.userId : "";
 
   const from = fromParam ? new Date(`${fromParam}T00:00:00`) : startOfMonth();
   const to = toParam ? new Date(`${toParam}T23:59:59`) : endOfToday();
-  const hasFilters = Boolean(fromParam || toParam);
+  const hasFilters = Boolean(fromParam || toParam || branchIdParam || userIdParam);
 
-  const sales = await db.sale.findMany({
-    where: { createdAt: { gte: from, lte: to } },
-    orderBy: { createdAt: "desc" },
-    include: { customer: { select: { name: true } } },
-  });
+  const [sales, branches, users] = await Promise.all([
+    db.sale.findMany({
+      where: {
+        createdAt: { gte: from, lte: to },
+        ...(branchIdParam && { branchId: branchIdParam }),
+        ...(userIdParam && { createdByUserId: userIdParam }),
+      },
+      orderBy: { createdAt: "desc" },
+      include: { customer: { select: { name: true } }, branch: { select: { name: true } }, createdByUser: { select: { name: true } } },
+    }),
+    db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
 
   const quickRanges = [
     { label: "Hoy", from: startOfToday(), to: endOfToday() },
@@ -55,6 +66,34 @@ export default async function SalesPage(props: PageProps<"/sales">) {
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Hasta</span>
             <input type="date" name="to" defaultValue={toDateInputValue(to)} className="input" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-ink-soft">Sucursal</span>
+            <FilterCombobox
+              key={branchIdParam}
+              name="branchId"
+              defaultValue={branchIdParam}
+              placeholder="Buscar sucursal…"
+              className="w-40"
+              options={[
+                { value: "", label: "Todas" },
+                ...branches.map((b) => ({ value: b.id, label: b.name })),
+              ]}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-ink-soft">Vendedor</span>
+            <FilterCombobox
+              key={userIdParam}
+              name="userId"
+              defaultValue={userIdParam}
+              placeholder="Buscar vendedor…"
+              className="w-40"
+              options={[
+                { value: "", label: "Todos" },
+                ...users.map((u) => ({ value: u.id, label: u.name })),
+              ]}
+            />
           </label>
           <button
             type="submit"
@@ -95,16 +134,18 @@ export default async function SalesPage(props: PageProps<"/sales">) {
       {sales.length === 0 ? (
         <p className="mt-6 text-ink-soft">
           {hasFilters
-            ? "Ninguna venta coincide con este período."
+            ? "Ninguna venta coincide con estos filtros."
             : "Todavía no hay ventas registradas."}
         </p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-bg">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Cliente</th>
+                <th className="px-4 py-3">Sucursal</th>
+                <th className="px-4 py-3">Vendedor</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Estado</th>
               </tr>
@@ -120,6 +161,8 @@ export default async function SalesPage(props: PageProps<"/sales">) {
                   <td className="px-4 py-3 font-medium text-ink transition-colors group-hover:text-accent">
                     {sale.customer.name}
                   </td>
+                  <td className="px-4 py-3 text-ink-soft">{sale.branch.name}</td>
+                  <td className="px-4 py-3 text-ink-soft">{sale.createdByUser?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-ink">{formatMoney(sale.total)}</td>
                   <td className="px-4 py-3">
                     <span

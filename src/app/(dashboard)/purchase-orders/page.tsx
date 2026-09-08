@@ -14,14 +14,16 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
   const statusParams = Array.isArray(rawStatus) ? rawStatus : rawStatus ? [rawStatus] : [];
   const supplierIdParam =
     typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
+  const branchIdParam = typeof searchParams?.branchId === "string" ? searchParams.branchId : "";
   const fromParam = typeof searchParams?.from === "string" ? searchParams.from : "";
   const toParam = typeof searchParams?.to === "string" ? searchParams.to : "";
 
-  const [purchaseOrders, suppliers] = await Promise.all([
+  const [purchaseOrders, suppliers, branches] = await Promise.all([
     db.purchaseOrder.findMany({
       where: {
         ...(statusParams.length > 0 && { status: { in: statusParams } }),
         ...(supplierIdParam && { supplierId: supplierIdParam }),
+        ...(branchIdParam && { branchId: branchIdParam }),
         // orderDate se guarda como medianoche UTC (viene de un <input
         // type="date"> sin hora) — construir los límites en UTC acá
         // también, si no un pedido con fecha el día 1 del rango queda
@@ -36,14 +38,17 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
       orderBy: { orderDate: "desc" },
       include: {
         supplier: { select: { name: true } },
+        branch: { select: { name: true } },
         items: true,
         statusEvents: { where: { status: "sent" }, orderBy: { createdAt: "desc" }, take: 1 },
       },
     }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
-  const hasFilters = statusParams.length > 0 || supplierIdParam || fromParam || toParam;
+  const hasFilters =
+    statusParams.length > 0 || supplierIdParam || branchIdParam || fromParam || toParam;
 
   return (
     <div>
@@ -96,6 +101,20 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
           />
         </label>
         <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Sucursal</span>
+          <FilterCombobox
+            key={branchIdParam}
+            name="branchId"
+            defaultValue={branchIdParam}
+            placeholder="Buscar sucursal…"
+            className="w-40"
+            options={[
+              { value: "", label: "Todas" },
+              ...branches.map((b) => ({ value: b.id, label: b.name })),
+            ]}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-soft">Desde</span>
           <input type="date" name="from" defaultValue={fromParam} className="input" />
         </label>
@@ -127,11 +146,12 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
         </p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-bg">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[680px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Proveedor</th>
+                <th className="px-4 py-3">Sucursal</th>
                 <th className="px-4 py-3">Ítems</th>
                 <th className="px-4 py-3">Monto</th>
                 <th className="px-4 py-3">Estado</th>
@@ -153,6 +173,7 @@ export default async function PurchaseOrdersPage(props: PageProps<"/purchase-ord
                   <td className="px-4 py-3 font-medium text-ink transition-colors group-hover:text-accent">
                     {po.supplier.name}
                   </td>
+                  <td className="px-4 py-3 text-ink-soft">{po.branch.name}</td>
                   <td className="px-4 py-3 text-ink-soft">{po.items.length}</td>
                   <td className="px-4 py-3 font-medium text-ink">{formatMoney(total)}</td>
                   <td className="px-4 py-3">

@@ -78,6 +78,7 @@ export type ExpenseActionState = {
 function parseExpenseForm(formData: FormData) {
   return expenseSchema.safeParse({
     expenseTypeId: formData.get("expenseTypeId"),
+    branchId: formData.get("branchId"),
     amount: formData.get("amount"),
     dueDate: formData.get("dueDate"),
     markAsPaid: formData.get("markAsPaid"),
@@ -106,6 +107,7 @@ export async function createExpense(
   await db.expense.create({
     data: {
       expenseTypeId: result.data.expenseTypeId,
+      branchId: result.data.branchId,
       amount: result.data.amount,
       dueDate: result.data.dueDate,
       paidDate: result.data.markAsPaid ? new Date() : null,

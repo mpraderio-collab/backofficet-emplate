@@ -11,6 +11,7 @@ import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import { createExpense, type ExpenseActionState } from "./actions";
 
 type ExpenseTypeOption = { id: string; name: string };
+type BranchOption = { id: string; name: string };
 type RecurringSuggestion = {
   expenseTypeId: string;
   expenseTypeName: string;
@@ -22,15 +23,20 @@ const initialState: ExpenseActionState = {};
 
 export function ExpenseForm({
   expenseTypes,
+  branches,
+  activeBranchId,
   recurringSuggestions,
 }: {
   expenseTypes: ExpenseTypeOption[];
+  branches: BranchOption[];
+  activeBranchId: string;
   recurringSuggestions: RecurringSuggestion[];
 }) {
   const [state, formAction, pending] = useActionState(createExpense, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   const [expenseTypeId, setExpenseTypeId] = useState(expenseTypes[0]?.id ?? "");
+  const [branchId, setBranchId] = useState(activeBranchId);
   const [amount, setAmount] = useState<number | "">("");
   const [dueDate, setDueDate] = useState(() => toDateInputValue(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
@@ -50,6 +56,7 @@ export function ExpenseForm({
       setIsRecurring(false);
       setMarkAsPaid(false);
       setDueDate(toDateInputValue(new Date()));
+      setBranchId(activeBranchId);
     }
   }
 
@@ -103,6 +110,23 @@ export function ExpenseForm({
           </Field>
           <Field label="Monto" error={state.fieldErrors?.amount}>
             <MoneyInput name="amount" value={amount} onChange={setAmount} required />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Sucursal" error={state.fieldErrors?.branchId}>
+            <select
+              name="branchId"
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              className="input"
+            >
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
           </Field>
         </div>
 

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { purchaseOrderSchema, receivePurchaseOrderSchema } from "@/lib/validation";
+import { getActiveBranchId } from "@/lib/branch";
 
 async function requireAuth() {
   const session = await auth();
@@ -22,6 +23,8 @@ export async function createPurchaseOrder(
   formData: FormData,
 ): Promise<PurchaseOrderActionState> {
   const userId = await requireAuth();
+  const branchId = await getActiveBranchId();
+  if (!branchId) return { error: "Creá una sucursal antes de generar pedidos." };
 
   let itemsRaw: unknown;
   try {
@@ -45,6 +48,7 @@ export async function createPurchaseOrder(
   const purchaseOrder = await db.purchaseOrder.create({
     data: {
       supplierId: data.supplierId,
+      branchId,
       note: data.note || null,
       orderDate: data.orderDate,
       createdByUserId: userId,
@@ -206,18 +210,25 @@ export async function receivePurchaseOrder(
   }, 0);
 
   await db.$transaction([
+    // El stock sumado va a la sucursal del pedido (po.branchId), no a la
+    // sucursal activa de quien lo recibe — puede recibirlo otra persona en
+    // otro momento. El costo, en cambio, es del producto (compartido).
     ...po.items.map((item) => {
       const receivedQuantity = receivedByItemId.get(item.id) ?? 0;
       const stockDelta = receivedQuantity * (unitSizeByProductId.get(item.productId) ?? 1);
-      const newCost = newCostByItemId.get(item.id);
-      return db.product.update({
-        where: { id: item.productId },
-        data: {
-          stock: { increment: stockDelta },
-          ...(newCost != null ? { cost: newCost, priceUpdatedAt: new Date() } : {}),
-        },
+      return db.productStock.update({
+        where: { productId_branchId: { productId: item.productId, branchId: po.branchId } },
+        data: { stock: { increment: stockDelta } },
       });
     }),
+    ...po.items
+      .filter((item) => newCostByItemId.get(item.id) != null)
+      .map((item) =>
+        db.product.update({
+          where: { id: item.productId },
+          data: { cost: newCostByItemId.get(item.id), priceUpdatedAt: new Date() },
+        }),
+      ),
     ...po.items.map((item) => {
       const receivedQuantity = receivedByItemId.get(item.id) ?? 0;
       const stockDelta = receivedQuantity * (unitSizeByProductId.get(item.productId) ?? 1);

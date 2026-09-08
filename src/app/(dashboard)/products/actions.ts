@@ -7,7 +7,8 @@ import { put } from "@vercel/blob";
 import type { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { productSchema } from "@/lib/validation";
+import { productSchema, productStockSchema } from "@/lib/validation";
+import { getActiveBranchId } from "@/lib/branch";
 
 // Sube la foto elegida a Vercel Blob y devuelve su URL, o null si no se
 // eligió ningún archivo nuevo (para no pisar la imagen ya guardada).
@@ -70,13 +71,16 @@ function toFieldErrors(result: ReturnType<typeof parseForm>) {
 // Si el producto no se vende por fracción, hay que limpiar explícitamente
 // unitSize/fractionPrice a null — si no, un update con esos campos en
 // `undefined` dejaría el valor anterior sin tocar en vez de borrarlo.
+// stock/minStock no son columnas de Product (son por sucursal, ver
+// ProductStock) — se excluyen acá y se manejan aparte en createProduct.
 function toProductData(data: z.infer<typeof productSchema>) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- se excluyen a propósito, ver comentario arriba
+  const { stock: _stock, minStock: _minStock, ...rest } = data;
   return {
-    ...data,
+    ...rest,
     fractionUnit: data.fractionUnit ?? null,
     unitSize: data.fractionUnit ? (data.unitSize ?? null) : null,
     fractionPrice: data.fractionUnit ? (data.fractionPrice ?? null) : null,
-    minStock: data.minStock ?? null,
   };
 }
 
@@ -85,6 +89,10 @@ export async function createProduct(
   formData: FormData,
 ): Promise<ProductActionState> {
   await requireAuth();
+  const activeBranchId = await getActiveBranchId();
+  if (!activeBranchId) {
+    return { error: "Creá una sucursal antes de cargar productos." };
+  }
 
   const result = parseForm(formData);
   if (!result.success) {
@@ -95,10 +103,26 @@ export async function createProduct(
 
   let productId: string;
   try {
-    const product = await db.product.create({
-      data: { ...toProductData(result.data), imageUrl, priceUpdatedAt: new Date() },
+    productId = await db.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: { ...toProductData(result.data), imageUrl, priceUpdatedAt: new Date() },
+      });
+
+      // Invariante: todo producto nuevo arranca con una fila de stock en
+      // cada sucursal existente — la activa recibe lo cargado en el
+      // formulario, el resto arranca en 0.
+      const branches = await tx.branch.findMany({ select: { id: true } });
+      await tx.productStock.createMany({
+        data: branches.map((b) => ({
+          productId: product.id,
+          branchId: b.id,
+          stock: b.id === activeBranchId ? result.data.stock : 0,
+          minStock: b.id === activeBranchId ? (result.data.minStock ?? null) : null,
+        })),
+      });
+
+      return product.id;
     });
-    productId = product.id;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return {
@@ -160,6 +184,44 @@ export async function updateProduct(
 
   revalidatePath("/products");
   revalidatePath(`/products/${id}`);
+  return {};
+}
+
+export type ProductStockActionState = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+};
+
+// Única forma de corregir el stock de un producto a mano de ahora en más
+// (antes era un campo editable del propio producto) — una fila por
+// sucursal, ver ProductStockTable.
+export async function updateProductStock(
+  productId: string,
+  branchId: string,
+  formData: FormData,
+): Promise<ProductStockActionState> {
+  await requireAuth();
+
+  const result = productStockSchema.safeParse({
+    branchId,
+    stock: formData.get("stock"),
+    minStock: formData.get("minStock"),
+  });
+  if (!result.success) {
+    return {
+      error: "Revisá los valores.",
+      fieldErrors: { stock: result.error.issues[0]?.message ?? "Valor inválido" },
+    };
+  }
+
+  await db.productStock.update({
+    where: { productId_branchId: { productId, branchId: result.data.branchId } },
+    data: { stock: result.data.stock, minStock: result.data.minStock ?? null },
+  });
+
+  revalidatePath(`/products/${productId}`);
+  revalidatePath("/products");
+  revalidatePath("/");
   return {};
 }
 

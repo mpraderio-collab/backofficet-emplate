@@ -26,6 +26,7 @@ export default async function PurchaseOrderDetailPage(
     where: { id },
     include: {
       supplier: true,
+      branch: { select: { name: true } },
       items: {
         include: {
           product: {
@@ -67,7 +68,9 @@ export default async function PurchaseOrderDetailPage(
           {purchaseOrderStatusLabels[po.status]}
         </span>
       </div>
-      <p className="mt-1 text-sm text-ink-soft">Fecha del pedido: {formatDateOnly(po.orderDate)}</p>
+      <p className="mt-1 text-sm text-ink-soft">
+        Fecha del pedido: {formatDateOnly(po.orderDate)} · Sucursal: {po.branch.name}
+      </p>
 
       <ExportActions
         fileName={`pedido-${po.supplier.name}-${formatDateOnly(po.orderDate).replaceAll("/", "-")}`}

@@ -3,12 +3,20 @@
 import { useState } from "react";
 import { DashboardNav } from "./DashboardNav";
 
+type BranchOption = { id: string; name: string };
+
 export function MobileNav({
   userLabel,
   signOutAction,
+  branches,
+  activeBranchId,
+  switchBranchAction,
 }: {
   userLabel: string;
   signOutAction: () => Promise<void>;
+  branches: BranchOption[];
+  activeBranchId: string | null;
+  switchBranchAction: (formData: FormData) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -63,6 +71,27 @@ export function MobileNav({
       >
         <DashboardNav onNavigate={() => setOpen(false)} />
         <div className="border-t border-white/12 p-3">
+          {branches.length > 0 && (
+            <form action={switchBranchAction} className="px-3 pb-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                  Sucursal
+                </span>
+                <select
+                  name="branchId"
+                  defaultValue={activeBranchId ?? ""}
+                  onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                  className="w-full rounded-lg border border-white/20 bg-primary px-2 py-1.5 text-sm font-semibold text-white"
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id} className="text-ink">
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </form>
+          )}
           <p className="truncate px-3 py-1 text-xs text-white/50">{userLabel}</p>
           <form action={signOutAction}>
             <button

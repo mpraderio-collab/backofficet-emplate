@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatQuantity } from "@/lib/format";
 import { calculateMargin, formatMarginPercent } from "@/lib/margin";
+import { getActiveBranch } from "@/lib/branch";
 import { FilterCombobox } from "@/components/FilterCombobox";
 import { ProductsTable, type ProductRow } from "./ProductsTable";
 
@@ -26,6 +27,8 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const animalWeightParam =
     typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
+  const { active } = await getActiveBranch();
+
   const [products, suppliers, rubros, allProducts, soldItems] = await Promise.all([
     db.product.findMany({
       where: {
@@ -36,7 +39,11 @@ export default async function ProductsPage(props: PageProps<"/products">) {
         ...(animalWeightParam && { animalWeight: animalWeightParam }),
       },
       orderBy: { createdAt: "desc" },
-      include: { supplier: { select: { name: true } }, subrubro: { include: { rubro: true } } },
+      include: {
+        supplier: { select: { name: true } },
+        subrubro: { include: { rubro: true } },
+        stocks: { where: { branchId: active?.id ?? "" }, select: { stock: true, minStock: true } },
+      },
     }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.rubro.findMany({
@@ -99,8 +106,8 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       marginAmount: margin?.amount ?? null,
       marginPercentLabel: formatMarginPercent(margin),
       cost: p.cost,
-      stock: p.stock,
-      minStock: p.minStock,
+      stock: p.stocks[0]?.stock ?? 0,
+      minStock: p.stocks[0]?.minStock ?? null,
       soldLabel,
     };
   });
@@ -108,7 +115,14 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink">Productos</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Productos</h1>
+          {active && (
+            <p className="mt-1 text-sm text-ink-soft">
+              Stock de <span className="font-semibold text-ink">{active.name}</span>
+            </p>
+          )}
+        </div>
         <div className="flex gap-3">
           <Link
             href="/products/rubros"

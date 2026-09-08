@@ -59,6 +59,19 @@ export const rubroSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(80),
 });
 
+export const branchSchema = z.object({
+  name: z.string().trim().min(2, "El nombre es muy corto").max(80),
+});
+
+export const productStockSchema = z.object({
+  branchId: z.string().min(1),
+  stock: z.coerce.number().nonnegative(),
+  minStock: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce.number().nonnegative().optional(),
+  ),
+});
+
 export const subrubroSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(80),
   rubroId: z.string().min(1, "Elegí un rubro"),
@@ -143,6 +156,7 @@ export const expenseTypeSchema = z.object({
 
 export const expenseSchema = z.object({
   expenseTypeId: z.string().min(1, "Elegí un tipo de gasto"),
+  branchId: z.string().min(1, "Elegí una sucursal"),
   amount: z.coerce
     .number({ message: "El monto tiene que ser un número" })
     .int("El monto no puede tener centavos")
@@ -154,8 +168,11 @@ export const expenseSchema = z.object({
   note: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
+export const userRoles = ["admin", "employee"] as const;
+
 export const userSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(120),
   email: z.string().trim().email("El email no es válido"),
   password: z.string().min(6, "Mínimo 6 caracteres"),
+  role: z.enum(userRoles).default("employee"),
 });

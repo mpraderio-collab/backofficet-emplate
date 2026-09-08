@@ -6,13 +6,14 @@ import { getLastSaleDateForProduct } from "@/lib/product-sales";
 import { toDateInputValue, toDateInputValueUTC } from "@/lib/reports";
 import { updateProduct } from "../actions";
 import { ProductForm } from "../ProductForm";
+import { ProductStockTable } from "./ProductStockTable";
 import { ProductDangerZone } from "./ProductDangerZone";
 
 export default async function EditProductPage(
   props: PageProps<"/products/[id]">,
 ) {
   const { id } = await props.params;
-  const [product, suppliers, rubros, lastSaleDate] = await Promise.all([
+  const [product, suppliers, rubros, lastSaleDate, stocks] = await Promise.all([
     db.product.findUnique({ where: { id } }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.rubro.findMany({
@@ -20,6 +21,11 @@ export default async function EditProductPage(
       include: { subrubros: { orderBy: { name: "asc" } } },
     }),
     getLastSaleDateForProduct(id),
+    db.productStock.findMany({
+      where: { productId: id },
+      orderBy: { branch: { name: "asc" } },
+      include: { branch: { select: { name: true } } },
+    }),
   ]);
   if (!product) notFound();
 
@@ -69,8 +75,6 @@ export default async function EditProductPage(
             description: product.description,
             price: product.price,
             cost: product.cost,
-            stock: product.stock,
-            minStock: product.minStock,
             supplierId: product.supplierId,
             fractionUnit: product.fractionUnit,
             unitSize: product.unitSize,
@@ -84,6 +88,16 @@ export default async function EditProductPage(
           }}
         />
       </div>
+      <p className="mt-8 text-sm font-semibold text-ink">Stock por sucursal</p>
+      <ProductStockTable
+        productId={product.id}
+        rows={stocks.map((s) => ({
+          branchId: s.branchId,
+          branchName: s.branch.name,
+          stock: s.stock,
+          minStock: s.minStock,
+        }))}
+      />
       <ProductDangerZone id={product.id} status={product.status} />
     </div>
   );

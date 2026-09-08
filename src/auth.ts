@@ -28,20 +28,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
 
-        return { id: user.id, email: user.email, name: user.name };
+        return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
     }),
   ],
   callbacks: {
     ...authConfig.callbacks,
-    // Sin esto, session.user nunca lleva el id — y sin id no se puede
-    // registrar quién creó una venta, un gasto o un pago.
+    // Sin esto, session.user nunca lleva el id/role — y sin id no se puede
+    // registrar quién creó una venta, un gasto o un pago. Si a alguien le
+    // cambian el rol, no se refleja hasta que vuelva a loguearse (JWT sin
+    // consulta a la base en cada request) — aceptable para este alcance.
     async jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role: string }).role;
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = token.id as string;
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+      }
       return session;
     },
   },

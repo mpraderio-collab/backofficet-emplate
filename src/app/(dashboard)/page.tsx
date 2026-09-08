@@ -20,10 +20,28 @@ import {
 import { estimateItemCost } from "@/lib/margin";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { getLastSaleDatesByProduct } from "@/lib/product-sales";
+import { getActiveBranch } from "@/lib/branch";
 import { BarChart } from "@/components/charts/BarChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 
 export default async function DashboardPage() {
+  const { active } = await getActiveBranch();
+
+  if (!active) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-ink">Panel Principal</h1>
+        <p className="mt-6 text-ink-soft">
+          Todavía no hay ninguna sucursal cargada. Creá una primero desde{" "}
+          <a href="/branches" className="font-semibold text-accent hover:underline">
+            Sucursales
+          </a>
+          .
+        </p>
+      </div>
+    );
+  }
+
   const buckets = monthBuckets(6);
   const rangeStart = buckets[0].start;
 
@@ -51,15 +69,14 @@ export default async function DashboardPage() {
       select: {
         id: true,
         name: true,
-        stock: true,
         fractionUnit: true,
-        minStock: true,
         registeredAt: true,
         createdAt: true,
+        stocks: { where: { branchId: active.id }, select: { stock: true, minStock: true } },
       },
     }),
     db.purchaseOrder.findMany({
-      where: { status: { in: ["pending", "sent"] } },
+      where: { status: { in: ["pending", "sent"] }, branchId: active.id },
       include: {
         supplier: { select: { name: true } },
         statusEvents: { where: { status: "sent" }, orderBy: { createdAt: "desc" }, take: 1 },
@@ -70,7 +87,7 @@ export default async function DashboardPage() {
     getAllCustomerBalances(),
     getAllSupplierBalances(),
     db.sale.findMany({
-      where: { status: "confirmed", createdAt: { gte: rangeStart } },
+      where: { status: "confirmed", createdAt: { gte: rangeStart }, branchId: active.id },
       select: {
         total: true,
         createdAt: true,
@@ -85,11 +102,15 @@ export default async function DashboardPage() {
       },
     }),
     db.expense.findMany({
-      where: { dueDate: { gte: monthStartUTC, lte: endOfTodayUTC() } },
+      where: { dueDate: { gte: monthStartUTC, lte: endOfTodayUTC() }, branchId: active.id },
       select: { amount: true },
     }),
     db.expense.findMany({
-      where: { dueDate: { gte: monthStartUTC, lte: monthEndUTC }, paidDate: null },
+      where: {
+        dueDate: { gte: monthStartUTC, lte: monthEndUTC },
+        paidDate: null,
+        branchId: active.id,
+      },
       orderBy: { dueDate: "asc" },
       include: { expenseType: { select: { name: true } } },
     }),
@@ -97,10 +118,16 @@ export default async function DashboardPage() {
       where: { type: "payment", createdAt: { gte: monthStart, lte: monthEnd } },
       _sum: { amount: true },
     }),
-    getLastSaleDatesByProduct(),
+    getLastSaleDatesByProduct(active.id),
   ]);
 
-  const lowStockProducts = activeProducts
+  const productsWithStock = activeProducts.map((p) => ({
+    ...p,
+    stock: p.stocks[0]?.stock ?? 0,
+    minStock: p.stocks[0]?.minStock ?? null,
+  }));
+
+  const lowStockProducts = productsWithStock
     .filter((p) => isLowStock(p.stock, p.minStock))
     .sort((a, b) => a.stock - effectiveMinStock(a.minStock) - (b.stock - effectiveMinStock(b.minStock)))
     .slice(0, 6);
@@ -247,9 +274,9 @@ export default async function DashboardPage() {
   return (
     <div>
       <div>
-        <h1 className="text-2xl font-bold text-ink">Panel Principal</h1>
+        <h1 className="text-2xl font-bold text-ink">Panel Principal — {active.name}</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Un vistazo general a ventas, stock y cuentas corrientes.
+          Un vistazo general a ventas, stock y cuentas corrientes de esta sucursal.
         </p>
       </div>
 

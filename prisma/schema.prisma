@@ -13,6 +13,7 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
+  role         String   @default("admin") // admin | employee — default admin para no dejar afuera a los usuarios existentes al agregar la columna
   createdAt    DateTime @default(now())
 
   createdSales                Sale[]
@@ -31,8 +32,6 @@ model Product {
   imageUrl    String? // foto del producto (Vercel Blob), usada en buscadores/listados
   price       Int // precio de venta de la unidad completa (ej: la bolsa entera)
   cost        Int? // costo — interno, referencia para margen
-  stock       Float    @default(0) // en la unidad de fracción si el producto es fraccionable (ej: kg); si no, en unidades enteras
-  minStock    Float?   // nivel para avisar reposición; si no se carga, se usa un default en la app
   status      String   @default("active") // active | archived
   supplierId  String?
   supplier    Supplier? @relation(fields: [supplierId], references: [id])
@@ -69,10 +68,41 @@ model Product {
 
   saleItems     SaleItem[]
   purchaseItems PurchaseOrderItem[]
+  stocks        ProductStock[] // stock independiente por sucursal — ver modelo Branch
 
   @@index([status])
   @@index([supplierId])
   @@index([subrubroId])
+}
+
+// Una sucursal/local del negocio. El stock de cada producto es
+// independiente por sucursal (ver ProductStock); clientes, proveedores y
+// tipos de gasto son compartidos entre todas.
+model Branch {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  productStocks  ProductStock[]
+  sales          Sale[]
+  purchaseOrders PurchaseOrder[]
+  expenses       Expense[]
+}
+
+// Stock de un producto en una sucursal puntual. Todo producto tiene una
+// fila acá por cada sucursal existente (invariante mantenida por código,
+// no por la base): se crea al dar de alta el producto o la sucursal.
+model ProductStock {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    Branch  @relation(fields: [branchId], references: [id])
+  stock     Float   @default(0) // en la unidad de fracción si el producto es fraccionable (ej: kg); si no, en unidades enteras
+  minStock  Float? // nivel para avisar reposición; si no se carga, se usa un default en la app
+
+  @@unique([productId, branchId])
+  @@index([branchId])
 }
 
 // Clasificación de productos en dos niveles — ej: rubro "Alimento
@@ -129,6 +159,8 @@ model Sale {
   id          String   @id @default(cuid())
   customerId  String
   customer    Customer @relation(fields: [customerId], references: [id])
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
   total       Int
   status      String   @default("confirmed") // confirmed | cancelled
   note        String?
@@ -143,6 +175,7 @@ model Sale {
   arcaInvoice ArcaInvoice?
 
   @@index([customerId])
+  @@index([branchId])
 }
 
 // Factura electrónica emitida (o intentada) en ARCA (ex AFIP) para una
@@ -208,6 +241,8 @@ model PurchaseOrder {
   id         String   @id @default(cuid())
   supplierId String
   supplier   Supplier @relation(fields: [supplierId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
   status     String   @default("pending") // pending | sent | received | cancelled
   orderDate  DateTime @default(now()) // fecha del pedido (editable), distinta de createdAt
   note       String?
@@ -223,6 +258,7 @@ model PurchaseOrder {
 
   @@index([supplierId])
   @@index([status])
+  @@index([branchId])
 }
 
 model PurchaseOrderItem {
@@ -285,6 +321,8 @@ model Expense {
   id            String      @id @default(cuid())
   expenseTypeId String
   expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [id])
+  branchId      String
+  branch        Branch      @relation(fields: [branchId], references: [id])
   amount        Int
   dueDate       DateTime // fecha de vencimiento del gasto
   paidDate      DateTime? // fecha en que se pagó — null significa impago
@@ -299,4 +337,5 @@ model Expense {
   @@index([expenseTypeId])
   @@index([dueDate])
   @@index([paidDate])
+  @@index([branchId])
 }

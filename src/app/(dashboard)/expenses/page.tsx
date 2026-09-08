@@ -10,6 +10,7 @@ import {
   toDateInputValueUTC,
 } from "@/lib/reports";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { FilterCombobox } from "@/components/FilterCombobox";
 import { getExpenseStatus, expenseStatusLabels, expenseStatusColors } from "@/lib/expense-status";
 import { DeleteExpenseButton } from "./DeleteExpenseButton";
 import { MarkExpensePaidButton } from "./MarkExpensePaidButton";
@@ -18,22 +19,30 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const searchParams = await props.searchParams;
   const fromParam = typeof searchParams?.from === "string" ? searchParams.from : undefined;
   const toParam = typeof searchParams?.to === "string" ? searchParams.to : undefined;
+  const branchIdParam = typeof searchParams?.branchId === "string" ? searchParams.branchId : "";
 
   // dueDate se guarda como medianoche UTC (viene de un <input type="date">
   // sin hora) — armar estos límites en UTC para no dejar afuera un
   // vencimiento justo en el primer o último día del rango.
   const from = fromParam ? new Date(`${fromParam}T00:00:00Z`) : startOfMonthUTC();
   const to = toParam ? new Date(`${toParam}T23:59:59Z`) : endOfTodayUTC();
-  const hasFilters = Boolean(fromParam || toParam);
+  const hasFilters = Boolean(fromParam || toParam || branchIdParam);
 
-  const expenses = await db.expense.findMany({
-    where: { dueDate: { gte: from, lte: to } },
-    orderBy: { dueDate: "desc" },
-    include: {
-      expenseType: { select: { name: true } },
-      createdByUser: { select: { name: true } },
-    },
-  });
+  const [expenses, branches] = await Promise.all([
+    db.expense.findMany({
+      where: {
+        dueDate: { gte: from, lte: to },
+        ...(branchIdParam && { branchId: branchIdParam }),
+      },
+      orderBy: { dueDate: "desc" },
+      include: {
+        expenseType: { select: { name: true } },
+        branch: { select: { name: true } },
+        createdByUser: { select: { name: true } },
+      },
+    }),
+    db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
 
   const today = startOfTodayUTC();
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -110,6 +119,20 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-ink-soft">Hasta</span>
             <input type="date" name="to" defaultValue={toDateInputValueUTC(to)} className="input" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-ink-soft">Sucursal</span>
+            <FilterCombobox
+              key={branchIdParam}
+              name="branchId"
+              defaultValue={branchIdParam}
+              placeholder="Buscar sucursal…"
+              className="w-40"
+              options={[
+                { value: "", label: "Todas" },
+                ...branches.map((b) => ({ value: b.id, label: b.name })),
+              ]}
+            />
           </label>
           <button
             type="submit"
@@ -199,11 +222,12 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
           <p className="mt-2 text-sm text-ink-soft">No hay gastos en este período.</p>
         ) : (
           <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-bg">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-[860px] text-left text-sm">
               <thead>
                 <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
                   <th className="px-4 py-3">Vencimiento</th>
                   <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Sucursal</th>
                   <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Método</th>
                   <th className="px-4 py-3">Monto</th>
@@ -226,6 +250,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                         {expenseStatusLabels[status]}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-ink-soft">{e.branch.name}</td>
                     <td className="px-4 py-3 text-ink">
                       {e.expenseType.name}
                       {e.isRecurring && (

@@ -3,27 +3,56 @@ import { db } from "@/lib/db";
 import { formatDate, formatQuantity } from "@/lib/format";
 import { oneYearAgo, sixMonthsAgo } from "@/lib/reports";
 import { getLastSaleDatesByProduct } from "@/lib/product-sales";
+import { getActiveBranch } from "@/lib/branch";
+import { FilterCombobox } from "@/components/FilterCombobox";
 
-export default async function StaleProductsReportPage() {
+export default async function StaleProductsReportPage(
+  props: PageProps<"/reports/stale-products">,
+) {
+  const searchParams = await props.searchParams;
+  const { active, branches } = await getActiveBranch();
+
+  if (!active) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-ink">Productos parados</h1>
+        <p className="mt-6 text-ink-soft">
+          Todavía no hay ninguna sucursal cargada. Creá una primero desde{" "}
+          <a href="/branches" className="font-semibold text-accent hover:underline">
+            Sucursales
+          </a>
+          .
+        </p>
+      </div>
+    );
+  }
+
+  const branchIdParam =
+    typeof searchParams?.branchId === "string" ? searchParams.branchId : active.id;
+
   const [activeProducts, lastSaleByProduct] = await Promise.all([
     db.product.findMany({
       where: { status: "active" },
       select: {
         id: true,
         name: true,
-        stock: true,
         fractionUnit: true,
         registeredAt: true,
         createdAt: true,
+        stocks: { where: { branchId: branchIdParam }, select: { stock: true } },
       },
     }),
-    getLastSaleDatesByProduct(),
+    getLastSaleDatesByProduct(branchIdParam),
   ]);
 
   const staleThreshold = oneYearAgo();
   const graceThreshold = sixMonthsAgo();
   const staleProducts = activeProducts
-    .map((p) => ({ ...p, lastSaleDate: lastSaleByProduct.get(p.id) ?? null }))
+    .map((p) => ({
+      ...p,
+      stock: p.stocks[0]?.stock ?? 0,
+      lastSaleDate: lastSaleByProduct.get(p.id) ?? null,
+    }))
     .filter((p) =>
       p.lastSaleDate
         ? p.lastSaleDate < staleThreshold
@@ -46,9 +75,29 @@ export default async function StaleProductsReportPage() {
       </p>
       <h1 className="mt-1 text-2xl font-bold text-ink">Productos parados</h1>
       <p className="mt-1 text-sm text-ink-soft">
-        Productos activos sin ventas en el último año, o que nunca se vendieron y ya pasaron 6
-        meses desde su fecha de alta.
+        Productos activos sin ventas en esta sucursal en el último año, o que nunca se vendieron
+        ahí y ya pasaron 6 meses desde su fecha de alta.
       </p>
+
+      <form className="mt-4 flex flex-wrap items-end gap-3" method="get">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Sucursal</span>
+          <FilterCombobox
+            key={branchIdParam}
+            name="branchId"
+            defaultValue={branchIdParam}
+            placeholder="Buscar sucursal…"
+            className="w-48"
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
+          />
+        </label>
+        <button
+          type="submit"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+        >
+          Filtrar
+        </button>
+      </form>
 
       {staleProducts.length === 0 ? (
         <p className="mt-6 text-sm text-ink-soft">

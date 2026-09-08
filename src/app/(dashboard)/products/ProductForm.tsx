@@ -28,8 +28,6 @@ type Props = {
     description: string | null;
     price: number;
     cost: number | null;
-    stock: number;
-    minStock: number | null;
     supplierId: string | null;
     fractionUnit: string | null;
     unitSize: number | null;
@@ -410,37 +408,40 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
         >
           <MoneyInput name="price" value={price} onChange={handlePriceChange} required />
         </Field>
-        <Field
-          label={sellsByFraction ? `Stock (${defaultValues?.fractionUnit || "unidad"})` : "Stock"}
-          error={state.fieldErrors?.stock}
-          labelClassName="min-h-10"
-        >
-          <input
-            name="stock"
-            type="number"
-            min={0}
-            step="any"
-            defaultValue={defaultValues?.stock ?? 0}
-            required
-            className="input"
-          />
-        </Field>
-        <Field
-          label="Stock mínimo"
-          error={state.fieldErrors?.minStock}
-          hint={`Opcional. Default: ${DEFAULT_MIN_STOCK}`}
-          labelClassName="min-h-10"
-        >
-          <input
-            name="minStock"
-            type="number"
-            min={0}
-            step="any"
-            defaultValue={defaultValues?.minStock ?? ""}
-            className="input"
-          />
-        </Field>
+        {!defaultValues && (
+          <>
+            <Field
+              label="Stock inicial"
+              error={state.fieldErrors?.stock}
+              hint="En la sucursal activa — el resto arranca en 0"
+              labelClassName="min-h-10"
+            >
+              <input
+                name="stock"
+                type="number"
+                min={0}
+                step="any"
+                defaultValue={0}
+                required
+                className="input"
+              />
+            </Field>
+            <Field
+              label="Stock mínimo"
+              error={state.fieldErrors?.minStock}
+              hint={`Opcional. Default: ${DEFAULT_MIN_STOCK}`}
+              labelClassName="min-h-10"
+            >
+              <input name="minStock" type="number" min={0} step="any" className="input" />
+            </Field>
+          </>
+        )}
       </div>
+      {defaultValues && (
+        <p className="-mt-2 text-xs text-ink-soft">
+          El stock se corrige por sucursal más abajo, no acá.
+        </p>
+      )}
 
       <label className="flex items-center gap-2 text-sm text-ink">
         <input

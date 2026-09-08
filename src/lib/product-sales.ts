@@ -12,10 +12,12 @@ export async function getLastSaleDateForProduct(productId: string): Promise<Date
 }
 
 // Última fecha de venta confirmada de cada producto activo, en una sola
-// pasada (evita N+1 al armar el informe de productos parados).
-export async function getLastSaleDatesByProduct(): Promise<Map<string, Date>> {
+// pasada (evita N+1 al armar el informe de productos parados). Con
+// branchId, solo cuenta ventas de esa sucursal — una venta en otra
+// sucursal no debería "salvar" a un producto parado en esta.
+export async function getLastSaleDatesByProduct(branchId?: string): Promise<Map<string, Date>> {
   const items = await db.saleItem.findMany({
-    where: { sale: { status: "confirmed" } },
+    where: { sale: { status: "confirmed", ...(branchId && { branchId }) } },
     select: { productId: true, sale: { select: { createdAt: true } } },
   });
   const lastSaleByProduct = new Map<string, Date>();

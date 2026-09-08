@@ -23,6 +23,7 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
     where: { id },
     include: {
       customer: true,
+      branch: { select: { name: true } },
       items: { include: { product: { select: { name: true, fractionUnit: true } } } },
       createdByUser: { select: { name: true } },
       arcaInvoice: true,
@@ -49,7 +50,7 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
         </span>
       </div>
       <p className="mt-1 text-sm text-ink-soft">
-        {formatDate(sale.createdAt)}
+        {formatDate(sale.createdAt)} · {sale.branch.name}
         {sale.createdByUser && ` · registrada por ${sale.createdByUser.name}`}
       </p>
 

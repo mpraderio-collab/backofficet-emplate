@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { saleSchema } from "@/lib/validation";
 import { issueArcaInvoiceForSale } from "@/lib/arca/invoice";
+import { getActiveBranchId } from "@/lib/branch";
 
 async function requireAuth() {
   const session = await auth();
@@ -25,6 +26,8 @@ export async function createSale(
   formData: FormData,
 ): Promise<SaleActionState> {
   const userId = await requireAuth();
+  const branchId = await getActiveBranchId();
+  if (!branchId) return { error: "Creá una sucursal antes de registrar ventas." };
 
   let itemsRaw: unknown;
   try {
@@ -68,8 +71,10 @@ export async function createSale(
         // instante, evitando vender de más si dos ventas chocan a la vez.
         // stockDelta siempre está en la unidad base del stock (ej: kg),
         // sin importar si se vendió por bolsa completa o por fracción.
-        const updated = await tx.product.updateMany({
-          where: { id: product.id, stock: { gte: line.stockDelta } },
+        // El stock es independiente por sucursal — se descuenta el de la
+        // sucursal activa, no un total global del producto.
+        const updated = await tx.productStock.updateMany({
+          where: { productId: product.id, branchId, stock: { gte: line.stockDelta } },
           data: { stock: { decrement: line.stockDelta } },
         });
         if (updated.count === 0) {
@@ -91,6 +96,7 @@ export async function createSale(
       const created = await tx.sale.create({
         data: {
           customerId: data.customerId,
+          branchId,
           total,
           note: data.note || null,
           billViaArca: data.billViaArca,
@@ -164,8 +170,8 @@ export async function cancelSale(id: string): Promise<{ error?: string }> {
 
   await db.$transaction([
     ...sale.items.map((item) =>
-      db.product.update({
-        where: { id: item.productId },
+      db.productStock.updateMany({
+        where: { productId: item.productId, branchId: sale.branchId },
         data: { stock: { increment: item.stockDelta } },
       }),
     ),
