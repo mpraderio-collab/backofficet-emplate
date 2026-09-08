@@ -66,7 +66,12 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
     [`Informe de ventas: ${toDateInputValue(from)} a ${toDateInputValue(to)}`],
     [],
     ["Fecha", "Cliente", "Ítems", "Total"],
-    ...sales.map((s) => [formatDate(s.createdAt), s.customer.name, s.items.length, s.total]),
+    ...sales.map((s) => [
+      formatDate(s.createdAt),
+      s.customer?.name ?? "Sin cliente",
+      s.items.length,
+      s.total,
+    ]),
     [],
     ["Total vendido", "", "", totalRevenue],
   ];
@@ -207,7 +212,9 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
                 {sales.map((sale) => (
                   <tr key={sale.id} className="border-b border-line-soft last:border-0">
                     <td className="px-4 py-3 text-ink-soft">{formatDate(sale.createdAt)}</td>
-                    <td className="px-4 py-3 font-medium text-ink">{sale.customer.name}</td>
+                    <td className="px-4 py-3 font-medium text-ink">
+                      {sale.customer?.name ?? "Sin cliente"}
+                    </td>
                     <td className="px-4 py-3 text-ink-soft">{sale.items.length}</td>
                     <td className="px-4 py-3 text-ink">{formatMoney(sale.total)}</td>
                     <td className="px-4 py-3 text-right">

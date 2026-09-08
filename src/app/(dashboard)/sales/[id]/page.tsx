@@ -40,7 +40,9 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
         / <span className="text-ink">{formatDate(sale.createdAt)}</span>
       </p>
       <div className="mt-1 flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-ink">Venta a {sale.customer.name}</h1>
+        <h1 className="text-2xl font-bold text-ink">
+          {sale.customer ? `Venta a ${sale.customer.name}` : "Venta general"}
+        </h1>
         <span
           className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
             sale.status === "confirmed" ? "bg-ok-bg text-ok-ink" : "bg-line-soft text-ink-faint"
@@ -122,11 +124,16 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
         </p>
       )}
 
-      <p className="mt-4 text-sm">
-        <Link href={`/customers/${sale.customerId}`} className="font-semibold text-accent hover:underline">
-          Ver cuenta corriente de {sale.customer.name} →
-        </Link>
-      </p>
+      {sale.customer && (
+        <p className="mt-4 text-sm">
+          <Link
+            href={`/customers/${sale.customerId}`}
+            className="font-semibold text-accent hover:underline"
+          >
+            Ver cuenta corriente de {sale.customer.name} →
+          </Link>
+        </p>
+      )}
 
       {sale.status === "confirmed" && <CancelSaleButton id={sale.id} />}
     </div>

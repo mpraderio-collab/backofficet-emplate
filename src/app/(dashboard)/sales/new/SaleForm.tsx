@@ -45,6 +45,7 @@ export function SaleForm({
   const [state, formAction, pending] = useActionState(createSale, initialState);
 
   const [customerId, setCustomerId] = useState("");
+  const [noCustomer, setNoCustomer] = useState(false);
   const [items, setItems] = useState<LineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id ?? "");
   const [saleUnit, setSaleUnit] = useState<"unit" | "fraction">("unit");
@@ -168,15 +169,6 @@ export function SaleForm({
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  if (customers.length === 0) {
-    return (
-      <p className="text-ink-soft">
-        No hay clientes cargados todavía. Creá uno primero para poder
-        registrar una venta.
-      </p>
-    );
-  }
-
   if (products.length === 0) {
     return (
       <p className="text-ink-soft">
@@ -188,16 +180,32 @@ export function SaleForm({
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">Cliente</span>
-        <Combobox
-          className="max-w-sm"
-          value={customerId}
-          onChange={setCustomerId}
-          options={customers.map((c) => ({ value: c.id, label: c.name }))}
-          placeholder="Buscar cliente…"
-        />
-      </label>
+      <div className="flex flex-col gap-2">
+        {!noCustomer && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink">Cliente</span>
+            <Combobox
+              className="max-w-sm"
+              value={customerId}
+              onChange={setCustomerId}
+              options={customers.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="Buscar cliente…"
+            />
+          </label>
+        )}
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={noCustomer}
+            onChange={(e) => {
+              setNoCustomer(e.target.checked);
+              if (e.target.checked) setCustomerId("");
+            }}
+            className="h-4 w-4"
+          />
+          Venta general, sin asignar cliente
+        </label>
+      </div>
 
       {selectedCustomer && selectedCustomer.balance > 0 && (
         <Alert variant="warning">
@@ -351,37 +359,41 @@ export function SaleForm({
         <input type="hidden" name="customerId" value={customerId} />
         <input type="hidden" name="items" value={JSON.stringify(items)} />
 
-        <div className="flex flex-wrap gap-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-ink">
-              Entrega al momento de la venta (opcional)
-            </span>
-            <MoneyInput
-              name="initialPayment"
-              value={initialPayment}
-              max={total}
-              onChange={(v) => {
-                setPaymentTouched(true);
-                setInitialPayment(v === "" ? 0 : v);
-              }}
-              className="max-w-[200px]"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-ink">Método de pago</span>
-            <select name="initialPaymentMethod" defaultValue="cash" className="input max-w-[160px]">
-              {paymentMethods.map((method) => (
-                <option key={method} value={method}>
-                  {paymentMethodLabels[method]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <p className="-mt-2 text-xs text-ink-soft">
-          Si el cliente entrega parte (o todo) del pago ahora, el resto queda pendiente en su
-          cuenta corriente.
-        </p>
+        {!noCustomer && (
+          <>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink">
+                  Entrega al momento de la venta (opcional)
+                </span>
+                <MoneyInput
+                  name="initialPayment"
+                  value={initialPayment}
+                  max={total}
+                  onChange={(v) => {
+                    setPaymentTouched(true);
+                    setInitialPayment(v === "" ? 0 : v);
+                  }}
+                  className="max-w-[200px]"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink">Método de pago</span>
+                <select name="initialPaymentMethod" defaultValue="cash" className="input max-w-[160px]">
+                  {paymentMethods.map((method) => (
+                    <option key={method} value={method}>
+                      {paymentMethodLabels[method]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <p className="-mt-2 text-xs text-ink-soft">
+              Si el cliente entrega parte (o todo) del pago ahora, el resto queda pendiente en su
+              cuenta corriente.
+            </p>
+          </>
+        )}
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Nota (opcional)</span>
@@ -409,7 +421,7 @@ export function SaleForm({
 
         <button
           type="submit"
-          disabled={items.length === 0 || !customerId || pending}
+          disabled={items.length === 0 || (!noCustomer && !customerId) || pending}
           className="w-fit rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-white disabled:opacity-40"
         >
           {pending ? "Guardando…" : `Registrar venta — ${formatMoney(total)}`}

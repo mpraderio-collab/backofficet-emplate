@@ -44,7 +44,9 @@ export async function issueArcaInvoiceForSale(saleId: string): Promise<void> {
 
   try {
     const { billing, config } = await getAuthenticatedElectronicBilling();
-    const { docTipo, docNro } = resolveDocument(sale.customer.taxId);
+    // Sin cliente asignado (venta general) se factura igual, a Consumidor
+    // Final — resolveDocument ya devuelve ese default con taxId null.
+    const { docTipo, docNro } = resolveDocument(sale.customer?.taxId ?? null);
 
     const lastVoucher = await billing.getLastVoucher(config.pointOfSale, VOUCHER_TYPE_FACTURA_C);
     const invoiceNumber = lastVoucher.CbteNro + 1;

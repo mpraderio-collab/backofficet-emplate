@@ -111,7 +111,13 @@ export const saleItemSchema = z.object({
 });
 
 export const saleSchema = z.object({
-  customerId: z.string().min(1, "Elegí un cliente"),
+  // Vacío = venta general, sin cliente asignado.
+  customerId: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
   note: z.string().trim().max(300).optional().or(z.literal("")),
   items: z.array(saleItemSchema).min(1, "Agregá al menos un producto"),
   initialPayment: z.coerce.number().int().nonnegative().optional().default(0),

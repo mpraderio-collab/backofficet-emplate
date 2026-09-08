@@ -36,12 +36,15 @@ export async function createSale(
     return { error: "Los ítems de la venta no son válidos." };
   }
 
+  // initialPayment/initialPaymentMethod no se renderizan cuando la venta es
+  // "general" (sin cliente) — formData.get() devuelve null, no undefined,
+  // así que el .default() de Zod no aplicaría solo.
   const result = saleSchema.safeParse({
     customerId: formData.get("customerId"),
     note: formData.get("note"),
     items: itemsRaw,
-    initialPayment: formData.get("initialPayment"),
-    initialPaymentMethod: formData.get("initialPaymentMethod"),
+    initialPayment: formData.get("initialPayment") ?? undefined,
+    initialPaymentMethod: formData.get("initialPaymentMethod") ?? undefined,
     billViaArca: formData.get("billViaArca"),
   });
   if (!result.success) {
@@ -105,29 +108,33 @@ export async function createSale(
         },
       });
 
-      // Toda venta genera un cargo en la cuenta corriente del cliente.
-      await tx.customerLedgerEntry.create({
-        data: {
-          customerId: data.customerId,
-          type: "charge",
-          amount: total,
-          saleId: created.id,
-          createdByUserId: userId,
-        },
-      });
-
-      // Entrega parcial (o total) del cliente al momento de la venta.
-      if (initialPayment > 0) {
+      // Una venta general (sin cliente asignado) no tiene cuenta corriente
+      // que cargar — se asume cobrada por completo en el momento.
+      if (data.customerId) {
+        // Toda venta a un cliente genera un cargo en su cuenta corriente.
         await tx.customerLedgerEntry.create({
           data: {
             customerId: data.customerId,
-            type: "payment",
-            amount: initialPayment,
-            paymentMethod: data.initialPaymentMethod,
-            note: "Entrega al momento de la venta",
+            type: "charge",
+            amount: total,
+            saleId: created.id,
             createdByUserId: userId,
           },
         });
+
+        // Entrega parcial (o total) del cliente al momento de la venta.
+        if (initialPayment > 0) {
+          await tx.customerLedgerEntry.create({
+            data: {
+              customerId: data.customerId,
+              type: "payment",
+              amount: initialPayment,
+              paymentMethod: data.initialPaymentMethod,
+              note: "Entrega al momento de la venta",
+              createdByUserId: userId,
+            },
+          });
+        }
       }
 
       return created;
@@ -137,7 +144,7 @@ export async function createSale(
 
     revalidatePath("/sales");
     revalidatePath("/products");
-    revalidatePath(`/customers/${data.customerId}`);
+    if (data.customerId) revalidatePath(`/customers/${data.customerId}`);
     revalidatePath("/customers");
     return { saleId: sale.id };
   } catch (err) {
@@ -176,21 +183,27 @@ export async function cancelSale(id: string): Promise<{ error?: string }> {
       }),
     ),
     db.sale.update({ where: { id }, data: { status: "cancelled" } }),
-    db.customerLedgerEntry.create({
-      data: {
-        customerId: sale.customerId,
-        type: "payment",
-        amount: sale.total,
-        note: "Anulación de venta cancelada",
-        createdByUserId: userId,
-      },
-    }),
+    // Una venta general (sin cliente) no tenía cargo en ninguna cuenta
+    // corriente, así que tampoco hay nada que anular ahí.
+    ...(sale.customerId
+      ? [
+          db.customerLedgerEntry.create({
+            data: {
+              customerId: sale.customerId,
+              type: "payment",
+              amount: sale.total,
+              note: "Anulación de venta cancelada",
+              createdByUserId: userId,
+            },
+          }),
+        ]
+      : []),
   ]);
 
   revalidatePath("/sales");
   revalidatePath(`/sales/${id}`);
   revalidatePath("/products");
-  revalidatePath(`/customers/${sale.customerId}`);
+  if (sale.customerId) revalidatePath(`/customers/${sale.customerId}`);
   revalidatePath("/customers");
   return {};
 }

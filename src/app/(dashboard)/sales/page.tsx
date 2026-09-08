@@ -159,7 +159,7 @@ export default async function SalesPage(props: PageProps<"/sales">) {
                 >
                   <td className="px-4 py-3 text-ink-soft">{formatDate(sale.createdAt)}</td>
                   <td className="px-4 py-3 font-medium text-ink transition-colors group-hover:text-accent">
-                    {sale.customer.name}
+                    {sale.customer?.name ?? "Sin cliente"}
                   </td>
                   <td className="px-4 py-3 text-ink-soft">{sale.branch.name}</td>
                   <td className="px-4 py-3 text-ink-soft">{sale.createdByUser?.name ?? "—"}</td>

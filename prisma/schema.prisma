@@ -156,9 +156,11 @@ model Supplier {
 }
 
 model Sale {
-  id          String   @id @default(cuid())
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id])
+  id          String    @id @default(cuid())
+  // Null = venta general, sin cliente asignado (no genera cargo en ninguna
+  // cuenta corriente).
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id])
   branchId    String
   branch      Branch   @relation(fields: [branchId], references: [id])
   total       Int
