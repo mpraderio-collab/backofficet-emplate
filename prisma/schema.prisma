@@ -323,8 +323,10 @@ model Expense {
   id            String      @id @default(cuid())
   expenseTypeId String
   expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [id])
-  branchId      String
-  branch        Branch      @relation(fields: [branchId], references: [id])
+  // Null = gasto compartido, para todas las sucursales (ej: software,
+  // impuestos generales) — no se le puede asignar solo a una.
+  branchId      String?
+  branch        Branch?     @relation(fields: [branchId], references: [id])
   amount        Int
   dueDate       DateTime // fecha de vencimiento del gasto
   paidDate      DateTime? // fecha en que se pagó — null significa impago

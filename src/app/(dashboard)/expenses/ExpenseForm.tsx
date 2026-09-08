@@ -114,13 +114,18 @@ export function ExpenseForm({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Sucursal" error={state.fieldErrors?.branchId}>
+          <Field
+            label="Sucursal"
+            error={state.fieldErrors?.branchId}
+            hint="O compartido entre todas"
+          >
             <select
               name="branchId"
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
               className="input"
             >
+              <option value="">Todas las sucursales</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}

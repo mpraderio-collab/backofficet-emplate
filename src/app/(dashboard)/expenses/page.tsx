@@ -32,7 +32,9 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
     db.expense.findMany({
       where: {
         dueDate: { gte: from, lte: to },
-        ...(branchIdParam && { branchId: branchIdParam }),
+        ...(branchIdParam === "__shared__"
+          ? { branchId: null }
+          : branchIdParam && { branchId: branchIdParam }),
       },
       orderBy: { dueDate: "desc" },
       include: {
@@ -130,6 +132,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
               className="w-40"
               options={[
                 { value: "", label: "Todas" },
+                { value: "__shared__", label: "Compartidos (todas las sucursales)" },
                 ...branches.map((b) => ({ value: b.id, label: b.name })),
               ]}
             />
@@ -250,7 +253,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                         {expenseStatusLabels[status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-ink-soft">{e.branch.name}</td>
+                    <td className="px-4 py-3 text-ink-soft">{e.branch?.name ?? "Todas"}</td>
                     <td className="px-4 py-3 text-ink">
                       {e.expenseType.name}
                       {e.isRecurring && (

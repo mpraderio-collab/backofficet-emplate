@@ -162,7 +162,13 @@ export const expenseTypeSchema = z.object({
 
 export const expenseSchema = z.object({
   expenseTypeId: z.string().min(1, "Elegí un tipo de gasto"),
-  branchId: z.string().min(1, "Elegí una sucursal"),
+  // Vacío = gasto compartido, para todas las sucursales.
+  branchId: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
   amount: z.coerce
     .number({ message: "El monto tiene que ser un número" })
     .int("El monto no puede tener centavos")

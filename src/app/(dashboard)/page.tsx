@@ -102,14 +102,17 @@ export default async function DashboardPage() {
       },
     }),
     db.expense.findMany({
-      where: { dueDate: { gte: monthStartUTC, lte: endOfTodayUTC() }, branchId: active.id },
+      where: {
+        dueDate: { gte: monthStartUTC, lte: endOfTodayUTC() },
+        OR: [{ branchId: active.id }, { branchId: null }],
+      },
       select: { amount: true },
     }),
     db.expense.findMany({
       where: {
         dueDate: { gte: monthStartUTC, lte: monthEndUTC },
         paidDate: null,
-        branchId: active.id,
+        OR: [{ branchId: active.id }, { branchId: null }],
       },
       orderBy: { dueDate: "asc" },
       include: { expenseType: { select: { name: true } } },
