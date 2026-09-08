@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type ComboboxOption = {
   value: string;
@@ -41,8 +42,34 @@ export function Combobox({
   const [closing, setClosing] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listId = useId();
+  // La lista se porta a document.body en vez de quedar como hijo absolute
+  // acá adentro — algunos navegadores pintan controles nativos (<select>,
+  // <input type="date">) por encima de contenido posicionado cercano sin
+  // importar el z-index, y eso mezclaba visualmente la lista con los
+  // campos siguientes del formulario. Como <body>, gana siempre.
+  const [portalRect, setPortalRect] = useState<{ top: number; left: number; width: number } | null>(
+    null,
+  );
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    function updateRect() {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setPortalRect({ top: rect.bottom, left: rect.left, width: rect.width });
+    }
+    updateRect();
+    window.addEventListener("scroll", updateRect, true);
+    window.addEventListener("resize", updateRect);
+    return () => {
+      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("resize", updateRect);
+    };
+  }, [open]);
 
   function doOpen() {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -82,7 +109,10 @@ export function Combobox({
 
   useEffect(() => {
     function handlePointerDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideContainer = containerRef.current?.contains(target);
+      const insideList = listRef.current?.contains(target);
+      if (!insideContainer && !insideList) {
         doClose();
         setQuery("");
       }
@@ -143,68 +173,75 @@ export function Combobox({
         }}
         onKeyDown={handleKeyDown}
       />
-      <ul
-        id={listId}
-        role="listbox"
-        data-origin="top-left"
-        className={`t-dropdown absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-line bg-bg shadow-lg ${
-          open ? "is-open" : closing ? "is-closing" : ""
-        }`}
-      >
-        {filtered.length === 0 ? (
-          <li className="px-3 py-2 text-sm text-ink-faint">{emptyMessage}</li>
-        ) : (
-          filtered.map((option, i) => {
-            const isRich =
-              option.imageUrl !== undefined ||
-              option.description !== undefined ||
-              option.priceLabel !== undefined;
-            return (
-              <li
-                key={option.value}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectOption(option);
-                }}
-                className={`cursor-pointer px-3 py-2 text-sm ${
-                  i === highlighted ? "bg-accent-soft" : ""
-                }`}
-              >
-                {isRich ? (
-                  <div className="flex items-center gap-3">
-                    {option.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={option.imageUrl}
-                        alt=""
-                        className="h-10 w-10 shrink-0 rounded-lg border border-line object-cover"
-                      />
+      {(open || closing) &&
+        portalRect &&
+        createPortal(
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            data-origin="top-left"
+            className={`t-dropdown fixed z-50 mt-1 max-h-60 overflow-auto rounded-lg border border-line bg-bg shadow-lg ${
+              open ? "is-open" : "is-closing"
+            }`}
+            style={{ top: portalRect.top, left: portalRect.left, width: portalRect.width }}
+          >
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-ink-faint">{emptyMessage}</li>
+            ) : (
+              filtered.map((option, i) => {
+                const isRich =
+                  option.imageUrl !== undefined ||
+                  option.description !== undefined ||
+                  option.priceLabel !== undefined;
+                return (
+                  <li
+                    key={option.value}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectOption(option);
+                    }}
+                    className={`cursor-pointer px-3 py-2 text-sm ${
+                      i === highlighted ? "bg-accent-soft" : ""
+                    }`}
+                  >
+                    {isRich ? (
+                      <div className="flex items-center gap-3">
+                        {option.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={option.imageUrl}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-lg border border-line object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-accent">{option.label}</p>
+                          {option.description && (
+                            <p className="truncate text-xs text-ink-faint">{option.description}</p>
+                          )}
+                        </div>
+                        {option.priceLabel && (
+                          <span className="shrink-0 font-semibold text-ink">{option.priceLabel}</span>
+                        )}
+                      </div>
                     ) : (
-                      <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
+                      <span className={i === highlighted ? "text-accent" : "text-ink"}>
+                        {option.label}
+                        {option.sublabel && (
+                          <span className="ml-1.5 text-xs text-ink-faint">{option.sublabel}</span>
+                        )}
+                      </span>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-accent">{option.label}</p>
-                      {option.description && (
-                        <p className="truncate text-xs text-ink-faint">{option.description}</p>
-                      )}
-                    </div>
-                    {option.priceLabel && (
-                      <span className="shrink-0 font-semibold text-ink">{option.priceLabel}</span>
-                    )}
-                  </div>
-                ) : (
-                  <span className={i === highlighted ? "text-accent" : "text-ink"}>
-                    {option.label}
-                    {option.sublabel && (
-                      <span className="ml-1.5 text-xs text-ink-faint">{option.sublabel}</span>
-                    )}
-                  </span>
-                )}
-              </li>
-            );
-          })
+                  </li>
+                );
+              })
+            )}
+          </ul>,
+          document.body,
         )}
-      </ul>
     </div>
   );
 }
