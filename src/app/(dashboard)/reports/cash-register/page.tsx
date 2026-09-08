@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 import { paymentMethods, paymentMethodLabels, type PaymentMethod } from "@/lib/payment-method";
 import { toDateInputValue } from "@/lib/reports";
+import { DonutChart } from "@/components/charts/DonutChart";
 
 export default async function CashRegisterReportPage(props: PageProps<"/reports/cash-register">) {
   const searchParams = await props.searchParams;
@@ -64,6 +65,16 @@ export default async function CashRegisterReportPage(props: PageProps<"/reports/
   const totalIn = rows.reduce((sum, r) => sum + r.in, 0);
   const totalOut = rows.reduce((sum, r) => sum + r.out, 0);
 
+  function methodLabel(method: string) {
+    return paymentMethodLabels[method as PaymentMethod] ?? method;
+  }
+  const inByMethod = rows
+    .filter((r) => r.in > 0)
+    .map((r) => ({ label: methodLabel(r.method), value: r.in }));
+  const outByMethod = rows
+    .filter((r) => r.out > 0)
+    .map((r) => ({ label: methodLabel(r.method), value: r.out }));
+
   return (
     <div>
       <p className="text-sm text-ink-faint">
@@ -112,6 +123,31 @@ export default async function CashRegisterReportPage(props: PageProps<"/reports/
           <p className="mt-1 text-2xl font-bold text-ink">{formatMoney(totalIn - totalOut)}</p>
         </div>
       </div>
+
+      {(inByMethod.length > 0 || outByMethod.length > 0) && (
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <div className="rounded-xl border border-line bg-bg p-5">
+            <p className="text-sm font-semibold text-ink">Ingresos por método</p>
+            {inByMethod.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-soft">Sin ingresos ese día.</p>
+            ) : (
+              <div className="mt-4">
+                <DonutChart data={inByMethod} formatValue={(v) => formatMoney(v)} />
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl border border-line bg-bg p-5">
+            <p className="text-sm font-semibold text-ink">Egresos por método</p>
+            {outByMethod.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-soft">Sin egresos ese día.</p>
+            ) : (
+              <div className="mt-4">
+                <DonutChart data={outByMethod} formatValue={(v) => formatMoney(v)} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8">
         <p className="text-sm font-semibold text-ink">Por método de pago</p>

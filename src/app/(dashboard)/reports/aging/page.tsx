@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 import { getAllCustomerBalances, getAllSupplierBalances } from "@/lib/ledger";
+import { BarChart } from "@/components/charts/BarChart";
 
 type Bucket = "0-30" | "31-60" | "60+";
 
@@ -74,6 +75,20 @@ export default async function AgingReportPage() {
   const receivableTotals = totalsByBucket(receivable);
   const payableTotals = totalsByBucket(payable);
 
+  const bucketChartLabels: Record<Bucket, string> = {
+    "0-30": "0-30 d",
+    "31-60": "31-60 d",
+    "60+": "60+ d",
+  };
+  const receivableChartData = (Object.keys(bucketLabels) as Bucket[]).map((b) => ({
+    label: bucketChartLabels[b],
+    value: receivableTotals[b],
+  }));
+  const payableChartData = (Object.keys(bucketLabels) as Bucket[]).map((b) => ({
+    label: bucketChartLabels[b],
+    value: payableTotals[b],
+  }));
+
   const totalReceivable = receivable.reduce((s, r) => s + r.balance, 0);
   const totalPayable = payable.reduce((s, r) => s + r.balance, 0);
   const netBalance = totalReceivable - totalPayable;
@@ -106,6 +121,11 @@ export default async function AgingReportPage() {
               </div>
             ))}
           </div>
+          {totalReceivable > 0 && (
+            <div className="mt-3 rounded-xl border border-line bg-bg p-4">
+              <BarChart data={receivableChartData} formatValue={(v) => formatMoney(v)} />
+            </div>
+          )}
           {receivable.length === 0 ? (
             <p className="mt-4 text-sm text-ink-soft">Ningún cliente tiene saldo pendiente.</p>
           ) : (
@@ -154,6 +174,11 @@ export default async function AgingReportPage() {
               </div>
             ))}
           </div>
+          {totalPayable > 0 && (
+            <div className="mt-3 rounded-xl border border-line bg-bg p-4">
+              <BarChart data={payableChartData} formatValue={(v) => formatMoney(v)} />
+            </div>
+          )}
           {payable.length === 0 ? (
             <p className="mt-4 text-sm text-ink-soft">No le debemos a ningún proveedor.</p>
           ) : (

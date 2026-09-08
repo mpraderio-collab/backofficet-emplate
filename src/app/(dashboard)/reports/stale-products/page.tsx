@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate, formatQuantity } from "@/lib/format";
-import { oneYearAgo, sixMonthsAgo } from "@/lib/reports";
+import { daysSince, oneYearAgo, sixMonthsAgo } from "@/lib/reports";
 import { getLastSaleDatesByProduct } from "@/lib/product-sales";
 import { getActiveBranch } from "@/lib/branch";
 import { FilterCombobox } from "@/components/FilterCombobox";
+import { BarChart } from "@/components/charts/BarChart";
 
 export default async function StaleProductsReportPage(
   props: PageProps<"/reports/stale-products">,
@@ -65,6 +66,11 @@ export default async function StaleProductsReportPage(
       return a.lastSaleDate.getTime() - b.lastSaleDate.getTime();
     });
 
+  const topStale = staleProducts.slice(0, 8).map((p) => ({
+    label: p.name.length > 14 ? `${p.name.slice(0, 13)}…` : p.name,
+    value: p.lastSaleDate ? daysSince(p.lastSaleDate) : daysSince(p.registeredAt ?? p.createdAt),
+  }));
+
   return (
     <div>
       <p className="text-sm text-ink-faint">
@@ -104,6 +110,14 @@ export default async function StaleProductsReportPage(
           No hay productos parados: todos tuvieron ventas en el último año.
         </p>
       ) : (
+        <div className="mt-6 rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">
+            Días sin vender — {topStale.length < staleProducts.length ? "los más viejos" : "todos"}
+          </p>
+          <BarChart data={topStale} formatValue={(v) => `${v} d`} />
+        </div>
+      )}
+      {staleProducts.length > 0 && (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-bg">
           <table className="w-full min-w-[480px] text-left text-sm">
             <thead>

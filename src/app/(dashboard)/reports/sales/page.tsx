@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney, formatQuantity } from "@/lib/format";
 import {
+  dateBuckets,
   endOfToday,
   startOfMonth,
   startOfToday,
@@ -9,6 +10,8 @@ import {
   toDateInputValue,
 } from "@/lib/reports";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { BarChart } from "@/components/charts/BarChart";
+import { DonutChart } from "@/components/charts/DonutChart";
 
 export default async function SalesReportPage(props: PageProps<"/reports/sales">) {
   const searchParams = await props.searchParams;
@@ -52,6 +55,17 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
     }
   }
   const productBreakdown = [...byProduct.values()].sort((a, b) => b.total - a.total);
+  const topProducts = productBreakdown
+    .slice(0, 5)
+    .map((p) => ({ label: p.name, value: p.total }));
+
+  const buckets = dateBuckets(from, to);
+  const revenueByBucket = buckets.map((bucket) => ({
+    label: bucket.label,
+    value: sales
+      .filter((s) => s.createdAt >= bucket.start && s.createdAt < bucket.end)
+      .reduce((sum, s) => sum + s.total, 0),
+  }));
 
   const quickRanges = [
     { label: "Hoy", from: startOfToday(), to: endOfToday() },
@@ -157,6 +171,30 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
         <div className="rounded-xl border border-line bg-bg p-[18px]">
           <p className="text-[13px] text-ink-soft">Ticket promedio</p>
           <p className="mt-1 text-2xl font-bold text-ink">{formatMoney(avgTicket)}</p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">Ventas en el período</p>
+          {revenueByBucket.every((b) => b.value === 0) ? (
+            <p className="mt-3 text-sm text-ink-soft">No hay ventas en este período.</p>
+          ) : (
+            <div className="mt-2">
+              <BarChart data={revenueByBucket} formatValue={(v) => formatMoney(v)} />
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-line bg-bg p-5">
+          <p className="text-sm font-semibold text-ink">Top 5 productos por facturación</p>
+          {topProducts.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-soft">No hay ventas en este período.</p>
+          ) : (
+            <div className="mt-4">
+              <DonutChart data={topProducts} formatValue={(v) => formatMoney(v)} />
+            </div>
+          )}
         </div>
       </div>
 
