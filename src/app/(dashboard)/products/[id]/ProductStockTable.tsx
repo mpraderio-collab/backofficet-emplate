@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { NumberInput } from "@/components/NumberInput";
 import { updateProductStock } from "../actions";
 
 type Row = { branchId: string; branchName: string; stock: number; minStock: number | null };
@@ -29,8 +30,8 @@ export function ProductStockTable({ productId, rows }: { productId: string; rows
 
 function StockRow({ productId, row }: { productId: string; row: Row }) {
   const [pending, startTransition] = useTransition();
-  const [stock, setStock] = useState(row.stock);
-  const [minStock, setMinStock] = useState(row.minStock ?? "");
+  const [stock, setStock] = useState<number | "">(row.stock);
+  const [minStock, setMinStock] = useState<number | "">(row.minStock ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -38,29 +39,27 @@ function StockRow({ productId, row }: { productId: string; row: Row }) {
     <tr className="border-b border-line-soft last:border-0">
       <td className="px-4 py-2.5 font-medium text-ink">{row.branchName}</td>
       <td className="px-4 py-2.5">
-        <input
-          type="number"
+        <NumberInput
           min={0}
           step="any"
           value={stock}
-          onChange={(e) => {
-            setStock(Number(e.target.value));
+          onChange={(v) => {
+            setStock(v);
             setSaved(false);
           }}
-          className="input w-28"
+          className="w-28"
         />
       </td>
       <td className="px-4 py-2.5">
-        <input
-          type="number"
+        <NumberInput
           min={0}
           step="any"
           value={minStock}
-          onChange={(e) => {
-            setMinStock(e.target.value === "" ? "" : Number(e.target.value));
+          onChange={(v) => {
+            setMinStock(v);
             setSaved(false);
           }}
-          className="input w-28"
+          className="w-28"
         />
       </td>
       <td className="px-4 py-2.5 text-right">
@@ -75,7 +74,7 @@ function StockRow({ productId, row }: { productId: string; row: Row }) {
               setSaved(false);
               startTransition(async () => {
                 const formData = new FormData();
-                formData.set("stock", String(stock));
+                formData.set("stock", String(stock === "" ? 0 : stock));
                 formData.set("minStock", minStock === "" ? "" : String(minStock));
                 const res = await updateProductStock(productId, row.branchId, formData);
                 if (res.error) {

@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { Alert } from "@/components/Alert";
 import { Combobox } from "@/components/Combobox";
+import { NumberInput } from "@/components/NumberInput";
 import { formatMoney } from "@/lib/format";
 import { bulkUpdatePrices, type BulkUpdateState } from "./actions";
 
@@ -120,13 +121,12 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
           <span className="text-sm font-medium text-ink">
             Porcentaje de aumento (usá negativo para bajar precios)
           </span>
-          <input
+          <NumberInput
             name="percent"
-            type="number"
             step="any"
             value={percent}
-            onChange={(e) => setPercent(Number(e.target.value))}
-            className="input w-40"
+            onChange={(v) => setPercent(v === "" ? 0 : v)}
+            className="w-40"
           />
         </label>
         <button

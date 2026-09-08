@@ -31,15 +31,35 @@ export function MoneyInput({
   const isControlled = value !== undefined;
   const [internal, setInternal] = useState<number | "">(defaultValue ?? "");
   const current = isControlled ? value : internal;
+  // Si el valor es 0, al hacer foco se limpia el campo para no obligar a
+  // borrar el "0" a mano — si se va sin escribir nada, vuelve a 0.
+  const [zeroCleared, setZeroCleared] = useState(false);
 
   const display = current === "" ? "" : new Intl.NumberFormat("es-AR").format(current);
 
+  function setValue(next: number | "") {
+    if (!isControlled) setInternal(next);
+    onChange?.(next);
+  }
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setZeroCleared(false);
     const digits = e.target.value.replace(/\D/g, "");
     let next: number | "" = digits === "" ? "" : Number(digits);
     if (next !== "" && max != null && next > max) next = max;
-    if (!isControlled) setInternal(next);
-    onChange?.(next);
+    setValue(next);
+  }
+
+  function handleFocus() {
+    if (current === 0) {
+      setZeroCleared(true);
+      setValue("");
+    }
+  }
+
+  function handleBlur() {
+    if (zeroCleared && current === "") setValue(0);
+    setZeroCleared(false);
   }
 
   return (
@@ -49,7 +69,9 @@ export function MoneyInput({
         type="text"
         inputMode="numeric"
         value={display}
+        onFocus={handleFocus}
         onChange={handleChange}
+        onBlur={handleBlur}
         required={required}
         disabled={disabled}
         placeholder={placeholder}

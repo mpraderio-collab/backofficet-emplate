@@ -6,6 +6,7 @@ import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { MoneyInput } from "@/components/MoneyInput";
+import { NumberInput } from "@/components/NumberInput";
 import { DEFAULT_MIN_STOCK } from "@/lib/stock";
 import { calculateMargin } from "@/lib/margin";
 import { toDateInputValue } from "@/lib/reports";
@@ -416,15 +417,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
               hint="En la sucursal activa — el resto arranca en 0"
               labelClassName="min-h-10"
             >
-              <input
-                name="stock"
-                type="number"
-                min={0}
-                step="any"
-                defaultValue={0}
-                required
-                className="input"
-              />
+              <NumberInput name="stock" min={0} step="any" defaultValue={0} required />
             </Field>
             <Field
               label="Stock mínimo"
@@ -432,7 +425,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
               hint={`Opcional. Default: ${DEFAULT_MIN_STOCK}`}
               labelClassName="min-h-10"
             >
-              <input name="minStock" type="number" min={0} step="any" className="input" />
+              <NumberInput name="minStock" min={0} step="any" />
             </Field>
           </>
         )}
