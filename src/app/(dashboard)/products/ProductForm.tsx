@@ -138,11 +138,28 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
     const percent = calculateMargin(defaultValues?.price ?? 0, defaultValues?.cost ?? null)?.percent;
     return percent != null ? Math.round(percent * 10) / 10 : "";
   });
+  const [unitSize, setUnitSize] = useState<number | "">(defaultValues?.unitSize ?? "");
+  const [fractionPrice, setFractionPrice] = useState<number | "">(defaultValues?.fractionPrice ?? "");
+  const [fractionMarginPercent, setFractionMarginPercent] = useState<number | "">(() => {
+    const { cost: c, unitSize: u, fractionPrice: fp } = defaultValues ?? {};
+    if (!c || !u || fp == null) return "";
+    const percent = calculateMargin(fp, c / u)?.percent;
+    return percent != null ? Math.round(percent * 10) / 10 : "";
+  });
 
   function handleCostChange(value: number | "") {
     setCost(value);
     if (value !== "" && value > 0 && marginPercent !== "") {
       setPrice(Math.round(value * (1 + marginPercent / 100)));
+    }
+    if (
+      value !== "" &&
+      value > 0 &&
+      unitSize !== "" &&
+      unitSize > 0 &&
+      fractionMarginPercent !== ""
+    ) {
+      setFractionPrice(Math.round((value / unitSize) * (1 + fractionMarginPercent / 100)));
     }
   }
 
@@ -157,6 +174,36 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
     setPrice(value);
     if (cost !== "" && cost > 0 && value !== "") {
       setMarginPercent(Math.round(((value - cost) / cost) * 1000) / 10);
+    }
+  }
+
+  // Costo de referencia de una sola fracción (ej: 1 kg de una bolsa de 20).
+  function costPerFraction(): number | null {
+    if (cost === "" || cost <= 0 || unitSize === "" || unitSize <= 0) return null;
+    return cost / unitSize;
+  }
+
+  function handleUnitSizeChange(value: number | "") {
+    setUnitSize(value);
+    const perFraction = value !== "" && value > 0 && cost !== "" && cost > 0 ? cost / value : null;
+    if (perFraction != null && fractionMarginPercent !== "") {
+      setFractionPrice(Math.round(perFraction * (1 + fractionMarginPercent / 100)));
+    }
+  }
+
+  function handleFractionMarginChange(value: number | "") {
+    setFractionMarginPercent(value);
+    const perFraction = costPerFraction();
+    if (perFraction != null && value !== "") {
+      setFractionPrice(Math.round(perFraction * (1 + value / 100)));
+    }
+  }
+
+  function handleFractionPriceChange(value: number | "") {
+    setFractionPrice(value);
+    const perFraction = costPerFraction();
+    if (perFraction != null && value !== "") {
+      setFractionMarginPercent(Math.round(((value - perFraction) / perFraction) * 1000) / 10);
     }
   }
 
@@ -448,7 +495,7 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
       </label>
 
       {sellsByFraction && (
-        <div className="grid grid-cols-3 gap-4 rounded-xl border border-line bg-surface p-4">
+        <div className="grid grid-cols-2 gap-4 rounded-xl border border-line bg-surface p-4 sm:grid-cols-4">
           <Field
             label="Unidad de fracción"
             error={state.fieldErrors?.fractionUnit}
@@ -463,18 +510,33 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
             />
           </Field>
           <Field
+            label="Margen por fracción"
+            hint="Sobre el costo de esa fracción"
+            labelClassName="min-h-10"
+          >
+            <input
+              type="number"
+              step="any"
+              value={fractionMarginPercent}
+              onChange={(e) =>
+                handleFractionMarginChange(e.target.value === "" ? "" : Number(e.target.value))
+              }
+              disabled={costPerFraction() == null}
+              className="input disabled:opacity-50"
+            />
+          </Field>
+          <Field
             label="Tamaño de la unidad completa"
             error={state.fieldErrors?.unitSize}
             hint="Ej: 20 (kg por bolsa)"
             labelClassName="min-h-10"
           >
-            <input
+            <NumberInput
               name="unitSize"
-              type="number"
               min={0}
               step="any"
-              defaultValue={defaultValues?.unitSize ?? ""}
-              className="input"
+              value={unitSize}
+              onChange={handleUnitSizeChange}
             />
           </Field>
           <Field
@@ -483,7 +545,11 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
             hint="Ej: precio por kg"
             labelClassName="min-h-10"
           >
-            <MoneyInput name="fractionPrice" defaultValue={defaultValues?.fractionPrice ?? ""} />
+            <MoneyInput
+              name="fractionPrice"
+              value={fractionPrice}
+              onChange={handleFractionPriceChange}
+            />
           </Field>
         </div>
       )}
