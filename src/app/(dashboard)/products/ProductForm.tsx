@@ -510,6 +510,20 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
             />
           </Field>
           <Field
+            label="Tamaño de la unidad completa"
+            error={state.fieldErrors?.unitSize}
+            hint="Ej: 20 (kg por bolsa)"
+            labelClassName="min-h-10"
+          >
+            <NumberInput
+              name="unitSize"
+              min={0}
+              step="any"
+              value={unitSize}
+              onChange={handleUnitSizeChange}
+            />
+          </Field>
+          <Field
             label="Margen por fracción"
             hint="Sobre el costo de esa fracción"
             labelClassName="min-h-10"
@@ -523,20 +537,6 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
               }
               disabled={costPerFraction() == null}
               className="input disabled:opacity-50"
-            />
-          </Field>
-          <Field
-            label="Tamaño de la unidad completa"
-            error={state.fieldErrors?.unitSize}
-            hint="Ej: 20 (kg por bolsa)"
-            labelClassName="min-h-10"
-          >
-            <NumberInput
-              name="unitSize"
-              min={0}
-              step="any"
-              value={unitSize}
-              onChange={handleUnitSizeChange}
             />
           </Field>
           <Field
