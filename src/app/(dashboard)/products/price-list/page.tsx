@@ -24,7 +24,7 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
   const animalWeightParam =
     typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
-  const [products, suppliers, rubros, allProducts, branches] = await Promise.all([
+  const [products, suppliers, rubros, allProducts, branches, openOrderItems] = await Promise.all([
     db.product.findMany({
       where: {
         status: "active",
@@ -48,7 +48,20 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
       select: { brand: true, animalType: true, animalWeight: true },
     }),
     db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.purchaseOrderItem.findMany({
+      where: { purchaseOrder: { status: { in: ["pending", "sent"] } } },
+      select: { productId: true, purchaseOrder: { select: { status: true } } },
+    }),
   ]);
+
+  // "sent" pisa a "pending" si un producto tiene pedidos abiertos en los
+  // dos estados — es el más avanzado de los dos, más relevante de mostrar.
+  const openOrderStatusByProductId = new Map<string, "pending" | "sent">();
+  for (const item of openOrderItems) {
+    const status = item.purchaseOrder.status as "pending" | "sent";
+    const current = openOrderStatusByProductId.get(item.productId);
+    if (!current || status === "sent") openOrderStatusByProductId.set(item.productId, status);
+  }
 
   const brandOptions = distinctValues(allProducts, "brand");
   const animalTypeOptions = distinctValues(allProducts, "animalType");
@@ -72,6 +85,7 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
       fractionUnit: p.fractionUnit,
       fractionPrice: p.fractionPrice,
       stockByBranchId: Object.fromEntries(branches.map((b) => [b.id, stockByBranchId.get(b.id) ?? 0])),
+      openOrderStatus: openOrderStatusByProductId.get(p.id) ?? null,
     };
   });
 

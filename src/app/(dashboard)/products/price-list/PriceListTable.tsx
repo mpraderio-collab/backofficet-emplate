@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { Alert } from "@/components/Alert";
+import { purchaseOrderStatusColors, purchaseOrderStatusLabels } from "@/lib/purchase-order-status";
 
 export type PriceListRow = {
   id: string;
@@ -13,7 +14,19 @@ export type PriceListRow = {
   fractionUnit: string | null;
   fractionPrice: number | null;
   stockByBranchId: Record<string, number>;
+  openOrderStatus: "pending" | "sent" | null;
 };
+
+function OpenOrderBadge({ status }: { status: "pending" | "sent" | null }) {
+  if (!status) return null;
+  return (
+    <span
+      className={`ml-1.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${purchaseOrderStatusColors[status]}`}
+    >
+      Pedido {purchaseOrderStatusLabels[status].toLowerCase()}
+    </span>
+  );
+}
 
 type BranchOption = { id: string; name: string };
 
@@ -106,7 +119,10 @@ export function PriceListTable({
               <div className="h-16 w-16 shrink-0 rounded-lg border border-line bg-bg" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-bold text-ink">{scannedProduct.name}</p>
+              <p className="truncate text-lg font-bold text-ink">
+                {scannedProduct.name}
+                <OpenOrderBadge status={scannedProduct.openOrderStatus} />
+              </p>
               {scannedProduct.sku && (
                 <p className="font-mono text-xs text-ink-faint">{scannedProduct.sku}</p>
               )}
@@ -174,7 +190,10 @@ export function PriceListTable({
                         <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
                       )}
                       <div>
-                        <p className="font-medium text-ink">{p.name}</p>
+                        <p className="font-medium text-ink">
+                          {p.name}
+                          <OpenOrderBadge status={p.openOrderStatus} />
+                        </p>
                         {p.sku && <p className="font-mono text-xs text-ink-faint">{p.sku}</p>}
                       </div>
                     </div>
