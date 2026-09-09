@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatQuantity } from "@/lib/format";
-import { calculateMargin, formatMarginPercent } from "@/lib/margin";
-import { getActiveBranch } from "@/lib/branch";
 import { FilterCombobox } from "@/components/FilterCombobox";
-import { ProductsTable, type ProductRow } from "./ProductsTable";
+import { PriceListTable, type PriceListRow } from "./PriceListTable";
 
 function distinctValues(products: { [key: string]: unknown }[], key: string): string[] {
   const values = new Set<string>();
@@ -15,7 +12,7 @@ function distinctValues(products: { [key: string]: unknown }[], key: string): st
   return [...values].sort((a, b) => a.localeCompare(b));
 }
 
-export default async function ProductsPage(props: PageProps<"/products">) {
+export default async function PriceListPage(props: PageProps<"/products/price-list">) {
   const searchParams = await props.searchParams;
   const supplierIdParam =
     typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
@@ -27,22 +24,19 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const animalWeightParam =
     typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
-  const { active } = await getActiveBranch();
-
-  const [products, suppliers, rubros, allProducts, soldItems] = await Promise.all([
+  const [products, suppliers, rubros, allProducts, branches] = await Promise.all([
     db.product.findMany({
       where: {
+        status: "active",
         ...(supplierIdParam && { supplierId: supplierIdParam }),
         ...(brandParam && { brand: brandParam }),
         ...(animalTypeParam && { animalType: animalTypeParam }),
         ...(subrubroIdParam && { subrubroId: subrubroIdParam }),
         ...(animalWeightParam && { animalWeight: animalWeightParam }),
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { name: "asc" },
       include: {
-        supplier: { select: { name: true } },
-        subrubro: { include: { rubro: true } },
-        stocks: { where: { branchId: active?.id ?? "" }, select: { stock: true, minStock: true } },
+        stocks: { select: { branchId: true, stock: true } },
       },
     }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -53,10 +47,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
     db.product.findMany({
       select: { brand: true, animalType: true, animalWeight: true },
     }),
-    db.saleItem.findMany({
-      where: { sale: { status: "confirmed" } },
-      select: { productId: true, quantity: true, saleUnit: true },
-    }),
+    db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const brandOptions = distinctValues(allProducts, "brand");
@@ -66,49 +57,21 @@ export default async function ProductsPage(props: PageProps<"/products">) {
     r.subrubros.map((s) => ({ value: s.id, label: `${r.name} › ${s.name}` })),
   );
 
-  const soldByProductId = new Map<string, { unitCount: number; fractionQuantity: number }>();
-  for (const item of soldItems) {
-    const entry = soldByProductId.get(item.productId) ?? { unitCount: 0, fractionQuantity: 0 };
-    if (item.saleUnit === "fraction") entry.fractionQuantity += item.quantity;
-    else entry.unitCount += item.quantity;
-    soldByProductId.set(item.productId, entry);
-  }
-
   const hasFilters = Boolean(
     supplierIdParam || brandParam || animalTypeParam || subrubroIdParam || animalWeightParam,
   );
 
-  const rows: ProductRow[] = products.map((p) => {
-    const margin = calculateMargin(p.price, p.cost);
-    const sold = soldByProductId.get(p.id);
-    const soldLabel =
-      !sold || (sold.unitCount === 0 && sold.fractionQuantity === 0)
-        ? "—"
-        : [
-            sold.unitCount > 0 ? `${sold.unitCount} u.` : "",
-            sold.fractionQuantity > 0 ? formatQuantity(sold.fractionQuantity, p.fractionUnit) : "",
-          ]
-            .filter(Boolean)
-            .join(" + ");
-
+  const rows: PriceListRow[] = products.map((p) => {
+    const stockByBranchId = new Map(p.stocks.map((s) => [s.branchId, s.stock]));
     return {
       id: p.id,
       name: p.name,
       sku: p.sku,
       imageUrl: p.imageUrl,
-      characteristics: [p.brand, p.animalType, p.subrubro.name, p.animalWeight]
-        .filter(Boolean)
-        .join(" · "),
-      supplierName: p.supplier?.name ?? null,
       price: p.price,
       fractionUnit: p.fractionUnit,
       fractionPrice: p.fractionPrice,
-      marginAmount: margin?.amount ?? null,
-      marginPercentLabel: formatMarginPercent(margin),
-      cost: p.cost,
-      stock: p.stocks[0]?.stock ?? 0,
-      minStock: p.stocks[0]?.minStock ?? null,
-      soldLabel,
+      stockByBranchId: Object.fromEntries(branches.map((b) => [b.id, stockByBranchId.get(b.id) ?? 0])),
     };
   });
 
@@ -116,38 +79,13 @@ export default async function ProductsPage(props: PageProps<"/products">) {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Productos</h1>
-          {active && (
-            <p className="mt-1 text-sm text-ink-soft">
-              Stock de <span className="font-semibold text-ink">{active.name}</span>
-            </p>
-          )}
-        </div>
-        <div className="flex gap-3">
-          <Link
-            href="/products/price-list"
-            className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
-          >
-            Lista de precios
-          </Link>
-          <Link
-            href="/products/rubros"
-            className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
-          >
-            Rubros y subrubros
-          </Link>
-          <Link
-            href="/products/bulk-update"
-            className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
-          >
-            Actualizar precios por lote
-          </Link>
-          <Link
-            href="/products/new"
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-hover"
-          >
-            + Nuevo producto
-          </Link>
+          <p className="text-sm text-ink-faint">
+            <Link href="/products" className="hover:text-accent">
+              Productos
+            </Link>{" "}
+            / <span className="text-ink">Lista de precios</span>
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-ink">Lista de precios</h1>
         </div>
       </div>
 
@@ -227,7 +165,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
         </button>
         {hasFilters && (
           <Link
-            href="/products"
+            href="/products/price-list"
             className="rounded-lg border border-border-input bg-bg px-3 py-2 text-xs font-semibold text-ink hover:bg-surface"
           >
             Limpiar filtros
@@ -236,7 +174,11 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       </form>
 
       <div className="mt-6">
-        <ProductsTable products={rows} hasOtherFilters={hasFilters} />
+        <PriceListTable
+          products={rows}
+          branches={branches}
+          hasOtherFilters={hasFilters}
+        />
       </div>
     </div>
   );
