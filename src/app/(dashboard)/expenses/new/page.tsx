@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getActiveBranch } from "@/lib/branch";
 import { ExpenseTypeForm } from "../ExpenseTypeForm";
-import { DeleteExpenseTypeButton } from "../DeleteExpenseTypeButton";
+import { ExpenseTypeRow } from "../ExpenseTypeRow";
 import { ExpenseForm } from "../ExpenseForm";
 
 export default async function NewExpensePage() {
@@ -26,7 +26,7 @@ export default async function NewExpensePage() {
   const [expenseTypes, recurringExpenses, expenseCountByType] = await Promise.all([
     db.expenseType.findMany({ orderBy: { name: "asc" } }),
     db.expense.findMany({
-      where: { isRecurring: true },
+      where: { expenseType: { isRecurring: true } },
       orderBy: { dueDate: "desc" },
       include: { expenseType: { select: { name: true } } },
     }),
@@ -65,7 +65,12 @@ export default async function NewExpensePage() {
               </p>
             ) : (
               <ExpenseForm
-                expenseTypes={expenseTypes.map((t) => ({ id: t.id, name: t.name }))}
+                expenseTypes={expenseTypes.map((t) => ({
+                  id: t.id,
+                  name: t.name,
+                  isRecurring: t.isRecurring,
+                  hasSecondDueDate: t.hasSecondDueDate,
+                }))}
                 branches={branches}
                 activeBranchId={active.id}
                 recurringSuggestions={recurringSuggestions.map((e) => ({
@@ -88,14 +93,11 @@ export default async function NewExpensePage() {
                 <table className="w-full text-left text-sm">
                   <tbody>
                     {expenseTypes.map((t) => (
-                      <tr key={t.id} className="border-b border-line-soft last:border-0">
-                        <td className="px-4 py-2.5 text-ink">{t.name}</td>
-                        <td className="px-4 py-2.5 text-right">
-                          {(expenseCountByTypeId.get(t.id) ?? 0) === 0 && (
-                            <DeleteExpenseTypeButton id={t.id} />
-                          )}
-                        </td>
-                      </tr>
+                      <ExpenseTypeRow
+                        key={t.id}
+                        expenseType={t}
+                        canDelete={(expenseCountByTypeId.get(t.id) ?? 0) === 0}
+                      />
                     ))}
                   </tbody>
                 </table>

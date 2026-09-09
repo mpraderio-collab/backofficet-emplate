@@ -158,27 +158,41 @@ export const receivePurchaseOrderSchema = z.object({
 
 export const expenseTypeSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(80),
+  isRecurring: z.coerce.boolean().default(false),
+  hasSecondDueDate: z.coerce.boolean().default(false),
 });
 
-export const expenseSchema = z.object({
-  expenseTypeId: z.string().min(1, "Elegí un tipo de gasto"),
-  // Vacío = gasto compartido, para todas las sucursales.
-  branchId: z
-    .string()
-    .trim()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v === "" ? undefined : v)),
-  amount: z.coerce
-    .number({ message: "El monto tiene que ser un número" })
-    .int("El monto no puede tener centavos")
-    .positive("El monto tiene que ser mayor a cero"),
-  dueDate: z.coerce.date({ message: "Elegí una fecha de vencimiento válida" }),
-  markAsPaid: z.coerce.boolean().default(false),
-  paymentMethod: z.enum(paymentMethods).default("cash"),
-  isRecurring: z.coerce.boolean().default(false),
-  note: z.string().trim().max(300).optional().or(z.literal("")),
-});
+// Fecha opcional que llega de un <input type="date"> — "" (campo vacío)
+// se normaliza a undefined antes de validar como fecha.
+const optionalDate = z.preprocess(
+  (v) => (v === "" || v == null ? undefined : v),
+  z.coerce.date().optional(),
+);
+
+export const expenseSchema = z
+  .object({
+    expenseTypeId: z.string().min(1, "Elegí un tipo de gasto"),
+    // Vacío = gasto compartido, para todas las sucursales.
+    branchId: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(""))
+      .transform((v) => (v === "" ? undefined : v)),
+    amount: z.coerce
+      .number({ message: "El monto tiene que ser un número" })
+      .int("El monto no puede tener centavos")
+      .positive("El monto tiene que ser mayor a cero"),
+    dueDate: z.coerce.date({ message: "Elegí una fecha de vencimiento válida" }),
+    secondDueDate: optionalDate,
+    paidDate: optionalDate,
+    paymentMethod: z.enum(paymentMethods).default("cash"),
+    note: z.string().trim().max(300).optional().or(z.literal("")),
+  })
+  .refine((data) => !data.secondDueDate || data.secondDueDate >= data.dueDate, {
+    message: "El segundo vencimiento no puede ser antes del primero",
+    path: ["secondDueDate"],
+  });
 
 export const userRoles = ["admin", "employee"] as const;
 

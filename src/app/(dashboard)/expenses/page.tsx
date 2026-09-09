@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatDate, formatDateOnly, formatMoney } from "@/lib/format";
 import { paymentMethodLabels, type PaymentMethod } from "@/lib/payment-method";
 import {
+  endOfMonthUTC,
   endOfTodayUTC,
   startOfMonthUTC,
   startOfTodayUTC,
@@ -28,7 +29,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const to = toParam ? new Date(`${toParam}T23:59:59Z`) : endOfTodayUTC();
   const hasFilters = Boolean(fromParam || toParam || branchIdParam);
 
-  const [expenses, branches] = await Promise.all([
+  const [expenses, branches, recurringTypes, expensesThisMonth] = await Promise.all([
     db.expense.findMany({
       where: {
         dueDate: { gte: from, lte: to },
@@ -38,13 +39,23 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
       },
       orderBy: { dueDate: "desc" },
       include: {
-        expenseType: { select: { name: true } },
+        expenseType: { select: { name: true, isRecurring: true } },
         branch: { select: { name: true } },
         createdByUser: { select: { name: true } },
       },
     }),
     db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.expenseType.findMany({ where: { isRecurring: true }, select: { id: true, name: true } }),
+    db.expense.findMany({
+      where: { dueDate: { gte: startOfMonthUTC(), lte: endOfMonthUTC() } },
+      select: { expenseTypeId: true },
+    }),
   ]);
+
+  // Tipos recurrentes que todavía no tienen ningún gasto cargado este mes —
+  // recordatorio para no olvidarse de alquiler, luz, etc.
+  const typeIdsLoadedThisMonth = new Set(expensesThisMonth.map((e) => e.expenseTypeId));
+  const pendingRecurringTypes = recurringTypes.filter((t) => !typeIdsLoadedThisMonth.has(t.id));
 
   const today = startOfTodayUTC();
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -75,9 +86,10 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const exportRows: (string | number)[][] = [
     [`Gastos: ${toDateInputValueUTC(from)} a ${toDateInputValueUTC(to)}`],
     [],
-    ["Vencimiento", "Estado", "Fecha de pago", "Tipo", "Método", "Monto", "Nota"],
+    ["Vencimiento", "Con recargo", "Estado", "Fecha de pago", "Tipo", "Método", "Monto", "Nota"],
     ...expenses.map((e) => [
       formatDateOnly(e.dueDate),
+      e.secondDueDate ? formatDateOnly(e.secondDueDate) : "",
       expenseStatusLabels[getExpenseStatus(e.dueDate, e.paidDate, today)],
       e.paidDate ? formatDate(e.paidDate) : "",
       e.expenseType.name,
@@ -86,7 +98,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
       e.note ?? "",
     ]),
     [],
-    ["Total", "", "", "", "", totalExpenses, ""],
+    ["Total", "", "", "", "", "", totalExpenses, ""],
   ];
 
   return (
@@ -111,6 +123,21 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
           </Link>
         </div>
       </div>
+
+      {pendingRecurringTypes.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warn-line bg-warn-bg p-4">
+          <p className="text-sm text-warn-ink">
+            <span className="font-semibold">Gastos recurrentes sin cargar este mes:</span>{" "}
+            {pendingRecurringTypes.map((t) => t.name).join(", ")}
+          </p>
+          <Link
+            href="/expenses/new"
+            className="shrink-0 rounded-lg bg-bg px-3 py-1.5 text-xs font-semibold text-warn-ink hover:underline"
+          >
+            Cargar ahora →
+          </Link>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-end gap-4 rounded-xl border border-line bg-surface p-4">
         <form className="flex flex-wrap items-end gap-3" method="get">
@@ -229,6 +256,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
               <thead>
                 <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
                   <th className="px-4 py-3">Vencimiento</th>
+                  <th className="px-4 py-3">Con recargo</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Sucursal</th>
                   <th className="px-4 py-3">Tipo</th>
@@ -245,6 +273,9 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                   return (
                   <tr key={e.id} className="border-b border-line-soft last:border-0">
                     <td className="px-4 py-3 text-ink-soft">{formatDateOnly(e.dueDate)}</td>
+                    <td className="px-4 py-3 text-ink-soft">
+                      {e.secondDueDate ? formatDateOnly(e.secondDueDate) : "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-md px-2 py-0.5 text-xs font-semibold ${expenseStatusColors[status]}`}
@@ -256,7 +287,7 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
                     <td className="px-4 py-3 text-ink-soft">{e.branch?.name ?? "Todas"}</td>
                     <td className="px-4 py-3 text-ink">
                       {e.expenseType.name}
-                      {e.isRecurring && (
+                      {e.expenseType.isRecurring && (
                         <span className="ml-1.5 rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
                           Recurrente
                         </span>

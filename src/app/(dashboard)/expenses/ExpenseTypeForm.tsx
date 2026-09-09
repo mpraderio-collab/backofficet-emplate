@@ -15,26 +15,32 @@ export function ExpenseTypeForm() {
   }, [pending, state.error]);
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="flex flex-col gap-3 sm:flex-row sm:items-start"
-    >
-      <Field label="Nombre" error={state.fieldErrors?.name}>
-        <input name="name" placeholder="Ej: Luz, Gas, Impuestos" required className="input sm:w-56" />
-      </Field>
-      <div className="flex flex-col gap-1.5">
-        <span aria-hidden className="hidden text-sm font-medium text-transparent select-none sm:block">
-          Acción
-        </span>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
-        >
-          {pending ? "Creando…" : "+ Agregar tipo"}
-        </button>
+    <form ref={formRef} action={formAction} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <Field label="Nombre" error={state.fieldErrors?.name}>
+          <input name="name" placeholder="Ej: Luz, Gas, Impuestos" required className="input sm:w-56" />
+        </Field>
+        <div className="flex flex-col gap-1.5">
+          <span aria-hidden className="hidden text-sm font-medium text-transparent select-none sm:block">
+            Acción
+          </span>
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+          >
+            {pending ? "Creando…" : "+ Agregar tipo"}
+          </button>
+        </div>
       </div>
+      <label className="flex items-center gap-2 text-sm text-ink">
+        <input type="checkbox" name="isRecurring" className="h-4 w-4" />
+        Es recurrente (se repite todos los meses, ej: alquiler, luz)
+      </label>
+      <label className="flex items-center gap-2 text-sm text-ink">
+        <input type="checkbox" name="hasSecondDueDate" className="h-4 w-4" />
+        Tiene vencimiento con recargo (ej: luz, gas)
+      </label>
     </form>
   );
 }

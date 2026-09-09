@@ -10,7 +10,12 @@ import { toDateInputValue } from "@/lib/reports";
 import { paymentMethods, paymentMethodLabels } from "@/lib/payment-method";
 import { createExpense, type ExpenseActionState } from "./actions";
 
-type ExpenseTypeOption = { id: string; name: string };
+type ExpenseTypeOption = {
+  id: string;
+  name: string;
+  isRecurring: boolean;
+  hasSecondDueDate: boolean;
+};
 type BranchOption = { id: string; name: string };
 type RecurringSuggestion = {
   expenseTypeId: string;
@@ -39,10 +44,12 @@ export function ExpenseForm({
   const [branchId, setBranchId] = useState(activeBranchId);
   const [amount, setAmount] = useState<number | "">("");
   const [dueDate, setDueDate] = useState(() => toDateInputValue(new Date()));
+  const [secondDueDate, setSecondDueDate] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [markAsPaid, setMarkAsPaid] = useState(false);
+  const [paidDate, setPaidDate] = useState("");
   const [note, setNote] = useState("");
+
+  const selectedType = expenseTypes.find((t) => t.id === expenseTypeId);
 
   // Al terminar un submit exitoso, limpiar el formulario — ajustando el
   // estado durante el render (comparando la referencia de `state`, que
@@ -53,8 +60,8 @@ export function ExpenseForm({
     if (!state.error) {
       setAmount("");
       setNote("");
-      setIsRecurring(false);
-      setMarkAsPaid(false);
+      setSecondDueDate("");
+      setPaidDate("");
       setDueDate(toDateInputValue(new Date()));
       setBranchId(activeBranchId);
     }
@@ -68,7 +75,6 @@ export function ExpenseForm({
     setExpenseTypeId(s.expenseTypeId);
     setAmount(s.amount);
     setPaymentMethod(s.paymentMethod);
-    setIsRecurring(true);
     setDueDate(toDateInputValue(new Date()));
   }
 
@@ -99,7 +105,11 @@ export function ExpenseForm({
 
       <form ref={formRef} action={formAction} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Tipo de gasto" error={state.fieldErrors?.expenseTypeId}>
+          <Field
+            label="Tipo de gasto"
+            error={state.fieldErrors?.expenseTypeId}
+            hint={selectedType?.isRecurring ? "Recurrente — se repite todos los meses" : undefined}
+          >
             <Combobox
               name="expenseTypeId"
               value={expenseTypeId}
@@ -146,6 +156,24 @@ export function ExpenseForm({
               className="input"
             />
           </Field>
+          {selectedType?.hasSecondDueDate && (
+            <Field
+              label="Vencimiento con recargo"
+              error={state.fieldErrors?.secondDueDate}
+              hint="Opcional"
+            >
+              <input
+                name="secondDueDate"
+                type="date"
+                value={secondDueDate}
+                onChange={(e) => setSecondDueDate(e.target.value)}
+                className="input"
+              />
+            </Field>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <Field label="Método de pago" error={state.fieldErrors?.paymentMethod}>
             <select
               name="paymentMethod"
@@ -160,34 +188,20 @@ export function ExpenseForm({
               ))}
             </select>
           </Field>
+          <Field
+            label="Fecha de pago"
+            error={state.fieldErrors?.paidDate}
+            hint="Opcional — dejalo vacío si todavía no se pagó"
+          >
+            <input
+              name="paidDate"
+              type="date"
+              value={paidDate}
+              onChange={(e) => setPaidDate(e.target.value)}
+              className="input"
+            />
+          </Field>
         </div>
-
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            name="isRecurring"
-            checked={isRecurring}
-            onChange={(e) => setIsRecurring(e.target.checked)}
-            className="h-4 w-4"
-          />
-          Es un gasto recurrente (se repite todos los meses, ej: alquiler, luz)
-        </label>
-
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            name="markAsPaid"
-            checked={markAsPaid}
-            onChange={(e) => setMarkAsPaid(e.target.checked)}
-            className="h-4 w-4"
-          />
-          Ya está pagado (se marca como pagado hoy)
-        </label>
-        {!markAsPaid && (
-          <p className="-mt-2 text-xs text-ink-soft">
-            Si no lo marcás, el gasto queda como impago y podés pagarlo más tarde desde el listado.
-          </p>
-        )}
 
         <Field label="Nota (opcional)" error={state.fieldErrors?.note}>
           <input name="note" value={note} onChange={(e) => setNote(e.target.value)} className="input" />

@@ -312,9 +312,11 @@ model SupplierLedgerEntry {
 // de Proveedores/Pedidos, para poder calcular la ganancia neta (margen de
 // ventas menos gastos) por separado del margen bruto.
 model ExpenseType {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  createdAt DateTime  @default(now())
+  id               String   @id @default(cuid())
+  name             String   @unique
+  isRecurring      Boolean  @default(false) // se repite todos los meses (ej: alquiler, luz) — antes era un check por gasto, ahora es propio del tipo
+  hasSecondDueDate Boolean  @default(false) // tiene vencimiento con recargo (ej: luz, gas)
+  createdAt        DateTime @default(now())
 
   expenses  Expense[]
 }
@@ -329,9 +331,9 @@ model Expense {
   branch        Branch?     @relation(fields: [branchId], references: [id])
   amount        Int
   dueDate       DateTime // fecha de vencimiento del gasto
+  secondDueDate DateTime? // vencimiento con recargo — solo si expenseType.hasSecondDueDate
   paidDate      DateTime? // fecha en que se pagó — null significa impago
   paymentMethod String // cash | transfer | card | other
-  isRecurring   Boolean     @default(false) // ej: alquiler, luz — se repite todos los meses
   note          String?
   createdAt     DateTime    @default(now())
 

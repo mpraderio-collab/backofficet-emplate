@@ -24,7 +24,11 @@ export async function createExpenseType(
 ): Promise<ExpenseTypeActionState> {
   await requireAuth();
 
-  const result = expenseTypeSchema.safeParse({ name: formData.get("name") });
+  const result = expenseTypeSchema.safeParse({
+    name: formData.get("name"),
+    isRecurring: formData.get("isRecurring"),
+    hasSecondDueDate: formData.get("hasSecondDueDate"),
+  });
   if (!result.success) {
     return {
       error: "Revisá el nombre.",
@@ -33,7 +37,42 @@ export async function createExpenseType(
   }
 
   try {
-    await db.expenseType.create({ data: { name: result.data.name } });
+    await db.expenseType.create({ data: result.data });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return {
+        error: "Ya existe un tipo de gasto con ese nombre.",
+        fieldErrors: { name: "Este nombre ya está en uso" },
+      };
+    }
+    throw err;
+  }
+
+  revalidatePath("/expenses");
+  return {};
+}
+
+export async function updateExpenseType(
+  id: string,
+  _prev: ExpenseTypeActionState,
+  formData: FormData,
+): Promise<ExpenseTypeActionState> {
+  await requireAuth();
+
+  const result = expenseTypeSchema.safeParse({
+    name: formData.get("name"),
+    isRecurring: formData.get("isRecurring"),
+    hasSecondDueDate: formData.get("hasSecondDueDate"),
+  });
+  if (!result.success) {
+    return {
+      error: "Revisá el nombre.",
+      fieldErrors: { name: result.error.issues[0]?.message ?? "Nombre inválido" },
+    };
+  }
+
+  try {
+    await db.expenseType.update({ where: { id }, data: result.data });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return {
@@ -81,9 +120,9 @@ function parseExpenseForm(formData: FormData) {
     branchId: formData.get("branchId"),
     amount: formData.get("amount"),
     dueDate: formData.get("dueDate"),
-    markAsPaid: formData.get("markAsPaid"),
+    secondDueDate: formData.get("secondDueDate"),
+    paidDate: formData.get("paidDate"),
     paymentMethod: formData.get("paymentMethod"),
-    isRecurring: formData.get("isRecurring"),
     note: formData.get("note"),
   });
 }
@@ -110,9 +149,9 @@ export async function createExpense(
       branchId: result.data.branchId,
       amount: result.data.amount,
       dueDate: result.data.dueDate,
-      paidDate: result.data.markAsPaid ? new Date() : null,
+      secondDueDate: result.data.secondDueDate ?? null,
+      paidDate: result.data.paidDate ?? null,
       paymentMethod: result.data.paymentMethod,
-      isRecurring: result.data.isRecurring,
       note: result.data.note || null,
       createdByUserId: userId,
     },
