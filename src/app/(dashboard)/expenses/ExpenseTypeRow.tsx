@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/Alert";
 import { DeleteExpenseTypeButton } from "./DeleteExpenseTypeButton";
@@ -27,16 +27,21 @@ export function ExpenseTypeRow({
   const boundUpdate = updateExpenseType.bind(null, expenseType.id);
   const [state, formAction, pending] = useActionState(boundUpdate, initialState);
 
-  // Al guardar bien, cerrar la edición y refrescar — comparando la
-  // referencia de `state` (cambia en cada acción) en vez de un efecto.
+  // Al guardar bien, cerrar la edición — ajustando el estado durante el
+  // render (comparando la referencia de `state`, que cambia en cada
+  // acción) en vez de un efecto. router.refresh() sí es un efecto
+  // secundario real, así que va en un useEffect aparte: llamarlo durante
+  // el render de otro componente (acá, ExpenseTypeRow) dispara el warning
+  // de React "Cannot update a component while rendering a different one".
   const [prevState, setPrevState] = useState(state);
   if (state !== prevState) {
     setPrevState(state);
-    if (!state.error) {
-      setEditing(false);
-      router.refresh();
-    }
+    if (!state.error) setEditing(false);
   }
+
+  useEffect(() => {
+    if (state !== initialState && !state.error) router.refresh();
+  }, [state, router]);
 
   if (!editing) {
     return (
