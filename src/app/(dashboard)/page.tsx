@@ -63,6 +63,8 @@ export default async function DashboardPage() {
     unpaidExpensesDueThisMonth,
     supplierPaymentsThisMonth,
     lastSaleByProduct,
+    recurringExpenseTypes,
+    expenseTypeIdsLoadedThisMonth,
   ] = await Promise.all([
     db.product.findMany({
       where: { status: "active" },
@@ -122,7 +124,25 @@ export default async function DashboardPage() {
       _sum: { amount: true },
     }),
     getLastSaleDatesByProduct(active.id),
+    db.expenseType.findMany({ where: { isRecurring: true }, select: { id: true, name: true } }),
+    db.expense.findMany({
+      where: {
+        dueDate: { gte: monthStartUTC, lte: monthEndUTC },
+        OR: [{ branchId: active.id }, { branchId: null }],
+      },
+      select: { expenseTypeId: true },
+    }),
   ]);
+
+  // Tipos recurrentes sin ningún gasto cargado este mes (pagado o no) —
+  // se muestran igual en "Gastos por pagar este mes" como recordatorio,
+  // en vez de desaparecer silenciosamente hasta que alguien se acuerde.
+  const loadedExpenseTypeIdsThisMonth = new Set(
+    expenseTypeIdsLoadedThisMonth.map((e) => e.expenseTypeId),
+  );
+  const missingRecurringExpenseTypes = recurringExpenseTypes.filter(
+    (t) => !loadedExpenseTypeIdsThisMonth.has(t.id),
+  );
 
   const productsWithStock = activeProducts.map((p) => ({
     ...p,
@@ -340,7 +360,7 @@ export default async function DashboardPage() {
               Ver gastos →
             </Link>
           </div>
-          {unpaidExpensesDueThisMonth.length === 0 ? (
+          {unpaidExpensesDueThisMonth.length === 0 && missingRecurringExpenseTypes.length === 0 ? (
             <p className="mt-3 text-sm text-ink-soft">
               No hay gastos impagos con vencimiento este mes.
             </p>
@@ -366,6 +386,22 @@ export default async function DashboardPage() {
                   </li>
                 );
               })}
+              {missingRecurringExpenseTypes.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-ink-soft">
+                    {t.name}{" "}
+                    <span className="ml-1.5 rounded-md bg-warn-bg px-1.5 py-0.5 text-[10px] font-semibold text-warn-ink">
+                      Aún no cargado
+                    </span>
+                  </span>
+                  <Link
+                    href="/expenses/new"
+                    className="shrink-0 text-xs font-semibold text-accent hover:underline"
+                  >
+                    Cargar →
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </div>
