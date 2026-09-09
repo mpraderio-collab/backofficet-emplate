@@ -24,6 +24,8 @@ type ProductOption = {
   supplierId: string | null;
   stock: number;
   minStock: number | null;
+  isSeasonal: boolean;
+  seasonStart: Date | null;
   imageUrl: string | null;
 };
 
@@ -81,7 +83,9 @@ export function PurchaseOrderForm({
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   const suggestedProducts = products.filter(
-    (p) => p.supplierId === supplierId && isLowStock(p.stock, p.minStock),
+    (p) =>
+      p.supplierId === supplierId &&
+      isLowStock(p.stock, p.minStock, { isSeasonal: p.isSeasonal, seasonStart: p.seasonStart }),
   );
 
   function selectProduct(id: string) {

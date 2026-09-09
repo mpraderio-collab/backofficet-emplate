@@ -39,6 +39,9 @@ type Props = {
     subrubroId: string;
     registeredAt?: string;
     imageUrl?: string | null;
+    isSeasonal?: boolean;
+    seasonStart?: string | null;
+    seasonEnd?: string | null;
   };
   submitLabel: string;
 };
@@ -129,6 +132,9 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
   const [registeredAt, setRegisteredAt] = useState(
     () => defaultValues?.registeredAt ?? toDateInputValue(new Date()),
   );
+  const [isSeasonal, setIsSeasonal] = useState(Boolean(defaultValues?.isSeasonal));
+  const [seasonStart, setSeasonStart] = useState(defaultValues?.seasonStart ?? "");
+  const [seasonEnd, setSeasonEnd] = useState(defaultValues?.seasonEnd ?? "");
   const [imagePreview, setImagePreview] = useState(defaultValues?.imageUrl ?? "");
   const [removeImage, setRemoveImage] = useState(false);
 
@@ -427,6 +433,50 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
           />
         </Field>
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-ink">
+        <input
+          type="checkbox"
+          name="isSeasonal"
+          checked={isSeasonal}
+          onChange={(e) => setIsSeasonal(e.target.checked)}
+          className="h-4 w-4"
+        />
+        Es un producto de temporada
+      </label>
+
+      {isSeasonal && (
+        <div className="grid grid-cols-2 gap-4 rounded-xl border border-line bg-surface p-4">
+          <Field
+            label="Inicio de temporada"
+            error={state.fieldErrors?.seasonStart}
+            hint="Solo importa mes y día — se repite todos los años"
+          >
+            <input
+              name="seasonStart"
+              type="date"
+              value={seasonStart}
+              onChange={(e) => setSeasonStart(e.target.value)}
+              required
+              className="input"
+            />
+          </Field>
+          <Field label="Fin de temporada" hint="Solo importa mes y día">
+            <input
+              name="seasonEnd"
+              type="date"
+              value={seasonEnd}
+              onChange={(e) => setSeasonEnd(e.target.value)}
+              required
+              className="input"
+            />
+          </Field>
+          <p className="col-span-2 -mt-2 text-xs text-ink-soft">
+            El stock bajo de este producto solo se avisa en los dos meses previos al inicio de
+            la temporada.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <Field

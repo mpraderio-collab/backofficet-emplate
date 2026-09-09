@@ -50,10 +50,24 @@ export const productSchema = z.object({
   animalWeight: z.string().trim().max(60).optional().or(z.literal("")),
   subrubroId: z.string().min(1, "Elegí un rubro y subrubro"),
   registeredAt: z.coerce.date({ message: "Elegí una fecha de alta válida" }),
-}).refine((data) => !data.fractionUnit || (data.unitSize && data.fractionPrice != null), {
-  message: "Completá el tamaño de la unidad y el precio por fracción",
-  path: ["unitSize"],
-});
+  isSeasonal: z.preprocess((v) => v === "on" || v === true, z.boolean()).default(false),
+  seasonStart: z.preprocess(
+    (val) => (val === "" || val == null ? undefined : val),
+    z.coerce.date().optional(),
+  ),
+  seasonEnd: z.preprocess(
+    (val) => (val === "" || val == null ? undefined : val),
+    z.coerce.date().optional(),
+  ),
+})
+  .refine((data) => !data.fractionUnit || (data.unitSize && data.fractionPrice != null), {
+    message: "Completá el tamaño de la unidad y el precio por fracción",
+    path: ["unitSize"],
+  })
+  .refine((data) => !data.isSeasonal || (data.seasonStart && data.seasonEnd), {
+    message: "Completá el inicio y el fin de la temporada",
+    path: ["seasonStart"],
+  });
 
 export const rubroSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(80),

@@ -20,6 +20,8 @@ export type ProductRow = {
   cost: number | null;
   stock: number;
   minStock: number | null;
+  isSeasonal: boolean;
+  seasonStart: Date | null;
   soldLabel: string;
 };
 
@@ -165,7 +167,10 @@ export function ProductsTable({
                       className={
                         p.stock <= 0
                           ? "font-semibold text-err-ink"
-                          : isLowStock(p.stock, p.minStock)
+                          : isLowStock(p.stock, p.minStock, {
+                                isSeasonal: p.isSeasonal,
+                                seasonStart: p.seasonStart,
+                              })
                             ? "font-semibold text-warn-ink"
                             : "text-ink"
                       }

@@ -53,6 +53,14 @@ model Product {
   subrubroId String
   subrubro   Subrubro @relation(fields: [subrubroId], references: [id])
 
+  // Producto de temporada (ej: antiparasitarios en primavera-verano). Solo
+  // importa el mes/día de seasonStart/seasonEnd, el año se ignora — se
+  // recalcula la próxima ocurrencia cada vez. El stock bajo de este
+  // producto solo se avisa en los dos meses previos a seasonStart.
+  isSeasonal  Boolean   @default(false)
+  seasonStart DateTime?
+  seasonEnd   DateTime?
+
   // Fecha de alta: cuándo el producto empezó a estar disponible para la
   // venta (puede ser anterior al día en que se cargó en el sistema).
   // Opcional para no romper productos ya cargados antes de este campo —

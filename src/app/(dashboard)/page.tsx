@@ -74,6 +74,8 @@ export default async function DashboardPage() {
         fractionUnit: true,
         registeredAt: true,
         createdAt: true,
+        isSeasonal: true,
+        seasonStart: true,
         stocks: { where: { branchId: active.id }, select: { stock: true, minStock: true } },
       },
     }),
@@ -151,7 +153,7 @@ export default async function DashboardPage() {
   }));
 
   const lowStockProducts = productsWithStock
-    .filter((p) => isLowStock(p.stock, p.minStock))
+    .filter((p) => isLowStock(p.stock, p.minStock, { isSeasonal: p.isSeasonal, seasonStart: p.seasonStart }))
     .sort((a, b) => a.stock - effectiveMinStock(a.minStock) - (b.stock - effectiveMinStock(b.minStock)))
     .slice(0, 6);
 

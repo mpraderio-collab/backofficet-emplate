@@ -108,6 +108,8 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       cost: p.cost,
       stock: p.stocks[0]?.stock ?? 0,
       minStock: p.stocks[0]?.minStock ?? null,
+      isSeasonal: p.isSeasonal,
+      seasonStart: p.seasonStart,
       soldLabel,
     };
   });

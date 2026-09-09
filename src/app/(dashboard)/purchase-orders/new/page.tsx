@@ -37,6 +37,8 @@ export default async function NewPurchaseOrderPage() {
         subrubro: { select: { name: true } },
         supplierId: true,
         imageUrl: true,
+        isSeasonal: true,
+        seasonStart: true,
         stocks: { where: { branchId: active.id }, select: { stock: true, minStock: true } },
       },
     }),

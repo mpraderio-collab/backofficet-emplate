@@ -53,6 +53,9 @@ function parseForm(formData: FormData) {
     animalWeight: formData.get("animalWeight"),
     subrubroId: formData.get("subrubroId"),
     registeredAt: formData.get("registeredAt"),
+    isSeasonal: formData.get("isSeasonal"),
+    seasonStart: formData.get("seasonStart"),
+    seasonEnd: formData.get("seasonEnd"),
   });
 }
 
@@ -81,6 +84,8 @@ function toProductData(data: z.infer<typeof productSchema>) {
     fractionUnit: data.fractionUnit ?? null,
     unitSize: data.fractionUnit ? (data.unitSize ?? null) : null,
     fractionPrice: data.fractionUnit ? (data.fractionPrice ?? null) : null,
+    seasonStart: data.isSeasonal ? (data.seasonStart ?? null) : null,
+    seasonEnd: data.isSeasonal ? (data.seasonEnd ?? null) : null,
   };
 }
 

@@ -85,6 +85,9 @@ export default async function EditProductPage(
             subrubroId: product.subrubroId,
             registeredAt: registeredAtValue,
             imageUrl: product.imageUrl,
+            isSeasonal: product.isSeasonal,
+            seasonStart: product.seasonStart ? toDateInputValueUTC(product.seasonStart) : null,
+            seasonEnd: product.seasonEnd ? toDateInputValueUTC(product.seasonEnd) : null,
           }}
         />
       </div>
