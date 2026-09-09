@@ -10,6 +10,7 @@ import {
   toDateInputValue,
 } from "@/lib/reports";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { FilterCombobox } from "@/components/FilterCombobox";
 import { BarChart } from "@/components/charts/BarChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 
@@ -17,19 +18,27 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
   const searchParams = await props.searchParams;
   const fromParam = typeof searchParams?.from === "string" ? searchParams.from : undefined;
   const toParam = typeof searchParams?.to === "string" ? searchParams.to : undefined;
+  const branchIdParam = typeof searchParams?.branchId === "string" ? searchParams.branchId : "";
 
   const from = fromParam ? new Date(`${fromParam}T00:00:00`) : startOfMonth();
   const to = toParam ? new Date(`${toParam}T23:59:59`) : endOfToday();
-  const hasFilters = Boolean(fromParam || toParam);
+  const hasFilters = Boolean(fromParam || toParam || branchIdParam);
 
-  const sales = await db.sale.findMany({
-    where: { status: "confirmed", createdAt: { gte: from, lte: to } },
-    orderBy: { createdAt: "desc" },
-    include: {
-      customer: { select: { name: true } },
-      items: { include: { product: { select: { name: true, fractionUnit: true } } } },
-    },
-  });
+  const [sales, branches] = await Promise.all([
+    db.sale.findMany({
+      where: {
+        status: "confirmed",
+        createdAt: { gte: from, lte: to },
+        ...(branchIdParam && { branchId: branchIdParam }),
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        customer: { select: { name: true } },
+        items: { include: { product: { select: { name: true, fractionUnit: true } } } },
+      },
+    }),
+    db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
 
   const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
   const saleCount = sales.length;
@@ -123,6 +132,17 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
             <span className="text-xs text-ink-soft">Hasta</span>
             <input type="date" name="to" defaultValue={toDateInputValue(to)} className="input" />
           </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-ink-soft">Sucursal</span>
+            <FilterCombobox
+              key={branchIdParam}
+              name="branchId"
+              defaultValue={branchIdParam}
+              placeholder="Buscar sucursal…"
+              className="w-40"
+              options={[{ value: "", label: "Todas" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+            />
+          </label>
           <button
             type="submit"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
@@ -136,7 +156,7 @@ export default async function SalesReportPage(props: PageProps<"/reports/sales">
             return (
               <Link
                 key={r.label}
-                href={`/reports/sales?from=${toDateInputValue(r.from)}&to=${toDateInputValue(r.to)}`}
+                href={`/reports/sales?from=${toDateInputValue(r.from)}&to=${toDateInputValue(r.to)}${branchIdParam ? `&branchId=${branchIdParam}` : ""}`}
                 className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
                   isActive
                     ? "border-accent bg-accent-soft text-accent"
