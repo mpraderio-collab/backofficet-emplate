@@ -22,6 +22,7 @@ model User {
   createdSupplierLedgerEntries SupplierLedgerEntry[]
   createdPurchaseOrders        PurchaseOrder[]
   createdPurchaseOrderStatusEvents PurchaseOrderStatusEvent[]
+  createdRemitos                   Remito[]
 }
 
 model Product {
@@ -91,10 +92,15 @@ model Branch {
   name      String   @unique
   createdAt DateTime @default(now())
 
+  // Numeración correlativa de remitos, por sucursal — se incrementa
+  // atómicamente al emitir cada remito nuevo (ver createRemito).
+  nextRemitoNumber Int @default(1)
+
   productStocks  ProductStock[]
   sales          Sale[]
   purchaseOrders PurchaseOrder[]
   expenses       Expense[]
+  remitos        Remito[]
 }
 
 // Stock de un producto en una sucursal puntual. Todo producto tiene una
@@ -183,9 +189,32 @@ model Sale {
   items       SaleItem[]
   ledgerEntry CustomerLedgerEntry?
   arcaInvoice ArcaInvoice?
+  remito      Remito?
 
   @@index([customerId])
   @@index([branchId])
+}
+
+// Comprobante de traslado de mercadería — acompaña el envío, no reemplaza
+// a la factura. Numeración correlativa propia por sucursal (no la asigna
+// ARCA, es un control interno). Se puede emitir para cualquier venta
+// confirmada, facture o no por ARCA.
+model Remito {
+  id       String  @id @default(cuid())
+  saleId   String  @unique
+  sale     Sale    @relation(fields: [saleId], references: [id])
+  branchId String
+  branch   Branch  @relation(fields: [branchId], references: [id])
+  number   Int
+  // issued (vigente) | voided (la venta se canceló después de emitido)
+  status   String  @default("issued")
+
+  createdAt       DateTime @default(now())
+  createdByUserId String?
+  createdByUser   User?    @relation(fields: [createdByUserId], references: [id])
+
+  @@unique([branchId, number])
+  @@index([saleId])
 }
 
 // Factura electrónica emitida (o intentada) en ARCA (ex AFIP) para una

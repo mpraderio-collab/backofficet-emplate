@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { formatDate, formatMoney, formatQuantity } from "@/lib/format";
 import { CancelSaleButton } from "./CancelSaleButton";
 import { RetryArcaInvoiceButton } from "./RetryArcaInvoiceButton";
+import { RemitoSection } from "./RemitoSection";
 
 const arcaStatusLabels: Record<string, string> = {
   pending: "Pendiente",
@@ -27,6 +28,7 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
       items: { include: { product: { select: { name: true, fractionUnit: true } } } },
       createdByUser: { select: { name: true } },
       arcaInvoice: true,
+      remito: true,
     },
   });
   if (!sale) notFound();
@@ -117,6 +119,16 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[id]">) {
           )}
         </div>
       )}
+
+      <RemitoSection
+        saleId={sale.id}
+        saleStatus={sale.status}
+        remito={
+          sale.remito
+            ? { number: sale.remito.number, status: sale.remito.status, branchName: sale.branch.name }
+            : null
+        }
+      />
 
       {sale.note && (
         <p className="mt-4 max-w-2xl text-sm text-ink-soft">

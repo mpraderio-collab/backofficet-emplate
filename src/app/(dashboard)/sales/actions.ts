@@ -162,6 +162,43 @@ export async function retryArcaInvoice(saleId: string): Promise<{ error?: string
   return {};
 }
 
+// Emite el remito de una venta confirmada — asigna el próximo número
+// correlativo de la sucursal (incremento atómico sobre Branch para que dos
+// remitos no choquen si se emiten casi al mismo tiempo) y deja el registro.
+// No reemplaza a la factura ARCA: se puede emitir tenga o no tenga.
+export async function createRemito(saleId: string): Promise<{ error?: string }> {
+  const userId = await requireAuth();
+
+  const sale = await db.sale.findUnique({ where: { id: saleId } });
+  if (!sale) return { error: "La venta ya no existe." };
+  if (sale.status !== "confirmed") {
+    return { error: "Solo se puede emitir remito de una venta confirmada." };
+  }
+
+  const existing = await db.remito.findUnique({ where: { saleId } });
+  if (existing) return { error: "Esta venta ya tiene un remito emitido." };
+
+  await db.$transaction(async (tx) => {
+    const branch = await tx.branch.update({
+      where: { id: sale.branchId },
+      data: { nextRemitoNumber: { increment: 1 } },
+    });
+    const number = branch.nextRemitoNumber - 1;
+
+    await tx.remito.create({
+      data: {
+        saleId,
+        branchId: sale.branchId,
+        number,
+        createdByUserId: userId,
+      },
+    });
+  });
+
+  revalidatePath(`/sales/${saleId}`);
+  return {};
+}
+
 // Cancela la venta: repone el stock y anula el cargo que había generado en
 // la cuenta corriente del cliente (deja registrado el motivo, no borra
 // el historial).
@@ -170,7 +207,7 @@ export async function cancelSale(id: string): Promise<{ error?: string }> {
 
   const sale = await db.sale.findUnique({
     where: { id },
-    include: { items: true },
+    include: { items: true, remito: true },
   });
   if (!sale) return { error: "La venta ya no existe." };
   if (sale.status === "cancelled") return {};
@@ -183,6 +220,11 @@ export async function cancelSale(id: string): Promise<{ error?: string }> {
       }),
     ),
     db.sale.update({ where: { id }, data: { status: "cancelled" } }),
+    // El remito ya circuló (o pudo haber circulado) con la mercadería, así
+    // que se anula en vez de borrarse — el número queda como historial.
+    ...(sale.remito
+      ? [db.remito.update({ where: { id: sale.remito.id }, data: { status: "voided" } })]
+      : []),
     // Una venta general (sin cliente) no tenía cargo en ninguna cuenta
     // corriente, así que tampoco hay nada que anular ahí.
     ...(sale.customerId
