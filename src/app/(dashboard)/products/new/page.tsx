@@ -3,7 +3,7 @@ import { createProduct } from "../actions";
 import { ProductForm } from "../ProductForm";
 
 export default async function NewProductPage() {
-  const [suppliers, rubros] = await Promise.all([
+  const [suppliers, rubros, productsWithDescription] = await Promise.all([
     db.supplier.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true },
@@ -12,7 +12,15 @@ export default async function NewProductPage() {
       orderBy: { name: "asc" },
       include: { subrubros: { orderBy: { name: "asc" } } },
     }),
+    db.product.findMany({
+      where: { description: { not: null } },
+      select: { id: true, name: true, description: true },
+    }),
   ]);
+
+  const descriptionSuggestions = productsWithDescription
+    .filter((p) => p.description)
+    .map((p) => ({ productId: p.id, productName: p.name, description: p.description! }));
 
   return (
     <div>
@@ -22,6 +30,7 @@ export default async function NewProductPage() {
           action={createProduct}
           suppliers={suppliers}
           rubros={rubros}
+          descriptionSuggestions={descriptionSuggestions}
           submitLabel="Crear producto"
         />
       </div>

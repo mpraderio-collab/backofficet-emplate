@@ -5,6 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
+import { DescriptionTypeahead, type DescriptionSuggestion } from "@/components/DescriptionTypeahead";
 import { MoneyInput } from "@/components/MoneyInput";
 import { NumberInput } from "@/components/NumberInput";
 import { DEFAULT_MIN_STOCK } from "@/lib/stock";
@@ -23,6 +24,8 @@ type Props = {
   ) => Promise<ProductActionState>;
   suppliers: Supplier[];
   rubros: Rubro[];
+  descriptionSuggestions: DescriptionSuggestion[];
+  excludeProductId?: string;
   defaultValues?: {
     name: string;
     sku: string | null;
@@ -48,7 +51,15 @@ type Props = {
 
 const initialState: ProductActionState = {};
 
-export function ProductForm({ action, suppliers, rubros, defaultValues, submitLabel }: Props) {
+export function ProductForm({
+  action,
+  suppliers,
+  rubros,
+  descriptionSuggestions,
+  excludeProductId,
+  defaultValues,
+  submitLabel,
+}: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [sellsByFraction, setSellsByFraction] = useState(
     Boolean(defaultValues?.fractionUnit),
@@ -299,12 +310,16 @@ export function ProductForm({ action, suppliers, rubros, defaultValues, submitLa
         </Field>
       </div>
 
-      <Field label="Descripción" error={state.fieldErrors?.description} hint="Opcional">
-        <textarea
+      <Field
+        label="Descripción"
+        error={state.fieldErrors?.description}
+        hint="Opcional. No puede repetir la de otro producto."
+      >
+        <DescriptionTypeahead
           name="description"
-          defaultValue={defaultValues?.description ?? ""}
-          rows={3}
-          className="input"
+          defaultValue={defaultValues?.description}
+          suggestions={descriptionSuggestions}
+          excludeProductId={excludeProductId}
         />
       </Field>
 
