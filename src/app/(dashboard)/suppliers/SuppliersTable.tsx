@@ -4,6 +4,10 @@ import { useState } from "react";
 import { formatDateOnly, formatMoney } from "@/lib/format";
 import { WhatsAppLink } from "@/components/WhatsAppLink";
 import { ClickableRow } from "@/components/ClickableRow";
+import { SortHeader } from "@/components/SortHeader";
+import { useSortableList } from "@/lib/useSortableList";
+
+type SortableKey = "name" | "balance" | "lastOrder";
 
 export type SupplierRow = {
   id: string;
@@ -23,6 +27,16 @@ export function SuppliersTable({ suppliers }: { suppliers: SupplierRow[] }) {
     ? suppliers.filter((s) => s.name.toLowerCase().includes(normalized))
     : suppliers;
   const suggestions = filtered.slice(0, 8);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useSortableList<SupplierRow, SortableKey>(
+    filtered,
+    (s, key) => {
+      if (key === "name") return s.name;
+      if (key === "balance") return s.balance;
+      return s.lastOrder;
+    },
+    "name",
+  );
 
   return (
     <>
@@ -76,14 +90,26 @@ export function SuppliersTable({ suppliers }: { suppliers: SupplierRow[] }) {
           <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
-                <th className="px-4 py-3">Proveedor</th>
+                <SortHeader label="Proveedor" columnKey="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <th className="px-4 py-3">Contacto</th>
-                <th className="px-4 py-3">Saldo cta. cte.</th>
-                <th className="px-4 py-3">Última compra</th>
+                <SortHeader
+                  label="Saldo cta. cte."
+                  columnKey="balance"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortHeader
+                  label="Última compra"
+                  columnKey="lastOrder"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
+              {sorted.map((s) => (
                 <ClickableRow
                   key={s.id}
                   href={`/suppliers/${s.id}`}

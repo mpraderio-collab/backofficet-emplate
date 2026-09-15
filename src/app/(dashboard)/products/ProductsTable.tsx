@@ -4,6 +4,10 @@ import { useState } from "react";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { ClickableRow } from "@/components/ClickableRow";
+import { SortHeader } from "@/components/SortHeader";
+import { useSortableList } from "@/lib/useSortableList";
+
+type SortableKey = "name" | "supplierName" | "price" | "marginAmount" | "marginPercent" | "cost" | "stock";
 
 export type ProductRow = {
   id: string;
@@ -16,6 +20,7 @@ export type ProductRow = {
   fractionUnit: string | null;
   fractionPrice: number | null;
   marginAmount: number | null;
+  marginPercent: number | null;
   marginPercentLabel: string;
   cost: number | null;
   stock: number;
@@ -45,6 +50,29 @@ export function ProductsTable({
     : products;
   const suggestions = filtered.slice(0, 8);
   const hasFilters = hasOtherFilters || Boolean(query);
+
+  const { sorted, sortKey, sortDir, toggleSort } = useSortableList<ProductRow, SortableKey>(
+    filtered,
+    (p, key) => {
+      switch (key) {
+        case "name":
+          return p.name;
+        case "supplierName":
+          return p.supplierName;
+        case "price":
+          return p.price;
+        case "marginAmount":
+          return p.marginAmount;
+        case "marginPercent":
+          return p.marginPercent;
+        case "cost":
+          return p.cost;
+        case "stock":
+          return p.stock;
+      }
+    },
+    "name",
+  );
 
   return (
     <>
@@ -100,18 +128,36 @@ export function ProductsTable({
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
-                <th className="px-4 py-3">Producto</th>
-                <th className="px-4 py-3">Proveedor</th>
-                <th className="px-4 py-3">Precio</th>
-                <th className="px-4 py-3">Margen $</th>
-                <th className="px-4 py-3">Margen %</th>
-                <th className="px-4 py-3">Costo</th>
-                <th className="px-4 py-3">Stock</th>
+                <SortHeader label="Producto" columnKey="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader
+                  label="Proveedor"
+                  columnKey="supplierName"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortHeader label="Precio" columnKey="price" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader
+                  label="Margen $"
+                  columnKey="marginAmount"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortHeader
+                  label="Margen %"
+                  columnKey="marginPercent"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortHeader label="Costo" columnKey="cost" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader label="Stock" columnKey="stock" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <th className="px-4 py-3">Ventas</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {sorted.map((p) => (
                 <ClickableRow
                   key={p.id}
                   href={`/products/${p.id}`}

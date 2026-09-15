@@ -38,7 +38,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
         ...(subrubroIdParam && { subrubroId: subrubroIdParam }),
         ...(animalWeightParam && { animalWeight: animalWeightParam }),
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { name: "asc" },
       include: {
         supplier: { select: { name: true } },
         subrubro: { include: { rubro: true } },
@@ -104,6 +104,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       fractionUnit: p.fractionUnit,
       fractionPrice: p.fractionPrice,
       marginAmount: margin?.amount ?? null,
+      marginPercent: margin?.percent ?? null,
       marginPercentLabel: formatMarginPercent(margin),
       cost: p.cost,
       stock: p.stocks[0]?.stock ?? 0,
