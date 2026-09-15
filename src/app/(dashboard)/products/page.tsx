@@ -131,6 +131,13 @@ export default async function ProductsPage(props: PageProps<"/products">) {
             Actualizar precios por lote
           </Link>
           <Link
+            href="/signage"
+            target="_blank"
+            className="rounded-lg border border-border-input bg-bg px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
+          >
+            Modo Cartelería (TV)
+          </Link>
+          <Link
             href="/products/new"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-hover"
           >

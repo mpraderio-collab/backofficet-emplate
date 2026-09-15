@@ -9,8 +9,12 @@ export const authConfig: NextAuthConfig = {
   providers: [],
   callbacks: {
     authorized({ auth, request }) {
-      const isLoginPage = request.nextUrl.pathname === "/login";
-      if (isLoginPage) return true;
+      const { pathname } = request.nextUrl;
+      // La TV del local no puede loguearse: /signage y su API son públicas
+      // a propósito (ver api/signage/route.ts — nunca exponen costo/margen).
+      const isPublic =
+        pathname === "/login" || pathname === "/signage" || pathname.startsWith("/api/signage");
+      if (isPublic) return true;
       return !!auth?.user;
     },
   },
