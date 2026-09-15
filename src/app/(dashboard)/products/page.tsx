@@ -20,12 +20,9 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const supplierIdParam =
     typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
   const brandParam = typeof searchParams?.brand === "string" ? searchParams.brand : "";
-  const animalTypeParam =
-    typeof searchParams?.animalType === "string" ? searchParams.animalType : "";
+  const rubroIdParam = typeof searchParams?.rubroId === "string" ? searchParams.rubroId : "";
   const subrubroIdParam =
     typeof searchParams?.subrubroId === "string" ? searchParams.subrubroId : "";
-  const animalWeightParam =
-    typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
   const { active } = await getActiveBranch();
 
@@ -34,9 +31,8 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       where: {
         ...(supplierIdParam && { supplierId: supplierIdParam }),
         ...(brandParam && { brand: brandParam }),
-        ...(animalTypeParam && { animalType: animalTypeParam }),
         ...(subrubroIdParam && { subrubroId: subrubroIdParam }),
-        ...(animalWeightParam && { animalWeight: animalWeightParam }),
+        ...(rubroIdParam && !subrubroIdParam && { subrubro: { rubroId: rubroIdParam } }),
       },
       orderBy: { name: "asc" },
       include: {
@@ -51,7 +47,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       include: { subrubros: { orderBy: { name: "asc" } } },
     }),
     db.product.findMany({
-      select: { brand: true, animalType: true, animalWeight: true },
+      select: { brand: true },
     }),
     db.saleItem.findMany({
       where: { sale: { status: "confirmed" } },
@@ -60,11 +56,10 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   ]);
 
   const brandOptions = distinctValues(allProducts, "brand");
-  const animalTypeOptions = distinctValues(allProducts, "animalType");
-  const animalWeightOptions = distinctValues(allProducts, "animalWeight");
-  const subrubroOptions = rubros.flatMap((r) =>
-    r.subrubros.map((s) => ({ value: s.id, label: `${r.name} › ${s.name}` })),
-  );
+  const rubroOptions = rubros.map((r) => ({ value: r.id, label: r.name }));
+  const subrubroOptions = (
+    rubroIdParam ? (rubros.find((r) => r.id === rubroIdParam)?.subrubros ?? []) : rubros.flatMap((r) => r.subrubros)
+  ).map((s) => ({ value: s.id, label: s.name }));
 
   const soldByProductId = new Map<string, { unitCount: number; fractionQuantity: number }>();
   for (const item of soldItems) {
@@ -74,9 +69,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
     soldByProductId.set(item.productId, entry);
   }
 
-  const hasFilters = Boolean(
-    supplierIdParam || brandParam || animalTypeParam || subrubroIdParam || animalWeightParam,
-  );
+  const hasFilters = Boolean(supplierIdParam || brandParam || rubroIdParam || subrubroIdParam);
 
   const rows: ProductRow[] = products.map((p) => {
     const margin = calculateMargin(p.price, p.cost);
@@ -156,17 +149,25 @@ export default async function ProductsPage(props: PageProps<"/products">) {
 
       <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Proveedor</span>
+          <span className="text-xs text-ink-soft">Rubro</span>
           <FilterCombobox
-            key={supplierIdParam}
-            name="supplierId"
-            defaultValue={supplierIdParam}
-            placeholder="Buscar proveedor…"
-            className="w-48"
-            options={[
-              { value: "", label: "Todos" },
-              ...suppliers.map((s) => ({ value: s.id, label: s.name })),
-            ]}
+            key={rubroIdParam}
+            name="rubroId"
+            defaultValue={rubroIdParam}
+            placeholder="Buscar rubro…"
+            className="w-44"
+            options={[{ value: "", label: "Todos" }, ...rubroOptions]}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Subrubro</span>
+          <FilterCombobox
+            key={`${rubroIdParam}-${subrubroIdParam}`}
+            name="subrubroId"
+            defaultValue={subrubroIdParam}
+            placeholder="Buscar subrubro…"
+            className="w-44"
+            options={[{ value: "", label: "Todos" }, ...subrubroOptions]}
           />
         </label>
         <label className="flex flex-col gap-1.5">
@@ -184,41 +185,16 @@ export default async function ProductsPage(props: PageProps<"/products">) {
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Animal</span>
+          <span className="text-xs text-ink-soft">Proveedor</span>
           <FilterCombobox
-            key={animalTypeParam}
-            name="animalType"
-            defaultValue={animalTypeParam}
-            placeholder="Buscar animal…"
-            className="w-36"
-            options={[
-              { value: "", label: "Todos" },
-              ...animalTypeOptions.map((a) => ({ value: a, label: a })),
-            ]}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Rubro / Subrubro</span>
-          <FilterCombobox
-            key={subrubroIdParam}
-            name="subrubroId"
-            defaultValue={subrubroIdParam}
-            placeholder="Buscar rubro o subrubro…"
+            key={supplierIdParam}
+            name="supplierId"
+            defaultValue={supplierIdParam}
+            placeholder="Buscar proveedor…"
             className="w-48"
-            options={[{ value: "", label: "Todos" }, ...subrubroOptions]}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Peso</span>
-          <FilterCombobox
-            key={animalWeightParam}
-            name="animalWeight"
-            defaultValue={animalWeightParam}
-            placeholder="Buscar peso…"
-            className="w-36"
             options={[
               { value: "", label: "Todos" },
-              ...animalWeightOptions.map((w) => ({ value: w, label: w })),
+              ...suppliers.map((s) => ({ value: s.id, label: s.name })),
             ]}
           />
         </label>
