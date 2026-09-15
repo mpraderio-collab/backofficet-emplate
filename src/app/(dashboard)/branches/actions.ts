@@ -64,6 +64,38 @@ export async function createBranch(
   return {};
 }
 
+export async function renameBranch(
+  id: string,
+  name: string,
+): Promise<BranchActionState> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const result = branchSchema.safeParse({ name });
+  if (!result.success) {
+    return {
+      error: "Revisá el nombre.",
+      fieldErrors: { name: result.error.issues[0]?.message ?? "Nombre inválido" },
+    };
+  }
+
+  try {
+    await db.branch.update({ where: { id }, data: { name: result.data.name } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return {
+        error: "Ya existe una sucursal con ese nombre.",
+        fieldErrors: { name: "Este nombre ya está en uso" },
+      };
+    }
+    throw err;
+  }
+
+  revalidatePath("/branches");
+  revalidatePath("/", "layout");
+  return {};
+}
+
 export async function canDeleteBranch(id: string): Promise<{ error?: string }> {
   const session = await auth();
   if (!session?.user) redirect("/login");

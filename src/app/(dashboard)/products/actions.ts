@@ -49,6 +49,7 @@ function parseForm(formData: FormData) {
     unitSize: formData.get("unitSize") ?? "",
     fractionPrice: formData.get("fractionPrice") ?? "",
     brand: formData.get("brand"),
+    presentation: formData.get("presentation"),
     animalType: formData.get("animalType"),
     animalWeight: formData.get("animalWeight"),
     subrubroId: formData.get("subrubroId"),

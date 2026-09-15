@@ -46,6 +46,7 @@ export const productSchema = z.object({
     z.coerce.number().int().nonnegative().optional(),
   ),
   brand: z.string().trim().max(80).optional().or(z.literal("")),
+  presentation: z.string().trim().max(60).optional().or(z.literal("")),
   animalType: z.string().trim().max(60).optional().or(z.literal("")),
   animalWeight: z.string().trim().max(60).optional().or(z.literal("")),
   subrubroId: z.string().min(1, "Elegí un rubro y subrubro"),

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { BranchForm } from "./BranchForm";
+import { BranchNameEditor } from "./BranchNameEditor";
 import { DeleteBranchButton } from "./DeleteBranchButton";
 
 export default async function BranchesPage() {
@@ -44,7 +45,11 @@ export default async function BranchesPage() {
                   key={branch.id}
                   className="flex items-center justify-between rounded-xl border border-line bg-bg p-4"
                 >
-                  <span className="font-semibold text-ink">{branch.name}</span>
+                  {isAdmin ? (
+                    <BranchNameEditor id={branch.id} name={branch.name} />
+                  ) : (
+                    <span className="font-semibold text-ink">{branch.name}</span>
+                  )}
                   {isAdmin && <DeleteBranchButton id={branch.id} />}
                 </li>
               ))}

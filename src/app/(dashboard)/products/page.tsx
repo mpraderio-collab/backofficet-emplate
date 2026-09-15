@@ -96,7 +96,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       name: p.name,
       sku: p.sku,
       imageUrl: p.imageUrl,
-      characteristics: [p.brand, p.animalType, p.subrubro.name, p.animalWeight]
+      characteristics: [p.brand, p.presentation, p.animalType, p.subrubro.name, p.animalWeight]
         .filter(Boolean)
         .join(" · "),
       supplierName: p.supplier?.name ?? null,

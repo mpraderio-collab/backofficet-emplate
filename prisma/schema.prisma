@@ -51,6 +51,12 @@ model Product {
   animalType  String? // ej: perro, gato
   animalWeight String? // ej: "1-10 kg" — texto libre, no siempre es un rango exacto
 
+  // Formato/tamaño del envase tal como lo vende el proveedor (ej: "3k",
+  // "500g", "25kg", "2\""). Texto libre, no se usa para cálculos — para eso
+  // está unitSize. Sirve para distinguir en listados productos con el mismo
+  // nombre pero distinta presentación (ej. "Sabrositos Mix" en 500g y 3k).
+  presentation String?
+
   subrubroId String
   subrubro   Subrubro @relation(fields: [subrubroId], references: [id])
 

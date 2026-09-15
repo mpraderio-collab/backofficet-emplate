@@ -37,6 +37,7 @@ type Props = {
     unitSize: number | null;
     fractionPrice: number | null;
     brand: string | null;
+    presentation: string | null;
     animalType: string | null;
     animalWeight: string | null;
     subrubroId: string;
@@ -432,7 +433,18 @@ export function ProductForm({
         </Link>
       </p>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
+        <Field
+          label="Presentación"
+          error={state.fieldErrors?.presentation}
+          hint='Opcional. Ej: "3k", "500g", "25kg"'
+        >
+          <input
+            name="presentation"
+            defaultValue={defaultValues?.presentation ?? ""}
+            className="input"
+          />
+        </Field>
         <Field label="Animal" error={state.fieldErrors?.animalType} hint='Opcional. Ej: "perro", "gato"'>
           <input
             name="animalType"
