@@ -16,16 +16,29 @@ type ProductOption = {
   fractionPrice: number | null;
   brand: string | null;
   supplier: { name: string } | null;
+  subrubroId: string;
+  subrubro: { rubroId: string };
 };
+
+type Subrubro = { id: string; name: string };
+type Rubro = { id: string; name: string; subrubros: Subrubro[] };
 
 const initialState: BulkUpdateState = {};
 
-export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
+export function BulkUpdateForm({
+  products,
+  rubros,
+}: {
+  products: ProductOption[];
+  rubros: Rubro[];
+}) {
   const [state, formAction, pending] = useActionState(bulkUpdatePrices, initialState);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [percent, setPercent] = useState(0);
   const [brandFilter, setBrandFilter] = useState("");
   const [supplierFilter, setSupplierFilter] = useState("");
+  const [rubroFilter, setRubroFilter] = useState("");
+  const [subrubroFilter, setSubrubroFilter] = useState("");
 
   const brands = useMemo(
     () => [...new Set(products.map((p) => p.brand).filter((b): b is string => Boolean(b)))].sort(),
@@ -36,11 +49,21 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
       [...new Set(products.map((p) => p.supplier?.name).filter((s): s is string => Boolean(s)))].sort(),
     [products],
   );
+  const subrubroOptions = rubroFilter
+    ? (rubros.find((r) => r.id === rubroFilter)?.subrubros ?? [])
+    : rubros.flatMap((r) => r.subrubros);
+
+  function handleRubroFilterChange(value: string) {
+    setRubroFilter(value);
+    setSubrubroFilter("");
+  }
 
   const visibleProducts = products.filter(
     (p) =>
       (!brandFilter || p.brand === brandFilter) &&
-      (!supplierFilter || p.supplier?.name === supplierFilter),
+      (!supplierFilter || p.supplier?.name === supplierFilter) &&
+      (!subrubroFilter || p.subrubroId === subrubroFilter) &&
+      (!rubroFilter || p.subrubro.rubroId === rubroFilter),
   );
 
   const allSelected =
@@ -91,6 +114,32 @@ export function BulkUpdateForm({ products }: { products: ProductOption[] }) {
       ))}
 
       <div className="flex flex-wrap items-end gap-4 rounded-xl border border-line bg-surface p-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Rubro</span>
+          <Combobox
+            value={rubroFilter}
+            onChange={handleRubroFilterChange}
+            placeholder="Buscar rubro…"
+            className="w-44"
+            options={[
+              { value: "", label: "Todos los rubros" },
+              ...rubros.map((r) => ({ value: r.id, label: r.name })),
+            ]}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Subrubro</span>
+          <Combobox
+            value={subrubroFilter}
+            onChange={setSubrubroFilter}
+            placeholder="Buscar subrubro…"
+            className="w-44"
+            options={[
+              { value: "", label: "Todos los subrubros" },
+              ...subrubroOptions.map((s) => ({ value: s.id, label: s.name })),
+            ]}
+          />
+        </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Marca</span>
           <Combobox

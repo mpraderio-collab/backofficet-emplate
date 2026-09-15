@@ -3,20 +3,28 @@ import { db } from "@/lib/db";
 import { BulkUpdateForm } from "./BulkUpdateForm";
 
 export default async function BulkUpdatePage() {
-  const products = await db.product.findMany({
-    where: { status: "active" },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      price: true,
-      cost: true,
-      fractionUnit: true,
-      fractionPrice: true,
-      brand: true,
-      supplier: { select: { name: true } },
-    },
-  });
+  const [products, rubros] = await Promise.all([
+    db.product.findMany({
+      where: { status: "active" },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        cost: true,
+        fractionUnit: true,
+        fractionPrice: true,
+        brand: true,
+        supplier: { select: { name: true } },
+        subrubroId: true,
+        subrubro: { select: { rubroId: true } },
+      },
+    }),
+    db.rubro.findMany({
+      orderBy: { name: "asc" },
+      include: { subrubros: { orderBy: { name: "asc" } } },
+    }),
+  ]);
 
   return (
     <div>
@@ -32,7 +40,7 @@ export default async function BulkUpdatePage() {
         costo y al precio por fracción (si tienen), todos por igual.
       </p>
       <div className="mt-6">
-        <BulkUpdateForm products={products} />
+        <BulkUpdateForm products={products} rubros={rubros} />
       </div>
     </div>
   );
