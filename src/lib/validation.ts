@@ -47,7 +47,6 @@ export const productSchema = z.object({
   ),
   brand: z.string().trim().max(80).optional().or(z.literal("")),
   presentation: z.string().trim().max(60).optional().or(z.literal("")),
-  animalType: z.string().trim().max(60).optional().or(z.literal("")),
   animalWeight: z.string().trim().max(60).optional().or(z.literal("")),
   subrubroId: z.string().min(1, "Elegí un rubro y subrubro"),
   registeredAt: z.coerce.date({ message: "Elegí una fecha de alta válida" }),

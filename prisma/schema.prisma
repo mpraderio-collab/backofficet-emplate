@@ -48,7 +48,6 @@ model Product {
 
   // Datos específicos para productos de mascotas/veterinaria (opcionales).
   brand       String?
-  animalType  String? // ej: perro, gato
   animalWeight String? // ej: "1-10 kg" — texto libre, no siempre es un rango exacto
 
   // Formato/tamaño del envase tal como lo vende el proveedor (ej: "3k",

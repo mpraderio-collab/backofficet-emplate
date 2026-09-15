@@ -17,8 +17,6 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
   const supplierIdParam =
     typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
   const brandParam = typeof searchParams?.brand === "string" ? searchParams.brand : "";
-  const animalTypeParam =
-    typeof searchParams?.animalType === "string" ? searchParams.animalType : "";
   const subrubroIdParam =
     typeof searchParams?.subrubroId === "string" ? searchParams.subrubroId : "";
   const animalWeightParam =
@@ -30,7 +28,6 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
         status: "active",
         ...(supplierIdParam && { supplierId: supplierIdParam }),
         ...(brandParam && { brand: brandParam }),
-        ...(animalTypeParam && { animalType: animalTypeParam }),
         ...(subrubroIdParam && { subrubroId: subrubroIdParam }),
         ...(animalWeightParam && { animalWeight: animalWeightParam }),
       },
@@ -45,7 +42,7 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
       include: { subrubros: { orderBy: { name: "asc" } } },
     }),
     db.product.findMany({
-      select: { brand: true, animalType: true, animalWeight: true },
+      select: { brand: true, animalWeight: true },
     }),
     db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.purchaseOrderItem.findMany({
@@ -64,14 +61,13 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
   }
 
   const brandOptions = distinctValues(allProducts, "brand");
-  const animalTypeOptions = distinctValues(allProducts, "animalType");
   const animalWeightOptions = distinctValues(allProducts, "animalWeight");
   const subrubroOptions = rubros.flatMap((r) =>
     r.subrubros.map((s) => ({ value: s.id, label: `${r.name} › ${s.name}` })),
   );
 
   const hasFilters = Boolean(
-    supplierIdParam || brandParam || animalTypeParam || subrubroIdParam || animalWeightParam,
+    supplierIdParam || brandParam || subrubroIdParam || animalWeightParam,
   );
 
   const rows: PriceListRow[] = products.map((p) => {
@@ -129,20 +125,6 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
             options={[
               { value: "", label: "Todas" },
               ...brandOptions.map((b) => ({ value: b, label: b })),
-            ]}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Animal</span>
-          <FilterCombobox
-            key={animalTypeParam}
-            name="animalType"
-            defaultValue={animalTypeParam}
-            placeholder="Buscar animal…"
-            className="w-36"
-            options={[
-              { value: "", label: "Todos" },
-              ...animalTypeOptions.map((a) => ({ value: a, label: a })),
             ]}
           />
         </label>

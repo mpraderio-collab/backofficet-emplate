@@ -18,7 +18,6 @@ type ProductOption = {
   fractionUnit: string | null;
   unitSize: number | null;
   brand: string | null;
-  animalType: string | null;
   animalWeight: string | null;
   subrubro: { name: string } | null;
   supplierId: string | null;
@@ -30,7 +29,7 @@ type ProductOption = {
 };
 
 function productCharacteristics(product: ProductOption): string {
-  return [product.brand, product.animalType, product.subrubro?.name, product.animalWeight]
+  return [product.brand, product.subrubro?.name, product.animalWeight]
     .filter(Boolean)
     .join(" · ");
 }

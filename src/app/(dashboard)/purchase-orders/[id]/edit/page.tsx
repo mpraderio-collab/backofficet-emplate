@@ -32,7 +32,6 @@ export default async function EditPurchaseOrderPage(
         fractionUnit: true,
         unitSize: true,
         brand: true,
-        animalType: true,
         animalWeight: true,
         subrubro: { select: { name: true } },
         supplierId: true,

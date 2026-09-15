@@ -103,7 +103,6 @@ export default async function EditProductPage(
             fractionPrice: product.fractionPrice,
             brand: product.brand,
             presentation: product.presentation,
-            animalType: product.animalType,
             animalWeight: product.animalWeight,
             subrubroId: product.subrubroId,
             registeredAt: registeredAtValue,
