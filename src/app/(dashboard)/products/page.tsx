@@ -4,6 +4,7 @@ import { formatQuantity } from "@/lib/format";
 import { calculateMargin, formatMarginPercent } from "@/lib/margin";
 import { getActiveBranch } from "@/lib/branch";
 import { FilterCombobox } from "@/components/FilterCombobox";
+import { RubroSubrubroFilter } from "./RubroSubrubroFilter";
 import { ProductsTable, type ProductRow } from "./ProductsTable";
 
 function distinctValues(products: { [key: string]: unknown }[], key: string): string[] {
@@ -56,10 +57,6 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   ]);
 
   const brandOptions = distinctValues(allProducts, "brand");
-  const rubroOptions = rubros.map((r) => ({ value: r.id, label: r.name }));
-  const subrubroOptions = (
-    rubroIdParam ? (rubros.find((r) => r.id === rubroIdParam)?.subrubros ?? []) : rubros.flatMap((r) => r.subrubros)
-  ).map((s) => ({ value: s.id, label: s.name }));
 
   const soldByProductId = new Map<string, { unitCount: number; fractionQuantity: number }>();
   for (const item of soldItems) {
@@ -148,28 +145,12 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       </div>
 
       <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Rubro</span>
-          <FilterCombobox
-            key={rubroIdParam}
-            name="rubroId"
-            defaultValue={rubroIdParam}
-            placeholder="Buscar rubro…"
-            className="w-44"
-            options={[{ value: "", label: "Todos" }, ...rubroOptions]}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Subrubro</span>
-          <FilterCombobox
-            key={`${rubroIdParam}-${subrubroIdParam}`}
-            name="subrubroId"
-            defaultValue={subrubroIdParam}
-            placeholder="Buscar subrubro…"
-            className="w-44"
-            options={[{ value: "", label: "Todos" }, ...subrubroOptions]}
-          />
-        </label>
+        <RubroSubrubroFilter
+          key={`${rubroIdParam}-${subrubroIdParam}`}
+          rubros={rubros}
+          defaultRubroId={rubroIdParam}
+          defaultSubrubroId={subrubroIdParam}
+        />
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-soft">Marca</span>
           <FilterCombobox
