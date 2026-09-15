@@ -1,26 +1,17 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { FilterCombobox } from "@/components/FilterCombobox";
+import { RubroSubrubroFilter } from "../RubroSubrubroFilter";
 import { PriceListTable, type PriceListRow } from "./PriceListTable";
-
-function distinctValues(products: { [key: string]: unknown }[], key: string): string[] {
-  const values = new Set<string>();
-  for (const p of products) {
-    const value = p[key];
-    if (typeof value === "string" && value.trim()) values.add(value);
-  }
-  return [...values].sort((a, b) => a.localeCompare(b));
-}
 
 export default async function PriceListPage(props: PageProps<"/products/price-list">) {
   const searchParams = await props.searchParams;
   const supplierIdParam =
     typeof searchParams?.supplierId === "string" ? searchParams.supplierId : "";
   const brandParam = typeof searchParams?.brand === "string" ? searchParams.brand : "";
+  const rubroIdParam = typeof searchParams?.rubroId === "string" ? searchParams.rubroId : "";
   const subrubroIdParam =
     typeof searchParams?.subrubroId === "string" ? searchParams.subrubroId : "";
-  const animalWeightParam =
-    typeof searchParams?.animalWeight === "string" ? searchParams.animalWeight : "";
 
   const [products, suppliers, rubros, allProducts, branches, openOrderItems] = await Promise.all([
     db.product.findMany({
@@ -29,7 +20,7 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
         ...(supplierIdParam && { supplierId: supplierIdParam }),
         ...(brandParam && { brand: brandParam }),
         ...(subrubroIdParam && { subrubroId: subrubroIdParam }),
-        ...(animalWeightParam && { animalWeight: animalWeightParam }),
+        ...(rubroIdParam && !subrubroIdParam && { subrubro: { rubroId: rubroIdParam } }),
       },
       orderBy: { name: "asc" },
       include: {
@@ -42,7 +33,7 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
       include: { subrubros: { orderBy: { name: "asc" } } },
     }),
     db.product.findMany({
-      select: { brand: true, animalWeight: true },
+      select: { brand: true, subrubroId: true, subrubro: { select: { rubroId: true } } },
     }),
     db.branch.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.purchaseOrderItem.findMany({
@@ -60,15 +51,13 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
     if (!current || status === "sent") openOrderStatusByProductId.set(item.productId, status);
   }
 
-  const brandOptions = distinctValues(allProducts, "brand");
-  const animalWeightOptions = distinctValues(allProducts, "animalWeight");
-  const subrubroOptions = rubros.flatMap((r) =>
-    r.subrubros.map((s) => ({ value: s.id, label: `${r.name} › ${s.name}` })),
-  );
+  const brandFilterProducts = allProducts.map((p) => ({
+    brand: p.brand,
+    subrubroId: p.subrubroId,
+    rubroId: p.subrubro.rubroId,
+  }));
 
-  const hasFilters = Boolean(
-    supplierIdParam || brandParam || subrubroIdParam || animalWeightParam,
-  );
+  const hasFilters = Boolean(supplierIdParam || brandParam || rubroIdParam || subrubroIdParam);
 
   const rows: PriceListRow[] = products.map((p) => {
     const stockByBranchId = new Map(p.stocks.map((s) => [s.branchId, s.stock]));
@@ -114,45 +103,14 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
             ]}
           />
         </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Marca</span>
-          <FilterCombobox
-            key={brandParam}
-            name="brand"
-            defaultValue={brandParam}
-            placeholder="Buscar marca…"
-            className="w-40"
-            options={[
-              { value: "", label: "Todas" },
-              ...brandOptions.map((b) => ({ value: b, label: b })),
-            ]}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Rubro / Subrubro</span>
-          <FilterCombobox
-            key={subrubroIdParam}
-            name="subrubroId"
-            defaultValue={subrubroIdParam}
-            placeholder="Buscar rubro o subrubro…"
-            className="w-48"
-            options={[{ value: "", label: "Todos" }, ...subrubroOptions]}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Peso</span>
-          <FilterCombobox
-            key={animalWeightParam}
-            name="animalWeight"
-            defaultValue={animalWeightParam}
-            placeholder="Buscar peso…"
-            className="w-36"
-            options={[
-              { value: "", label: "Todos" },
-              ...animalWeightOptions.map((w) => ({ value: w, label: w })),
-            ]}
-          />
-        </label>
+        <RubroSubrubroFilter
+          key={`${rubroIdParam}-${subrubroIdParam}-${brandParam}`}
+          rubros={rubros}
+          products={brandFilterProducts}
+          defaultRubroId={rubroIdParam}
+          defaultSubrubroId={subrubroIdParam}
+          defaultBrand={brandParam}
+        />
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
