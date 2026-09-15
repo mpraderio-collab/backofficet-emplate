@@ -7,15 +7,6 @@ import { FilterCombobox } from "@/components/FilterCombobox";
 import { RubroSubrubroFilter } from "./RubroSubrubroFilter";
 import { ProductsTable, type ProductRow } from "./ProductsTable";
 
-function distinctValues(products: { [key: string]: unknown }[], key: string): string[] {
-  const values = new Set<string>();
-  for (const p of products) {
-    const value = p[key];
-    if (typeof value === "string" && value.trim()) values.add(value);
-  }
-  return [...values].sort((a, b) => a.localeCompare(b));
-}
-
 export default async function ProductsPage(props: PageProps<"/products">) {
   const searchParams = await props.searchParams;
   const supplierIdParam =
@@ -48,7 +39,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       include: { subrubros: { orderBy: { name: "asc" } } },
     }),
     db.product.findMany({
-      select: { brand: true },
+      select: { brand: true, subrubroId: true, subrubro: { select: { rubroId: true } } },
     }),
     db.saleItem.findMany({
       where: { sale: { status: "confirmed" } },
@@ -56,7 +47,11 @@ export default async function ProductsPage(props: PageProps<"/products">) {
     }),
   ]);
 
-  const brandOptions = distinctValues(allProducts, "brand");
+  const brandFilterProducts = allProducts.map((p) => ({
+    brand: p.brand,
+    subrubroId: p.subrubroId,
+    rubroId: p.subrubro.rubroId,
+  }));
 
   const soldByProductId = new Map<string, { unitCount: number; fractionQuantity: number }>();
   for (const item of soldItems) {
@@ -146,25 +141,13 @@ export default async function ProductsPage(props: PageProps<"/products">) {
 
       <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
         <RubroSubrubroFilter
-          key={`${rubroIdParam}-${subrubroIdParam}`}
+          key={`${rubroIdParam}-${subrubroIdParam}-${brandParam}`}
           rubros={rubros}
+          products={brandFilterProducts}
           defaultRubroId={rubroIdParam}
           defaultSubrubroId={subrubroIdParam}
+          defaultBrand={brandParam}
         />
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Marca</span>
-          <FilterCombobox
-            key={brandParam}
-            name="brand"
-            defaultValue={brandParam}
-            placeholder="Buscar marca…"
-            className="w-40"
-            options={[
-              { value: "", label: "Todas" },
-              ...brandOptions.map((b) => ({ value: b, label: b })),
-            ]}
-          />
-        </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-soft">Proveedor</span>
           <FilterCombobox
