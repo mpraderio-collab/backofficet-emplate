@@ -6,6 +6,7 @@ import { Alert } from "@/components/Alert";
 import { Field } from "@/components/Field";
 import { Combobox } from "@/components/Combobox";
 import { DescriptionTypeahead, type DescriptionSuggestion } from "@/components/DescriptionTypeahead";
+import { NameTypeahead, type NameSuggestion } from "@/components/NameTypeahead";
 import { MoneyInput } from "@/components/MoneyInput";
 import { NumberInput } from "@/components/NumberInput";
 import { DEFAULT_MIN_STOCK } from "@/lib/stock";
@@ -25,6 +26,7 @@ type Props = {
   suppliers: Supplier[];
   rubros: Rubro[];
   descriptionSuggestions: DescriptionSuggestion[];
+  nameSuggestions: NameSuggestion[];
   excludeProductId?: string;
   defaultValues?: {
     name: string;
@@ -57,6 +59,7 @@ export function ProductForm({
   suppliers,
   rubros,
   descriptionSuggestions,
+  nameSuggestions,
   excludeProductId,
   defaultValues,
   submitLabel,
@@ -230,7 +233,12 @@ export function ProductForm({
       {state.error && <Alert variant="error">{state.error}</Alert>}
 
       <Field label="Nombre" error={state.fieldErrors?.name}>
-        <input name="name" defaultValue={defaultValues?.name} required className="input" />
+        <NameTypeahead
+          name="name"
+          defaultValue={defaultValues?.name}
+          suggestions={nameSuggestions}
+          excludeProductId={excludeProductId}
+        />
       </Field>
 
       <Field label="Foto del producto" hint="Opcional. Se usa en los buscadores y listados.">

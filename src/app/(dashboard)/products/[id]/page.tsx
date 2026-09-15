@@ -13,29 +13,40 @@ export default async function EditProductPage(
   props: PageProps<"/products/[id]">,
 ) {
   const { id } = await props.params;
-  const [product, suppliers, rubros, lastSaleDate, stocks, productsWithDescription] = await Promise.all([
-    db.product.findUnique({ where: { id } }),
-    db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    db.rubro.findMany({
-      orderBy: { name: "asc" },
-      include: { subrubros: { orderBy: { name: "asc" } } },
-    }),
-    getLastSaleDateForProduct(id),
-    db.productStock.findMany({
-      where: { productId: id },
-      orderBy: { branch: { name: "asc" } },
-      include: { branch: { select: { name: true } } },
-    }),
-    db.product.findMany({
-      where: { description: { not: null } },
-      select: { id: true, name: true, description: true },
-    }),
-  ]);
+  const [product, suppliers, rubros, lastSaleDate, stocks, productsWithDescription, allProducts] =
+    await Promise.all([
+      db.product.findUnique({ where: { id } }),
+      db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      db.rubro.findMany({
+        orderBy: { name: "asc" },
+        include: { subrubros: { orderBy: { name: "asc" } } },
+      }),
+      getLastSaleDateForProduct(id),
+      db.productStock.findMany({
+        where: { productId: id },
+        orderBy: { branch: { name: "asc" } },
+        include: { branch: { select: { name: true } } },
+      }),
+      db.product.findMany({
+        where: { description: { not: null } },
+        select: { id: true, name: true, description: true },
+      }),
+      db.product.findMany({
+        select: { id: true, name: true, brand: true, presentation: true },
+      }),
+    ]);
   if (!product) notFound();
 
   const descriptionSuggestions = productsWithDescription
     .filter((p) => p.description)
     .map((p) => ({ productId: p.id, productName: p.name, description: p.description! }));
+
+  const nameSuggestions = allProducts.map((p) => ({
+    productId: p.id,
+    name: p.name,
+    brand: p.brand,
+    presentation: p.presentation,
+  }));
 
   const boundAction = updateProduct.bind(null, product.id);
   const margin = calculateMargin(product.price, product.cost);
@@ -77,6 +88,7 @@ export default async function EditProductPage(
           suppliers={suppliers}
           rubros={rubros}
           descriptionSuggestions={descriptionSuggestions}
+          nameSuggestions={nameSuggestions}
           excludeProductId={product.id}
           submitLabel="Guardar cambios"
           defaultValues={{
