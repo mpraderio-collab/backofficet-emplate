@@ -218,15 +218,6 @@ export function SignageDisplay() {
 
   return (
     <div className={styles.stage}>
-      <button
-        type="button"
-        onClick={toggleFullscreen}
-        className={styles.fsButton}
-        style={{ opacity: showFsButton ? 1 : 0, pointerEvents: showFsButton ? "auto" : "none" }}
-        aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-      >
-        {isFullscreen ? "⤡" : "⤢"}
-      </button>
       <div className={styles.chromeTop}>
         <div className={styles.brand}>
           <div className={styles.brandMark}>🐾</div>
@@ -235,7 +226,18 @@ export function SignageDisplay() {
             <small>Forrajería &amp; Mascotas</small>
           </div>
         </div>
-        <div className={styles.clock}>{clock}</div>
+        <div className={styles.clockCol}>
+          <div className={styles.clock}>{clock}</div>
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className={styles.fsButton}
+            style={{ opacity: showFsButton ? 1 : 0, pointerEvents: showFsButton ? "auto" : "none" }}
+            aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          >
+            {isFullscreen ? "⤡" : "⤢"}
+          </button>
+        </div>
       </div>
 
       {slides.map((slide, i) => {
