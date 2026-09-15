@@ -138,6 +138,29 @@
   }
 }
 
+.fsButton {
+  position: absolute;
+  top: clamp(16px, 2.4vw, 36px);
+  right: clamp(20px, 3.2vw, 48px);
+  z-index: 30;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: opacity 300ms ease;
+  backdrop-filter: blur(6px);
+}
+
+.fsButton:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
 .slide {
   position: absolute;
   inset: 0;

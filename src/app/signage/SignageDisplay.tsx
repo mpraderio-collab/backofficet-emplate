@@ -102,7 +102,44 @@ export function SignageDisplay() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [current, setCurrent] = useState(0);
   const [clock, setClock] = useState("--:--");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFsButton, setShowFsButton] = useState(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideFsButtonRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    function onFsChange() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  useEffect(() => {
+    function resetHideTimer() {
+      setShowFsButton(true);
+      if (hideFsButtonRef.current) clearTimeout(hideFsButtonRef.current);
+      hideFsButtonRef.current = setTimeout(() => setShowFsButton(false), 4000);
+    }
+    resetHideTimer();
+    window.addEventListener("mousemove", resetHideTimer);
+    window.addEventListener("touchstart", resetHideTimer);
+    return () => {
+      window.removeEventListener("mousemove", resetHideTimer);
+      window.removeEventListener("touchstart", resetHideTimer);
+      if (hideFsButtonRef.current) clearTimeout(hideFsButtonRef.current);
+    };
+  }, []);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen().catch(() => {
+        // Algunos navegadores/TVs no permiten pantalla completa vía JS; F11 sigue funcionando.
+      });
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -181,6 +218,15 @@ export function SignageDisplay() {
 
   return (
     <div className={styles.stage}>
+      <button
+        type="button"
+        onClick={toggleFullscreen}
+        className={styles.fsButton}
+        style={{ opacity: showFsButton ? 1 : 0, pointerEvents: showFsButton ? "auto" : "none" }}
+        aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+      >
+        {isFullscreen ? "⤡" : "⤢"}
+      </button>
       <div className={styles.chromeTop}>
         <div className={styles.brand}>
           <div className={styles.brandMark}>🐾</div>
