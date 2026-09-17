@@ -2,12 +2,18 @@ import { redirect } from "next/navigation";
 import { signIn, auth } from "@/auth";
 import { AuthError } from "next-auth";
 import { Alert } from "@/components/Alert";
+import { markJustLoggedIn } from "@/lib/branch";
 
 async function login(formData: FormData) {
   "use server";
   const email = formData.get("email");
   const password = formData.get("password");
   try {
+    // Se marca antes de signIn (que redirige internamente si sale bien, así
+    // que nada después de esa línea llega a ejecutarse en el caso exitoso).
+    // Si el login falla, el flag queda pero es inofensivo: solo dispara el
+    // popup dentro del layout logueado, que nunca se llega a renderizar acá.
+    await markJustLoggedIn();
     await signIn("credentials", {
       email,
       password,
