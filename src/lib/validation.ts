@@ -3,7 +3,7 @@ import { paymentMethods } from "./payment-method";
 
 // Solo se pide en el formulario para rubro "Alimentos Balanceados" >
 // subrubro "Perros" — ver ProductForm.
-export const BITE_TYPES = ["Mordida chica", "Mordida mediana", "Mordida grande"] as const;
+export const BITE_TYPES = ["Mordida chica", "Mordida grande", "Cachorro"] as const;
 
 export const productSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(160),
