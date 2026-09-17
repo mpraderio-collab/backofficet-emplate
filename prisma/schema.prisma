@@ -56,6 +56,12 @@ model Product {
   // nombre pero distinta presentación (ej. "Sabrositos Mix" en 500g y 3k).
   presentation String?
 
+  // Solo aplica a alimento balanceado para perros (rubro "Alimentos
+  // Balanceados" > subrubro "Perros") — el tamaño de mordida del pellet,
+  // no del animal. Se pide en el formulario únicamente para esa
+  // combinación de rubro/subrubro, ver ProductForm.
+  biteType String?
+
   subrubroId String
   subrubro   Subrubro @relation(fields: [subrubroId], references: [id])
 

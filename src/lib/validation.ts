@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { paymentMethods } from "./payment-method";
 
+// Solo se pide en el formulario para rubro "Alimentos Balanceados" >
+// subrubro "Perros" — ver ProductForm.
+export const BITE_TYPES = ["Mordida chica", "Mordida mediana", "Mordida grande"] as const;
+
 export const productSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(160),
   sku: z
@@ -48,6 +52,7 @@ export const productSchema = z.object({
   brand: z.string().trim().max(80).optional().or(z.literal("")),
   presentation: z.string().trim().max(60).optional().or(z.literal("")),
   animalWeight: z.string().trim().max(60).optional().or(z.literal("")),
+  biteType: z.union([z.enum(BITE_TYPES), z.literal("")]).optional(),
   subrubroId: z.string().min(1, "Elegí un rubro y subrubro"),
   registeredAt: z.coerce.date({ message: "Elegí una fecha de alta válida" }),
   isSeasonal: z.preprocess((v) => v === "on" || v === true, z.boolean()).default(false),

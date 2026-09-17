@@ -104,6 +104,7 @@ export default async function EditProductPage(
             brand: product.brand,
             presentation: product.presentation,
             animalWeight: product.animalWeight,
+            biteType: product.biteType,
             subrubroId: product.subrubroId,
             registeredAt: registeredAtValue,
             imageUrl: product.imageUrl,

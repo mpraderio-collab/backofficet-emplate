@@ -51,6 +51,7 @@ function parseForm(formData: FormData) {
     brand: formData.get("brand"),
     presentation: formData.get("presentation"),
     animalWeight: formData.get("animalWeight"),
+    biteType: formData.get("biteType"),
     subrubroId: formData.get("subrubroId"),
     registeredAt: formData.get("registeredAt"),
     isSeasonal: formData.get("isSeasonal"),

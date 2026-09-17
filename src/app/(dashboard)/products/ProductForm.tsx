@@ -13,6 +13,7 @@ import { DEFAULT_MIN_STOCK } from "@/lib/stock";
 import { calculateMargin } from "@/lib/margin";
 import { toDateInputValue } from "@/lib/reports";
 import { createRubroInline, createSubrubroInline } from "./rubros/actions";
+import { BITE_TYPES } from "@/lib/validation";
 import type { ProductActionState } from "./actions";
 
 type Supplier = { id: string; name: string };
@@ -41,6 +42,7 @@ type Props = {
     brand: string | null;
     presentation: string | null;
     animalWeight: string | null;
+    biteType: string | null;
     subrubroId: string;
     registeredAt?: string;
     imageUrl?: string | null;
@@ -76,6 +78,12 @@ export function ProductForm({
   const [rubroId, setRubroId] = useState(defaultRubroId);
   const [subrubroId, setSubrubroId] = useState(defaultValues?.subrubroId ?? "");
   const subrubroOptions = rubroList.find((r) => r.id === rubroId)?.subrubros ?? [];
+  const selectedRubroName = rubroList.find((r) => r.id === rubroId)?.name;
+  const selectedSubrubroName = subrubroOptions.find((s) => s.id === subrubroId)?.name;
+  // Solo pedimos mordida para alimento balanceado de perros — es un dato
+  // del pellet (chica/mediana/grande), no aplica a gatos ni a otros rubros.
+  const showBiteType = selectedRubroName === "Alimentos Balanceados" && selectedSubrubroName === "Perros";
+  const [biteType, setBiteType] = useState(defaultValues?.biteType ?? "");
 
   function handleRubroChange(value: string) {
     setRubroId(value);
@@ -460,6 +468,28 @@ export function ProductForm({
           />
         </Field>
       </div>
+
+      {showBiteType && (
+        <Field
+          label="Tipo de mordida"
+          error={state.fieldErrors?.biteType}
+          hint="Opcional. Solo para alimento balanceado de perros"
+        >
+          <select
+            name="biteType"
+            value={biteType}
+            onChange={(e) => setBiteType(e.target.value)}
+            className="input"
+          >
+            <option value="">Sin especificar</option>
+            {BITE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <label className="flex items-center gap-2 text-sm text-ink">
         <input
