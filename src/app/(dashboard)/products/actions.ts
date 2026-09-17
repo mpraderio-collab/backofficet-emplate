@@ -51,7 +51,10 @@ function parseForm(formData: FormData) {
     brand: formData.get("brand"),
     presentation: formData.get("presentation"),
     animalWeight: formData.get("animalWeight"),
-    biteType: formData.get("biteType"),
+    // No se renderiza salvo alimento balanceado para perros (ver
+    // ProductForm), así que formData.get() da null en el resto de los
+    // productos — mismo problema que fractionUnit/unitSize más abajo.
+    biteType: formData.get("biteType") ?? "",
     subrubroId: formData.get("subrubroId"),
     registeredAt: formData.get("registeredAt"),
     isSeasonal: formData.get("isSeasonal"),
@@ -93,22 +96,40 @@ function toProductData(data: z.infer<typeof productSchema>) {
 // No hay una columna única para description (es opcional y muchos
 // productos no la cargan), así que se valida acá a mano en vez de confiar
 // en un P2002 de Prisma.
+//
+// Excepción: alimento balanceado para perros (rubro "Alimentos
+// Balanceados" > subrubro "Perros") puede repetir la descripción entre
+// presentaciones — lo que no puede repetirse ahí es la descripción JUNTO
+// CON el tipo de mordida (misma descripción y misma mordida sí es
+// duplicado; misma descripción con mordida distinta no lo es).
 async function findDuplicateDescription(
   description: string,
+  subrubroId: string,
+  biteType: string,
   excludeId?: string,
 ): Promise<{ error?: string; fieldErrors?: Record<string, string> } | null> {
   const trimmed = description.trim();
   if (!trimmed) return null;
+
+  const subrubro = await db.subrubro.findUnique({
+    where: { id: subrubroId },
+    select: { name: true, rubro: { select: { name: true } } },
+  });
+  const isDogFood = subrubro?.rubro.name === "Alimentos Balanceados" && subrubro?.name === "Perros";
+
   const duplicate = await db.product.findFirst({
     where: {
       description: { equals: trimmed, mode: "insensitive" },
+      ...(isDogFood ? { biteType } : {}),
       ...(excludeId ? { id: { not: excludeId } } : {}),
     },
     select: { name: true },
   });
   if (!duplicate) return null;
   return {
-    error: `Ya existe un producto con esa descripción: "${duplicate.name}".`,
+    error: isDogFood
+      ? `Ya existe un producto con esa descripción y tipo de mordida: "${duplicate.name}".`
+      : `Ya existe un producto con esa descripción: "${duplicate.name}".`,
     fieldErrors: { description: "Ya hay un producto con esta descripción" },
   };
 }
@@ -129,7 +150,11 @@ export async function createProduct(
   }
 
   if (result.data.description) {
-    const duplicate = await findDuplicateDescription(result.data.description);
+    const duplicate = await findDuplicateDescription(
+      result.data.description,
+      result.data.subrubroId,
+      result.data.biteType ?? "",
+    );
     if (duplicate) return duplicate;
   }
 
@@ -184,7 +209,12 @@ export async function updateProduct(
   }
 
   if (result.data.description) {
-    const duplicate = await findDuplicateDescription(result.data.description, id);
+    const duplicate = await findDuplicateDescription(
+      result.data.description,
+      result.data.subrubroId,
+      result.data.biteType ?? "",
+      id,
+    );
     if (duplicate) return duplicate;
   }
 
