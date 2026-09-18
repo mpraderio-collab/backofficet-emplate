@@ -177,7 +177,12 @@ export function ProductForm({
 
   function handleCostChange(value: number | "") {
     setCost(value);
-    if (value !== "" && value > 0 && marginPercent !== "") {
+    if (value !== "" && value > 0 && price !== "" && price > 0) {
+      // Ya hay un precio de venta cargado: al ingresar/cambiar el costo se
+      // recalcula el margen a partir de ese precio, en vez de pisar el
+      // precio con el margen que hubiera antes.
+      setMarginPercent(Math.round(((price - value) / value) * 1000) / 10);
+    } else if (value !== "" && value > 0 && marginPercent !== "") {
       setPrice(Math.round(value * (1 + marginPercent / 100)));
     }
     if (
