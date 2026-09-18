@@ -141,7 +141,7 @@ export function PriceListTable({
               <p key={b.id} className="text-sm text-ink-soft">
                 {b.name}:{" "}
                 <span className="font-semibold text-ink">
-                  {formatQuantity(scannedProduct.stockByBranchId[b.id] ?? 0, scannedProduct.fractionUnit)}
+                  {formatQuantity(scannedProduct.stockByBranchId[b.id] ?? 0)}
                 </span>
               </p>
             ))}
@@ -208,7 +208,7 @@ export function PriceListTable({
                   </td>
                   {branches.map((b) => (
                     <td key={b.id} className="px-4 py-3 text-ink-soft">
-                      {formatQuantity(p.stockByBranchId[b.id] ?? 0, p.fractionUnit)}
+                      {formatQuantity(p.stockByBranchId[b.id] ?? 0)}
                     </td>
                   ))}
                 </tr>

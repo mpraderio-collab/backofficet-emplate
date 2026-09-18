@@ -464,7 +464,7 @@ export default async function DashboardPage() {
                   <span
                     className={p.stock === 0 ? "font-semibold text-err-ink" : "font-semibold text-warn-ink"}
                   >
-                    {p.stock === 0 ? "sin stock" : formatQuantity(p.stock, p.fractionUnit)}
+                    {p.stock === 0 ? "sin stock" : formatQuantity(p.stock)}
                   </span>
                 </li>
               ))}

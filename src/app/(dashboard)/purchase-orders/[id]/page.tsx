@@ -125,9 +125,7 @@ export default async function PurchaseOrderDetailPage(
                         : "—"}
                     </td>
                     <td className="px-4 py-2 text-ink-soft">
-                      {item.stockDelta != null
-                        ? formatQuantity(item.stockDelta, item.product.fractionUnit)
-                        : "—"}
+                      {item.stockDelta != null ? formatQuantity(item.stockDelta) : "—"}
                     </td>
                   </>
                 )}

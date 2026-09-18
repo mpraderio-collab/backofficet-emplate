@@ -195,15 +195,9 @@ export async function receivePurchaseOrder(
     }
   }
 
-  // Las cantidades del pedido están en unidades completas (ej: bolsas);
-  // el stock del producto se lleva en su unidad base (ej: kg), así que
-  // hay que multiplicar por unitSize antes de sumarlo.
-  const products = await db.product.findMany({
-    where: { id: { in: po.items.map((item) => item.productId) } },
-    select: { id: true, unitSize: true },
-  });
-  const unitSizeByProductId = new Map(products.map((p) => [p.id, p.unitSize ?? 1]));
-
+  // Las cantidades del pedido y el stock del producto están en la misma
+  // unidad base (unidades completas, ej: bolsas) — se suman tal cual, sin
+  // conversión.
   const total = po.items.reduce((sum, item) => {
     const receivedQuantity = receivedByItemId.get(item.id) ?? 0;
     return sum + item.unitCost * receivedQuantity;
@@ -215,10 +209,9 @@ export async function receivePurchaseOrder(
     // otro momento. El costo, en cambio, es del producto (compartido).
     ...po.items.map((item) => {
       const receivedQuantity = receivedByItemId.get(item.id) ?? 0;
-      const stockDelta = receivedQuantity * (unitSizeByProductId.get(item.productId) ?? 1);
       return db.productStock.update({
         where: { productId_branchId: { productId: item.productId, branchId: po.branchId } },
-        data: { stock: { increment: stockDelta } },
+        data: { stock: { increment: receivedQuantity } },
       });
     }),
     ...po.items
@@ -231,10 +224,9 @@ export async function receivePurchaseOrder(
       ),
     ...po.items.map((item) => {
       const receivedQuantity = receivedByItemId.get(item.id) ?? 0;
-      const stockDelta = receivedQuantity * (unitSizeByProductId.get(item.productId) ?? 1);
       return db.purchaseOrderItem.update({
         where: { id: item.id },
-        data: { receivedQuantity, stockDelta },
+        data: { receivedQuantity, stockDelta: receivedQuantity },
       });
     }),
     db.purchaseOrder.update({

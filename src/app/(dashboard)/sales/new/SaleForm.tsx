@@ -78,17 +78,19 @@ export function SaleForm({
     if (state.saleId) router.push(`/sales/${state.saleId}`);
   }, [state.saleId, router]);
 
-  // Cuánto se descontaría del stock (en unidad base) si se agrega esta línea.
+  // Cuánto se descontaría del stock (en unidad base, ahora unidades
+  // completas/bolsas — no en kilos) si se agrega esta línea. Vendiendo por
+  // fracción (ej: kg sueltos) hay que convertir a unidades completas.
   const unitSizeForDelta = selectedProduct?.unitSize ?? 1;
   const stockDeltaForQuantity =
-    saleUnit === "unit" ? quantity * unitSizeForDelta : quantity;
+    saleUnit === "unit" ? quantity : quantity / unitSizeForDelta;
 
   const alreadyReserved = items
     .filter((i) => i.productId === selectedProductId)
     .reduce((sum, i) => sum + i.stockDelta, 0);
   const remainingStock = (selectedProduct?.stock ?? 0) - alreadyReserved;
   const maxQuantityForSelection =
-    saleUnit === "unit" ? remainingStock / unitSizeForDelta : remainingStock;
+    saleUnit === "unit" ? remainingStock : remainingStock * unitSizeForDelta;
 
   const total = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
 
@@ -110,8 +112,12 @@ export function SaleForm({
       return;
     }
     if (stockDeltaForQuantity > remainingStock) {
+      // remainingStock está en la unidad base (unidades completas) —
+      // convertir a la unidad que se está vendiendo para el mensaje.
+      const availableInSaleUnit =
+        saleUnit === "unit" ? remainingStock : remainingStock * unitSizeForDelta;
       setAddError(
-        `Solo quedan ${formatQuantity(remainingStock, selectedProduct.fractionUnit)} disponibles.`,
+        `Solo quedan ${formatQuantity(availableInSaleUnit, saleUnit === "unit" ? null : selectedProduct.fractionUnit)} disponibles.`,
       );
       return;
     }
@@ -144,7 +150,7 @@ export function SaleForm({
     const alreadyReservedForProduct = items
       .filter((i) => i.productId === product.id)
       .reduce((sum, i) => sum + i.stockDelta, 0);
-    const stockDelta = product.unitSize ?? 1;
+    const stockDelta = 1; // 1 unidad completa vendida = 1 unidad de stock descontada
     if (stockDelta > product.stock - alreadyReservedForProduct) {
       setAddError(`"${product.name}" no tiene stock disponible.`);
       return;
@@ -244,8 +250,8 @@ export function SaleForm({
                 label: p.name,
                 imageUrl: p.imageUrl,
                 description: p.description
-                  ? `${p.description} · ${formatQuantity(p.stock, p.fractionUnit)} disp.`
-                  : `${formatQuantity(p.stock, p.fractionUnit)} disp.`,
+                  ? `${p.description} · ${formatQuantity(p.stock)} disp.`
+                  : `${formatQuantity(p.stock)} disp.`,
                 priceLabel: formatMoney(p.price),
                 keywords: p.sku,
               }))}

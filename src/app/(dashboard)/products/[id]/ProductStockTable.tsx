@@ -8,7 +8,13 @@ type Row = { branchId: string; branchName: string; stock: number; minStock: numb
 
 export function ProductStockTable({ productId, rows }: { productId: string; rows: Row[] }) {
   return (
-    <div className="mt-6 max-w-2xl overflow-x-auto rounded-xl border border-line bg-bg">
+    <div className="mt-6 max-w-2xl">
+      <p className="mb-2 text-xs text-ink-soft">
+        Se carga en unidades completas (ej: bolsas) — aunque el producto se
+        venda también por fracción (ej: kg sueltos), acá va cuántas unidades
+        enteras hay, no los kilos.
+      </p>
+      <div className="overflow-x-auto rounded-xl border border-line bg-bg">
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
@@ -24,6 +30,7 @@ export function ProductStockTable({ productId, rows }: { productId: string; rows
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -136,7 +136,7 @@ export default async function StaleProductsReportPage(
                     {p.lastSaleDate ? formatDate(p.lastSaleDate) : "Nunca se vendió"}
                   </td>
                   <td className="px-4 py-3 text-ink-soft">
-                    {formatQuantity(p.stock, p.fractionUnit)}
+                    {formatQuantity(p.stock)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link

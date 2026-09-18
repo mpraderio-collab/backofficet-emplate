@@ -123,8 +123,12 @@ model ProductStock {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   branchId  String
   branch    Branch  @relation(fields: [branchId], references: [id])
-  stock     Float   @default(0) // en la unidad de fracción si el producto es fraccionable (ej: kg); si no, en unidades enteras
-  minStock  Float? // nivel para avisar reposición; si no se carga, se usa un default en la app
+  // Siempre en unidades completas (ej: bolsas), incluso si el producto se
+  // vende también por fracción (ej: kg sueltos) — la venta por fracción
+  // descuenta la proporción correspondiente (quantity / unitSize), nunca
+  // se guarda stock en la unidad de fracción.
+  stock     Float   @default(0)
+  minStock  Float? // nivel para avisar reposición (misma unidad que stock); si no se carga, se usa un default en la app
 
   @@unique([productId, branchId])
   @@index([branchId])
@@ -320,7 +324,7 @@ model PurchaseOrderItem {
   quantity         Float // cantidad pedida, siempre en unidades completas (ej: bolsas)
   unitCost         Int
   receivedQuantity Float? // cantidad realmente recibida (puede diferir de lo pedido) — se completa al recibir
-  stockDelta       Float? // cuánto sumó al stock al recibirse (receivedQuantity * unitSize del producto en ese momento)
+  stockDelta       Float? // cuánto sumó al stock al recibirse — misma unidad que ProductStock.stock, así que hoy siempre es igual a receivedQuantity
 
   @@index([purchaseOrderId])
 }

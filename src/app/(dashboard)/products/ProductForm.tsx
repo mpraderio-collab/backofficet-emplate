@@ -568,7 +568,11 @@ export function ProductForm({
             <Field
               label="Stock inicial"
               error={state.fieldErrors?.stock}
-              hint="En la sucursal activa — el resto arranca en 0"
+              hint={
+                sellsByFraction
+                  ? "En unidades completas (ej: bolsas), no en kilos — el resto arranca en 0"
+                  : "En la sucursal activa — el resto arranca en 0"
+              }
               labelClassName="min-h-10"
             >
               <NumberInput name="stock" min={0} step="any" defaultValue={0} required />

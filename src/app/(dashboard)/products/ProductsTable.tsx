@@ -221,7 +221,7 @@ export function ProductsTable({
                             : "text-ink"
                       }
                     >
-                      {formatQuantity(p.stock, p.fractionUnit)}
+                      {formatQuantity(p.stock)}
                     </span>
                     <p className="text-xs text-ink-faint">mín. {effectiveMinStock(p.minStock)}</p>
                   </td>

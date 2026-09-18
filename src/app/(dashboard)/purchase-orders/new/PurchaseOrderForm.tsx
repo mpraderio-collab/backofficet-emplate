@@ -166,7 +166,7 @@ export function PurchaseOrderForm({
                 <span className="text-ink">
                   {p.name}{" "}
                   <span className="text-ink-faint">
-                    ({formatQuantity(p.stock, p.fractionUnit)} disp.)
+                    ({formatQuantity(p.stock)} disp.)
                   </span>
                 </span>
                 <button
@@ -240,9 +240,9 @@ export function PurchaseOrderForm({
         )}
         {selectedProduct?.fractionUnit && (
           <p className="mt-2 text-xs text-ink-faint">
-            Se pide por unidad completa (ej: bolsas) — cada una suma{" "}
-            {selectedProduct.unitSize ?? 1} {selectedProduct.fractionUnit} de stock al
-            recibirse.
+            Se pide por unidad completa (ej: bolsas) — aunque el producto se venda
+            también por {selectedProduct.fractionUnit}, cada unidad recibida suma 1 al
+            stock.
           </p>
         )}
         {addError && <p className="mt-2 text-xs text-err-ink">{addError}</p>}
