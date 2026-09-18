@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { Alert } from "@/components/Alert";
@@ -32,6 +33,18 @@ type LineItem = {
   stockDelta: number;
 };
 
+// Una venta ya registrada, para el panel "Ventas de esta sesión" — vive
+// solo en memoria del navegador (se pierde al cerrar/recargar la pestaña),
+// a propósito: es un panorama de lo que se fue cargando ahora, no un
+// reemplazo del listado de ventas real.
+type SessionSale = {
+  id: string;
+  customerName: string;
+  itemCount: number;
+  total: number;
+  createdAt: number;
+};
+
 const initialState: SaleActionState = {};
 
 export function SaleForm({
@@ -57,6 +70,7 @@ export function SaleForm({
   const [initialPayment, setInitialPayment] = useState(0);
   const [paymentTouched, setPaymentTouched] = useState(false);
   const [billViaArca, setBillViaArca] = useState(false);
+  const [sessionSales, setSessionSales] = useState<SessionSale[]>([]);
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const isFractionable = Boolean(selectedProduct?.fractionUnit);
@@ -74,8 +88,57 @@ export function SaleForm({
     setUnitPrice(unit === "unit" ? (selectedProduct?.price ?? 0) : (selectedProduct?.fractionPrice ?? 0));
   }
 
+  // Snapshot de lo que se está por mandar, tomado al tocar "Registrar
+  // venta" — cuando el server action resuelve, el form ya se limpió para
+  // la próxima venta, así que no se puede leer items/cliente en ese momento.
+  const pendingSnapshotRef = useRef<{
+    customerName: string;
+    itemCount: number;
+    total: number;
+    createdAt: number;
+  } | null>(null);
+  function handleFormSubmit() {
+    pendingSnapshotRef.current = {
+      customerName: noCustomer ? "Venta general" : (selectedCustomer?.name ?? "—"),
+      itemCount: items.length,
+      total,
+      createdAt: new Date().getTime(),
+    };
+  }
+
+  // Al confirmarse una venta nueva: se agrega al panel de la sesión y se
+  // limpia el formulario para cargar la siguiente sin salir de la página.
+  // Comparar contra el saleId anterior (en vez de un efecto con setState)
+  // evita un re-render extra.
+  const [lastHandledSaleId, setLastHandledSaleId] = useState<string | undefined>(undefined);
+  if (state.saleId && state.saleId !== lastHandledSaleId) {
+    setLastHandledSaleId(state.saleId);
+    const snapshot = pendingSnapshotRef.current;
+    setSessionSales((prev) => [
+      {
+        id: state.saleId!,
+        customerName: snapshot?.customerName ?? "—",
+        itemCount: snapshot?.itemCount ?? 0,
+        total: snapshot?.total ?? 0,
+        createdAt: snapshot?.createdAt ?? 0,
+      },
+      ...prev,
+    ]);
+    setItems([]);
+    setCustomerId("");
+    setNoCustomer(false);
+    setNote("");
+    setInitialPayment(0);
+    setPaymentTouched(false);
+    setBillViaArca(false);
+    setQuantity(1);
+  }
+
+  // Trae stock/saldos frescos del servidor para la próxima venta (bajaron
+  // al confirmarse esta) sin salir de la página ni perder el panel de la
+  // sesión — efecto sin setState propio, solo dispara el refresh.
   useEffect(() => {
-    if (state.saleId) router.push(`/sales/${state.saleId}`);
+    if (state.saleId) router.refresh();
   }, [state.saleId, router]);
 
   // Cuánto se descontaría del stock (en unidad base, ahora unidades
@@ -185,7 +248,8 @@ export function SaleForm({
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="flex max-w-2xl flex-1 flex-col gap-6">
       <div className="flex flex-col gap-2">
         {!noCustomer && (
           <label className="flex flex-col gap-1.5">
@@ -360,6 +424,7 @@ export function SaleForm({
 
       <form
         action={formAction}
+        onSubmit={handleFormSubmit}
         className="flex flex-col gap-4 rounded-xl border border-line bg-bg p-5"
       >
         <input type="hidden" name="customerId" value={customerId} />
@@ -444,6 +509,54 @@ export function SaleForm({
           {pending ? "Guardando…" : `Registrar venta — ${formatMoney(total)}`}
         </button>
       </form>
+    </div>
+
+    <div className="w-full shrink-0 rounded-xl border border-line bg-bg p-5 lg:w-72">
+      <p className="text-sm font-semibold text-ink">Ventas de esta sesión</p>
+      <p className="mt-0.5 text-xs text-ink-faint">
+        Se van sumando a medida que registrás — se pierde si cerrás o recargás la página.
+      </p>
+      {sessionSales.length === 0 ? (
+        <p className="mt-4 text-sm text-ink-soft">Todavía no cargaste ninguna venta.</p>
+      ) : (
+        <>
+          <ul className="mt-4 flex flex-col gap-2">
+            {sessionSales.map((s) => (
+              <li key={s.id}>
+                <Link
+                  href={`/sales/${s.id}`}
+                  className="block rounded-lg border border-line-soft px-3 py-2 text-sm hover:bg-surface"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-ink">{s.customerName}</span>
+                    <span className="shrink-0 text-xs text-ink-faint">
+                      {new Date(s.createdAt).toLocaleTimeString("es-AR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-ink-soft">
+                    <span className="text-xs">
+                      {s.itemCount} {s.itemCount === 1 ? "producto" : "productos"}
+                    </span>
+                    <span className="font-semibold text-ink">{formatMoney(s.total)}</span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-sm">
+            <span className="text-ink-soft">
+              Total ({sessionSales.length} {sessionSales.length === 1 ? "venta" : "ventas"})
+            </span>
+            <span className="font-bold text-ink">
+              {formatMoney(sessionSales.reduce((sum, s) => sum + s.total, 0))}
+            </span>
+          </div>
+        </>
+      )}
+    </div>
     </div>
   );
 }
