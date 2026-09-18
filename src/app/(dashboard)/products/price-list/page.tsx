@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { FilterCombobox } from "@/components/FilterCombobox";
+import { BITE_TYPES } from "@/lib/validation";
 import { RubroSubrubroFilter } from "../RubroSubrubroFilter";
 import { PriceListTable, type PriceListRow } from "./PriceListTable";
 
@@ -12,6 +13,8 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
   const rubroIdParam = typeof searchParams?.rubroId === "string" ? searchParams.rubroId : "";
   const subrubroIdParam =
     typeof searchParams?.subrubroId === "string" ? searchParams.subrubroId : "";
+  const biteTypeParam =
+    typeof searchParams?.biteType === "string" ? searchParams.biteType : "";
 
   const [products, suppliers, rubros, allProducts, branches, openOrderItems] = await Promise.all([
     db.product.findMany({
@@ -21,6 +24,7 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
         ...(brandParam && { brand: brandParam }),
         ...(subrubroIdParam && { subrubroId: subrubroIdParam }),
         ...(rubroIdParam && !subrubroIdParam && { subrubro: { rubroId: rubroIdParam } }),
+        ...(biteTypeParam && { biteType: biteTypeParam }),
       },
       orderBy: { name: "asc" },
       include: {
@@ -57,7 +61,9 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
     rubroId: p.subrubro.rubroId,
   }));
 
-  const hasFilters = Boolean(supplierIdParam || brandParam || rubroIdParam || subrubroIdParam);
+  const hasFilters = Boolean(
+    supplierIdParam || brandParam || rubroIdParam || subrubroIdParam || biteTypeParam,
+  );
 
   const rows: PriceListRow[] = products.map((p) => {
     const stockByBranchId = new Map(p.stocks.map((s) => [s.branchId, s.stock]));
@@ -111,6 +117,20 @@ export default async function PriceListPage(props: PageProps<"/products/price-li
           defaultSubrubroId={subrubroIdParam}
           defaultBrand={brandParam}
         />
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-ink-soft">Tipo de mordida</span>
+          <FilterCombobox
+            key={biteTypeParam}
+            name="biteType"
+            defaultValue={biteTypeParam}
+            placeholder="Buscar…"
+            className="w-40"
+            options={[
+              { value: "", label: "Todos" },
+              ...BITE_TYPES.map((t) => ({ value: t, label: t })),
+            ]}
+          />
+        </label>
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
