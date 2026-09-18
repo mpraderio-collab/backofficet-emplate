@@ -425,6 +425,17 @@ export function SaleForm({
 
         {state.error && <Alert variant="error">{state.error}</Alert>}
 
+        {items.length === 0 && (
+          <p className="text-xs text-err-ink">
+            Agregá al menos un producto arriba para poder registrar la venta.
+          </p>
+        )}
+        {items.length > 0 && !noCustomer && !customerId && (
+          <p className="text-xs text-err-ink">
+            Elegí un cliente, o tildá &quot;Venta general, sin asignar cliente&quot;.
+          </p>
+        )}
+
         <button
           type="submit"
           disabled={items.length === 0 || (!noCustomer && !customerId) || pending}
