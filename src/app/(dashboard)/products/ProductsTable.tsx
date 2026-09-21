@@ -213,7 +213,7 @@ export function ProductsTable({
             : "Todavía no hay productos cargados."}
         </p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-bg">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-line">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
@@ -479,7 +479,7 @@ function EditableProductRow({
                 setStockByBranch((prev) => ({ ...prev, [branch.branchId]: v }));
                 markDirty();
               }}
-              className={`w-20 ${
+              className={`w-20 ${isEnabled ? "" : "!bg-line"} ${
                 numericValue <= 0
                   ? "font-semibold text-err-ink"
                   : isLowStock(numericValue, branch.minStock, {
