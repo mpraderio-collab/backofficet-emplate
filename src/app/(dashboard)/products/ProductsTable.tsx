@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { formatMoney } from "@/lib/format";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
 import { calculateMargin, formatMarginPercent } from "@/lib/margin";
@@ -15,6 +15,8 @@ import { updateProductQuickFields, updateProductStock } from "./actions";
 type SortableKey = "name" | "supplierName" | "price" | "marginAmount" | "marginPercent" | "cost";
 
 type BranchStock = { branchId: string; branchName: string; stock: number; minStock: number | null };
+
+type RowApi = { save: () => Promise<{ error?: string }> };
 
 export type ProductRow = {
   id: string;
@@ -103,47 +105,105 @@ export function ProductsTable({
     });
   }
 
+  // Un único botón "Guardar cambios" para toda la tabla en vez de uno por
+  // fila: cada fila se registra acá (su función de guardado más reciente
+  // y si tiene cambios sin guardar) y el botón general solo dispara el
+  // guardado de las filas marcadas como modificadas.
+  const rowApiRef = useRef(new Map<string, RowApi>());
+  const [dirtyIds, setDirtyIds] = useState<Set<string>>(new Set());
+  const [saveErrors, setSaveErrors] = useState<Record<string, string>>({});
+  const [savingAll, startSavingAll] = useTransition();
+
+  function registerRow(id: string, api: RowApi) {
+    rowApiRef.current.set(id, api);
+  }
+
+  function setRowDirty(id: string, dirty: boolean) {
+    setDirtyIds((prev) => {
+      if (prev.has(id) === dirty) return prev;
+      const next = new Set(prev);
+      if (dirty) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function saveAll() {
+    const ids = [...dirtyIds];
+    if (ids.length === 0) return;
+    startSavingAll(async () => {
+      const results = await Promise.all(
+        ids.map(async (id) => ({ id, res: await rowApiRef.current.get(id)?.save() })),
+      );
+      const errors: Record<string, string> = {};
+      const stillDirty = new Set<string>();
+      for (const { id, res } of results) {
+        if (res?.error) {
+          errors[id] = res.error;
+          stillDirty.add(id);
+        }
+      }
+      setSaveErrors(errors);
+      setDirtyIds(stillDirty);
+    });
+  }
+
   return (
     <>
-      <div className="relative max-w-xs">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-soft">Buscar producto</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setOpen(true);
-            }}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            placeholder="Ej: Alimento, o escaneá el código de barras"
-            className="input"
-          />
-        </label>
-        <ul
-          className={`t-dropdown absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-line bg-bg shadow-lg ${
-            open && query ? "is-open" : ""
-          }`}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="relative max-w-xs">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-ink-soft">Buscar producto</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setOpen(true);
+              }}
+              onFocus={() => setOpen(true)}
+              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              placeholder="Ej: Alimento, o escaneá el código de barras"
+              className="input"
+            />
+          </label>
+          <ul
+            className={`t-dropdown absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-line bg-bg shadow-lg ${
+              open && query ? "is-open" : ""
+            }`}
+          >
+            {suggestions.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-ink-faint">Sin resultados</li>
+            ) : (
+              suggestions.map((p) => (
+                <li
+                  key={p.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setQuery(p.name);
+                    setOpen(false);
+                  }}
+                  className="cursor-pointer px-3 py-2 text-sm text-ink hover:bg-accent-soft"
+                >
+                  {p.name}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+
+        <button
+          type="button"
+          disabled={dirtyIds.size === 0 || savingAll}
+          onClick={saveAll}
+          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
         >
-          {suggestions.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-ink-faint">Sin resultados</li>
-          ) : (
-            suggestions.map((p) => (
-              <li
-                key={p.id}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setQuery(p.name);
-                  setOpen(false);
-                }}
-                className="cursor-pointer px-3 py-2 text-sm text-ink hover:bg-accent-soft"
-              >
-                {p.name}
-              </li>
-            ))
-          )}
-        </ul>
+          {savingAll
+            ? "Guardando…"
+            : dirtyIds.size > 0
+              ? `Guardar cambios (${dirtyIds.size})`
+              : "Guardar cambios"}
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -205,7 +265,7 @@ export function ProductsTable({
                   </th>
                 ))}
                 <th className="px-4 py-3">Ventas</th>
-                <th className="px-4 py-3" />
+                <th className="px-4 py-3">Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -216,6 +276,9 @@ export function ProductsTable({
                   supplierOptions={supplierOptions}
                   activeBranchId={activeBranchId}
                   enabledBranches={enabledBranches}
+                  registerRow={registerRow}
+                  onDirtyChange={setRowDirty}
+                  externalError={saveErrors[p.id]}
                 />
               ))}
             </tbody>
@@ -231,13 +294,18 @@ function EditableProductRow({
   supplierOptions,
   activeBranchId,
   enabledBranches,
+  registerRow,
+  onDirtyChange,
+  externalError,
 }: {
   row: ProductRow;
   supplierOptions: { value: string; label: string }[];
   activeBranchId: string | null;
   enabledBranches: Set<string>;
+  registerRow: (id: string, api: RowApi) => void;
+  onDirtyChange: (id: string, dirty: boolean) => void;
+  externalError?: string;
 }) {
-  const [pending, startTransition] = useTransition();
   const [name, setName] = useState(row.name);
   const [supplierId, setSupplierId] = useState(row.supplierId ?? "");
   const [price, setPrice] = useState<number | "">(row.price);
@@ -245,55 +313,78 @@ function EditableProductRow({
   const [stockByBranch, setStockByBranch] = useState<Record<string, number | "">>(
     Object.fromEntries(row.stocksByBranch.map((s) => [s.branchId, s.stock])),
   );
-  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const margin = calculateMargin(price === "" ? 0 : price, cost === "" ? null : cost);
+  // Último estado guardado con éxito — el "modificado" se compara contra
+  // esto, no contra los props originales, para que la fila deje de
+  // figurar como pendiente apenas se guarda (sin esperar a un refresh).
+  const [baseline, setBaseline] = useState({
+    name: row.name,
+    supplierId: row.supplierId ?? "",
+    price: row.price as number | "",
+    cost: (row.cost ?? "") as number | "",
+    stockByBranch: Object.fromEntries(row.stocksByBranch.map((s) => [s.branchId, s.stock])) as Record<
+      string,
+      number | ""
+    >,
+  });
+
+  const isDirty =
+    name !== baseline.name ||
+    supplierId !== baseline.supplierId ||
+    price !== baseline.price ||
+    cost !== baseline.cost ||
+    row.stocksByBranch.some((b) => (stockByBranch[b.branchId] ?? "") !== baseline.stockByBranch[b.branchId]);
+
+  useEffect(() => {
+    onDirtyChange(row.id, isDirty);
+  });
 
   function markDirty() {
     setSaved(false);
-    setError(null);
   }
 
-  function save() {
-    setError(null);
+  async function save(): Promise<{ error?: string }> {
     setSaved(false);
-    startTransition(async () => {
-      const quickForm = new FormData();
-      quickForm.set("name", name);
-      quickForm.set("price", String(price === "" ? 0 : price));
-      quickForm.set("cost", cost === "" ? "" : String(cost));
-      quickForm.set("supplierId", supplierId);
-      const quickRes = await updateProductQuickFields(row.id, {}, quickForm);
-      if (quickRes.error) {
-        setError(quickRes.error);
-        return;
-      }
+    const quickForm = new FormData();
+    quickForm.set("name", name);
+    quickForm.set("price", String(price === "" ? 0 : price));
+    quickForm.set("cost", cost === "" ? "" : String(cost));
+    quickForm.set("supplierId", supplierId);
+    const quickRes = await updateProductQuickFields(row.id, {}, quickForm);
+    if (quickRes.error) return { error: quickRes.error };
 
-      const editableBranches = row.stocksByBranch.filter(
-        (branch) => branch.branchId === activeBranchId || enabledBranches.has(branch.branchId),
-      );
-      const stockResults = await Promise.all(
-        editableBranches.map((branch) => {
-          const stockForm = new FormData();
-          stockForm.set("stock", String(stockByBranch[branch.branchId] === "" ? 0 : stockByBranch[branch.branchId]));
-          // Se reenvía el mínimo tal cual estaba — acá solo se edita la cantidad.
-          stockForm.set("minStock", branch.minStock == null ? "" : String(branch.minStock));
-          return updateProductStock(row.id, branch.branchId, stockForm);
-        }),
-      );
-      const stockError = stockResults.find((r) => r.error);
-      if (stockError?.error) {
-        setError(stockError.error);
-        return;
-      }
+    const editableBranches = row.stocksByBranch.filter(
+      (branch) => branch.branchId === activeBranchId || enabledBranches.has(branch.branchId),
+    );
+    const stockResults = await Promise.all(
+      editableBranches.map((branch) => {
+        const stockForm = new FormData();
+        stockForm.set("stock", String(stockByBranch[branch.branchId] === "" ? 0 : stockByBranch[branch.branchId]));
+        // Se reenvía el mínimo tal cual estaba — acá solo se edita la cantidad.
+        stockForm.set("minStock", branch.minStock == null ? "" : String(branch.minStock));
+        return updateProductStock(row.id, branch.branchId, stockForm);
+      }),
+    );
+    const stockError = stockResults.find((r) => r.error);
+    if (stockError?.error) return { error: stockError.error };
 
-      setSaved(true);
-    });
+    setBaseline({ name, supplierId, price, cost, stockByBranch: { ...stockByBranch } });
+    setSaved(true);
+    return {};
   }
+
+  // Se re-registra en cada render para que el botón general siempre
+  // dispare la versión más reciente de `save` (con los valores tipeados).
+  useEffect(() => {
+    registerRow(row.id, { save });
+  });
+
+  const margin = calculateMargin(price === "" ? 0 : price, cost === "" ? null : cost);
+  const error = externalError;
 
   return (
-    <tr className="border-b border-line-soft last:border-0 align-top">
+    <tr className={`border-b border-line-soft last:border-0 align-top ${isDirty ? "bg-warn-bg/40" : ""}`}>
       <td className="px-4 py-3">
         <div className="flex items-start gap-3">
           {row.imageUrl ? (
@@ -405,18 +496,15 @@ function EditableProductRow({
       })}
       <td className="px-4 py-3 text-ink-soft">{row.soldLabel}</td>
       <td className="px-4 py-3 text-right">
-        <div className="flex flex-col items-end gap-1.5">
-          {saved && <span className="text-xs font-semibold text-ok-ink">Guardado</span>}
-          {error && <span className="max-w-[160px] text-right text-xs font-semibold text-err-ink">{error}</span>}
-          <button
-            type="button"
-            disabled={pending}
-            onClick={save}
-            className="rounded-lg border border-border-input bg-bg px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface disabled:opacity-50"
-          >
-            {pending ? "Guardando…" : "Guardar"}
-          </button>
-        </div>
+        {error ? (
+          <span className="text-xs font-semibold text-err-ink">{error}</span>
+        ) : saved ? (
+          <span className="text-xs font-semibold text-ok-ink">Guardado</span>
+        ) : isDirty ? (
+          <span className="text-xs font-semibold text-warn-ink">Sin guardar</span>
+        ) : (
+          <span className="text-xs text-ink-faint">—</span>
+        )}
       </td>
     </tr>
   );
