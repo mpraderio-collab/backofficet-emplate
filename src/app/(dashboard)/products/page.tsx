@@ -19,7 +19,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const biteTypeParam =
     typeof searchParams?.biteType === "string" ? searchParams.biteType : "";
 
-  const { active } = await getActiveBranch();
+  const { branches } = await getActiveBranch();
 
   const [products, suppliers, rubros, allProducts, soldItems] = await Promise.all([
     db.product.findMany({
@@ -34,7 +34,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       include: {
         supplier: { select: { name: true } },
         subrubro: { include: { rubro: true } },
-        stocks: { where: { branchId: active?.id ?? "" }, select: { stock: true, minStock: true } },
+        stocks: { select: { branchId: true, stock: true, minStock: true } },
       },
     }),
     db.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -82,6 +82,17 @@ export default async function ProductsPage(props: PageProps<"/products">) {
             .filter(Boolean)
             .join(" + ");
 
+    const stocksByBranch = branches.map((b) => {
+      const s = p.stocks.find((st) => st.branchId === b.id);
+      return {
+        branchId: b.id,
+        branchName: b.name,
+        stock: s?.stock ?? 0,
+        minStock: s?.minStock ?? null,
+      };
+    });
+    const totalStock = stocksByBranch.reduce((sum, s) => sum + s.stock, 0);
+
     return {
       id: p.id,
       name: p.name,
@@ -90,6 +101,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       characteristics: [p.brand, p.presentation, p.subrubro.name, p.animalWeight, p.biteType]
         .filter(Boolean)
         .join(" · "),
+      supplierId: p.supplierId,
       supplierName: p.supplier?.name ?? null,
       price: p.price,
       fractionUnit: p.fractionUnit,
@@ -98,8 +110,8 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       marginPercent: margin?.percent ?? null,
       marginPercentLabel: formatMarginPercent(margin),
       cost: p.cost,
-      stock: p.stocks[0]?.stock ?? 0,
-      minStock: p.stocks[0]?.minStock ?? null,
+      stock: totalStock,
+      stocksByBranch,
       isSeasonal: p.isSeasonal,
       seasonStart: p.seasonStart,
       soldLabel,
@@ -111,11 +123,6 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">Productos</h1>
-          {active && (
-            <p className="mt-1 text-sm text-ink-soft">
-              Stock de <span className="font-semibold text-ink">{active.name}</span>
-            </p>
-          )}
         </div>
         <div className="flex gap-3">
           <Link
@@ -206,7 +213,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       </form>
 
       <div className="mt-6">
-        <ProductsTable products={rows} hasOtherFilters={hasFilters} />
+        <ProductsTable products={rows} hasOtherFilters={hasFilters} suppliers={suppliers} />
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { put } from "@vercel/blob";
 import type { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { productSchema, productStockSchema } from "@/lib/validation";
+import { productSchema, productStockSchema, productQuickEditSchema } from "@/lib/validation";
 import { getActiveBranchId } from "@/lib/branch";
 
 // Sube la foto elegida a Vercel Blob y devuelve su URL, o null si no se
@@ -63,8 +63,8 @@ function parseForm(formData: FormData) {
   });
 }
 
-function toFieldErrors(result: ReturnType<typeof parseForm>) {
-  if (result.success) return {};
+function toFieldErrors(result: { success: boolean; error?: z.ZodError }) {
+  if (result.success || !result.error) return {};
   const fieldErrors: Record<string, string> = {};
   for (const issue of result.error.issues) {
     const key = issue.path[0];
@@ -245,6 +245,65 @@ export async function updateProduct(
         fieldErrors: { sku: "Este código de barras / SKU ya está en uso" },
       };
     }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      return { error: "Este producto ya no existe." };
+    }
+    throw err;
+  }
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${id}`);
+  return {};
+}
+
+export type ProductQuickEditState = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+};
+
+// Edición fila por fila desde /products — solo nombre, proveedor, precio y
+// costo (el resto del catálogo se edita en la ficha del producto). El
+// margen no se toca acá: se recalcula solo a partir de precio y costo.
+export async function updateProductQuickFields(
+  id: string,
+  _prev: ProductQuickEditState,
+  formData: FormData,
+): Promise<ProductQuickEditState> {
+  await requireAuth();
+
+  const result = productQuickEditSchema.safeParse({
+    name: formData.get("name"),
+    price: formData.get("price"),
+    cost: formData.get("cost"),
+    supplierId: formData.get("supplierId"),
+  });
+  if (!result.success) {
+    return {
+      error: "Revisá los campos marcados.",
+      fieldErrors: toFieldErrors(result),
+    };
+  }
+
+  const existing = await db.product.findUnique({
+    where: { id },
+    select: { price: true, cost: true },
+  });
+  const priceChanged =
+    existing != null &&
+    (existing.price !== result.data.price || existing.cost !== (result.data.cost ?? null));
+
+  try {
+    await db.product.update({
+      where: { id },
+      data: {
+        name: result.data.name,
+        price: result.data.price,
+        cost: result.data.cost ?? null,
+        supplierId: result.data.supplierId ?? null,
+        ...(priceChanged ? { priceUpdatedAt: new Date() } : {}),
+      },
+    });
+  } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
       return { error: "Este producto ya no existe." };
     }

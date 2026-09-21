@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { formatMoney, formatQuantity } from "@/lib/format";
+import Link from "next/link";
+import { useState, useTransition } from "react";
+import { formatMoney } from "@/lib/format";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
-import { ClickableRow } from "@/components/ClickableRow";
+import { calculateMargin, formatMarginPercent } from "@/lib/margin";
 import { SortHeader } from "@/components/SortHeader";
+import { Combobox } from "@/components/Combobox";
+import { MoneyInput } from "@/components/MoneyInput";
+import { NumberInput } from "@/components/NumberInput";
 import { useSortableList } from "@/lib/useSortableList";
+import { updateProductQuickFields, updateProductStock } from "./actions";
 
 type SortableKey = "name" | "supplierName" | "price" | "marginAmount" | "marginPercent" | "cost" | "stock";
+
+type BranchStock = { branchId: string; branchName: string; stock: number; minStock: number | null };
 
 export type ProductRow = {
   id: string;
@@ -15,6 +22,7 @@ export type ProductRow = {
   sku: string | null;
   imageUrl: string | null;
   characteristics: string;
+  supplierId: string | null;
   supplierName: string | null;
   price: number;
   fractionUnit: string | null;
@@ -24,7 +32,7 @@ export type ProductRow = {
   marginPercentLabel: string;
   cost: number | null;
   stock: number;
-  minStock: number | null;
+  stocksByBranch: BranchStock[];
   isSeasonal: boolean;
   seasonStart: Date | null;
   soldLabel: string;
@@ -33,9 +41,11 @@ export type ProductRow = {
 export function ProductsTable({
   products,
   hasOtherFilters,
+  suppliers,
 }: {
   products: ProductRow[];
   hasOtherFilters: boolean;
+  suppliers: { id: string; name: string }[];
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -73,6 +83,11 @@ export function ProductsTable({
     },
     "name",
   );
+
+  const supplierOptions = [
+    { value: "", label: "Sin proveedor" },
+    ...suppliers.map((s) => ({ value: s.id, label: s.name })),
+  ];
 
   return (
     <>
@@ -125,7 +140,7 @@ export function ProductsTable({
         </p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-bg">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
                 <SortHeader label="Producto" columnKey="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
@@ -154,84 +169,208 @@ export function ProductsTable({
                 <SortHeader label="Costo" columnKey="cost" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortHeader label="Stock" columnKey="stock" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <th className="px-4 py-3">Ventas</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {sorted.map((p) => (
-                <ClickableRow
-                  key={p.id}
-                  href={`/products/${p.id}`}
-                  className="border-b border-line-soft last:border-0"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {p.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.imageUrl}
-                          alt=""
-                          className="h-10 w-10 shrink-0 rounded-lg border border-line object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
-                      )}
-                      <div>
-                        <p className="font-medium text-ink transition-colors group-hover:text-accent">
-                          {p.name}
-                        </p>
-                        {p.sku && <p className="font-mono text-xs text-ink-faint">{p.sku}</p>}
-                        {p.characteristics && (
-                          <p className="text-xs text-ink-faint">{p.characteristics}</p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-ink-soft">{p.supplierName ?? "—"}</td>
-                  <td className="px-4 py-3 font-medium text-ink">
-                    {formatMoney(p.price)}
-                    {p.fractionUnit && (
-                      <p className="text-xs font-normal text-ink-faint">
-                        {formatMoney(p.fractionPrice ?? 0)} / {p.fractionUnit}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-ink-soft">
-                    {p.marginAmount != null ? (
-                      <span className={p.marginAmount < 0 ? "font-semibold text-err-ink" : undefined}>
-                        {formatMoney(p.marginAmount)}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-ink-soft">{p.marginPercentLabel}</td>
-                  <td className="px-4 py-3 text-ink-soft">
-                    {p.cost != null ? formatMoney(p.cost) : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        p.stock <= 0
-                          ? "font-semibold text-err-ink"
-                          : isLowStock(p.stock, p.minStock, {
-                                isSeasonal: p.isSeasonal,
-                                seasonStart: p.seasonStart,
-                              })
-                            ? "font-semibold text-warn-ink"
-                            : "text-ink"
-                      }
-                    >
-                      {formatQuantity(p.stock)}
-                    </span>
-                    <p className="text-xs text-ink-faint">mín. {effectiveMinStock(p.minStock)}</p>
-                  </td>
-                  <td className="px-4 py-3 text-ink-soft">{p.soldLabel}</td>
-                </ClickableRow>
+                <EditableProductRow key={p.id} row={p} supplierOptions={supplierOptions} />
               ))}
             </tbody>
           </table>
         </div>
       )}
     </>
+  );
+}
+
+function EditableProductRow({
+  row,
+  supplierOptions,
+}: {
+  row: ProductRow;
+  supplierOptions: { value: string; label: string }[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const [name, setName] = useState(row.name);
+  const [supplierId, setSupplierId] = useState(row.supplierId ?? "");
+  const [price, setPrice] = useState<number | "">(row.price);
+  const [cost, setCost] = useState<number | "">(row.cost ?? "");
+  const [stockByBranch, setStockByBranch] = useState<Record<string, number | "">>(
+    Object.fromEntries(row.stocksByBranch.map((s) => [s.branchId, s.stock])),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const margin = calculateMargin(price === "" ? 0 : price, cost === "" ? null : cost);
+
+  function markDirty() {
+    setSaved(false);
+    setError(null);
+  }
+
+  function save() {
+    setError(null);
+    setSaved(false);
+    startTransition(async () => {
+      const quickForm = new FormData();
+      quickForm.set("name", name);
+      quickForm.set("price", String(price === "" ? 0 : price));
+      quickForm.set("cost", cost === "" ? "" : String(cost));
+      quickForm.set("supplierId", supplierId);
+      const quickRes = await updateProductQuickFields(row.id, {}, quickForm);
+      if (quickRes.error) {
+        setError(quickRes.error);
+        return;
+      }
+
+      const stockResults = await Promise.all(
+        row.stocksByBranch.map((branch) => {
+          const stockForm = new FormData();
+          stockForm.set("stock", String(stockByBranch[branch.branchId] === "" ? 0 : stockByBranch[branch.branchId]));
+          // Se reenvía el mínimo tal cual estaba — acá solo se edita la cantidad.
+          stockForm.set("minStock", branch.minStock == null ? "" : String(branch.minStock));
+          return updateProductStock(row.id, branch.branchId, stockForm);
+        }),
+      );
+      const stockError = stockResults.find((r) => r.error);
+      if (stockError?.error) {
+        setError(stockError.error);
+        return;
+      }
+
+      setSaved(true);
+    });
+  }
+
+  return (
+    <tr className="border-b border-line-soft last:border-0 align-top">
+      <td className="px-4 py-3">
+        <div className="flex items-start gap-3">
+          {row.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={row.imageUrl}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-lg border border-line object-cover"
+            />
+          ) : (
+            <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
+          )}
+          <div className="min-w-[160px]">
+            <input
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                markDirty();
+              }}
+              className="input w-full font-medium"
+            />
+            {row.sku && <p className="mt-1 font-mono text-xs text-ink-faint">{row.sku}</p>}
+            {row.characteristics && (
+              <p className="text-xs text-ink-faint">{row.characteristics}</p>
+            )}
+            <Link href={`/products/${row.id}`} className="text-xs font-semibold text-accent hover:underline">
+              Ver ficha
+            </Link>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <Combobox
+          value={supplierId}
+          onChange={(v) => {
+            setSupplierId(v);
+            markDirty();
+          }}
+          options={supplierOptions}
+          placeholder="Buscar proveedor…"
+          className="w-40"
+        />
+      </td>
+      <td className="px-4 py-3">
+        <MoneyInput
+          value={price}
+          onChange={(v) => {
+            setPrice(v);
+            markDirty();
+          }}
+          className="w-28"
+        />
+        {row.fractionUnit && (
+          <p className="mt-1 text-xs text-ink-faint">
+            {formatMoney(row.fractionPrice ?? 0)} / {row.fractionUnit}
+          </p>
+        )}
+      </td>
+      <td className="px-4 py-3 text-ink-soft">
+        {margin ? (
+          <span className={margin.amount < 0 ? "font-semibold text-err-ink" : undefined}>
+            {formatMoney(margin.amount)}
+          </span>
+        ) : (
+          "—"
+        )}
+      </td>
+      <td className="px-4 py-3 text-ink-soft">{formatMarginPercent(margin)}</td>
+      <td className="px-4 py-3">
+        <MoneyInput
+          value={cost}
+          onChange={(v) => {
+            setCost(v);
+            markDirty();
+          }}
+          className="w-28"
+        />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-col gap-2">
+          {row.stocksByBranch.map((branch) => {
+            const value = stockByBranch[branch.branchId] ?? "";
+            const numericValue = value === "" ? 0 : value;
+            return (
+              <div key={branch.branchId}>
+                <p className="text-[11px] text-ink-faint">{branch.branchName}</p>
+                <NumberInput
+                  min={0}
+                  step="any"
+                  value={value}
+                  onChange={(v) => {
+                    setStockByBranch((prev) => ({ ...prev, [branch.branchId]: v }));
+                    markDirty();
+                  }}
+                  className={`w-20 ${
+                    numericValue <= 0
+                      ? "font-semibold text-err-ink"
+                      : isLowStock(numericValue, branch.minStock, {
+                            isSeasonal: row.isSeasonal,
+                            seasonStart: row.seasonStart,
+                          })
+                        ? "font-semibold text-warn-ink"
+                        : ""
+                  }`}
+                />
+                <p className="text-[11px] text-ink-faint">mín. {effectiveMinStock(branch.minStock)}</p>
+              </div>
+            );
+          })}
+        </div>
+      </td>
+      <td className="px-4 py-3 text-ink-soft">{row.soldLabel}</td>
+      <td className="px-4 py-3 text-right">
+        <div className="flex flex-col items-end gap-1.5">
+          {saved && <span className="text-xs font-semibold text-ok-ink">Guardado</span>}
+          {error && <span className="max-w-[160px] text-right text-xs font-semibold text-err-ink">{error}</span>}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={save}
+            className="rounded-lg border border-border-input bg-bg px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface disabled:opacity-50"
+          >
+            {pending ? "Guardando…" : "Guardar"}
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }

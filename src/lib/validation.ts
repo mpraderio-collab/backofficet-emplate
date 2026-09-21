@@ -82,6 +82,26 @@ export const branchSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(80),
 });
 
+// Edición rápida desde el listado de productos — solo los campos que se
+// pueden tocar fila por fila (no el catálogo completo, ver productSchema).
+export const productQuickEditSchema = z.object({
+  name: z.string().trim().min(2, "El nombre es muy corto").max(160),
+  price: z.coerce
+    .number({ message: "El precio tiene que ser un número" })
+    .int("El precio no puede tener centavos")
+    .nonnegative("El precio no puede ser negativo"),
+  cost: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce.number().int().nonnegative().optional(),
+  ),
+  supplierId: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
+});
+
 export const productStockSchema = z.object({
   branchId: z.string().min(1),
   stock: z.coerce.number().nonnegative(),
