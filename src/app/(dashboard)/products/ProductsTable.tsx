@@ -12,7 +12,7 @@ import { NumberInput } from "@/components/NumberInput";
 import { useSortableList } from "@/lib/useSortableList";
 import { updateProductQuickFields, updateProductStock } from "./actions";
 
-type SortableKey = "name" | "supplierName" | "price" | "marginAmount" | "marginPercent" | "cost" | "stock";
+type SortableKey = "name" | "supplierName" | "price" | "marginAmount" | "marginPercent" | "cost";
 
 type BranchStock = { branchId: string; branchName: string; stock: number; minStock: number | null };
 
@@ -77,8 +77,6 @@ export function ProductsTable({
           return p.marginPercent;
         case "cost":
           return p.cost;
-        case "stock":
-          return p.stock;
       }
     },
     "name",
@@ -88,6 +86,8 @@ export function ProductsTable({
     { value: "", label: "Sin proveedor" },
     ...suppliers.map((s) => ({ value: s.id, label: s.name })),
   ];
+
+  const branchColumns = products[0]?.stocksByBranch.map((s) => ({ id: s.branchId, name: s.branchName })) ?? [];
 
   return (
     <>
@@ -167,7 +167,11 @@ export function ProductsTable({
                   onSort={toggleSort}
                 />
                 <SortHeader label="Costo" columnKey="cost" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                <SortHeader label="Stock" columnKey="stock" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                {branchColumns.map((b) => (
+                  <th key={b.id} className="px-4 py-3">
+                    Stock {b.name}
+                  </th>
+                ))}
                 <th className="px-4 py-3">Ventas</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -323,39 +327,34 @@ function EditableProductRow({
           className="w-28"
         />
       </td>
-      <td className="px-4 py-3">
-        <div className="flex flex-col gap-2">
-          {row.stocksByBranch.map((branch) => {
-            const value = stockByBranch[branch.branchId] ?? "";
-            const numericValue = value === "" ? 0 : value;
-            return (
-              <div key={branch.branchId}>
-                <p className="text-[11px] text-ink-faint">{branch.branchName}</p>
-                <NumberInput
-                  min={0}
-                  step="any"
-                  value={value}
-                  onChange={(v) => {
-                    setStockByBranch((prev) => ({ ...prev, [branch.branchId]: v }));
-                    markDirty();
-                  }}
-                  className={`w-20 ${
-                    numericValue <= 0
-                      ? "font-semibold text-err-ink"
-                      : isLowStock(numericValue, branch.minStock, {
-                            isSeasonal: row.isSeasonal,
-                            seasonStart: row.seasonStart,
-                          })
-                        ? "font-semibold text-warn-ink"
-                        : ""
-                  }`}
-                />
-                <p className="text-[11px] text-ink-faint">mín. {effectiveMinStock(branch.minStock)}</p>
-              </div>
-            );
-          })}
-        </div>
-      </td>
+      {row.stocksByBranch.map((branch) => {
+        const value = stockByBranch[branch.branchId] ?? "";
+        const numericValue = value === "" ? 0 : value;
+        return (
+          <td key={branch.branchId} className="px-4 py-3">
+            <NumberInput
+              min={0}
+              step="any"
+              value={value}
+              onChange={(v) => {
+                setStockByBranch((prev) => ({ ...prev, [branch.branchId]: v }));
+                markDirty();
+              }}
+              className={`w-20 ${
+                numericValue <= 0
+                  ? "font-semibold text-err-ink"
+                  : isLowStock(numericValue, branch.minStock, {
+                        isSeasonal: row.isSeasonal,
+                        seasonStart: row.seasonStart,
+                      })
+                    ? "font-semibold text-warn-ink"
+                    : ""
+              }`}
+            />
+            <p className="text-[11px] text-ink-faint">mín. {effectiveMinStock(branch.minStock)}</p>
+          </td>
+        );
+      })}
       <td className="px-4 py-3 text-ink-soft">{row.soldLabel}</td>
       <td className="px-4 py-3 text-right">
         <div className="flex flex-col items-end gap-1.5">
