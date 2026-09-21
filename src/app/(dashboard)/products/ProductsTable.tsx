@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatMoney } from "@/lib/format";
 import { effectiveMinStock, isLowStock } from "@/lib/stock";
-import { calculateMargin, formatMarginPercent } from "@/lib/margin";
 import { SortHeader } from "@/components/SortHeader";
 import { Combobox } from "@/components/Combobox";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -216,22 +215,42 @@ export function ProductsTable({
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-line">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
-              <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
-                <SortHeader label="Producto" columnKey="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <tr className="border-b border-line bg-[#1e3a5f] text-xs uppercase tracking-wide text-white/85">
+                <SortHeader
+                  label="Producto"
+                  columnKey="name"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="w-full px-3 py-2"
+                  buttonClassName="!text-white/85 hover:!text-white"
+                />
                 <SortHeader
                   label="Proveedor"
                   columnKey="supplierName"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
+                  className="px-2 py-2"
+                  buttonClassName="!text-white/85 hover:!text-white"
                 />
-                <SortHeader label="Precio" columnKey="price" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader
+                  label="Precio"
+                  columnKey="price"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="px-2 py-2"
+                  buttonClassName="!text-white/85 hover:!text-white"
+                />
                 <SortHeader
                   label="Margen $"
                   columnKey="marginAmount"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
+                  className="px-2 py-2"
+                  buttonClassName="!text-white/85 hover:!text-white"
                 />
                 <SortHeader
                   label="Margen %"
@@ -239,19 +258,29 @@ export function ProductsTable({
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
+                  className="px-2 py-2"
+                  buttonClassName="!text-white/85 hover:!text-white"
                 />
-                <SortHeader label="Costo" columnKey="cost" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader
+                  label="Costo"
+                  columnKey="cost"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="px-2 py-2"
+                  buttonClassName="!text-white/85 hover:!text-white"
+                />
                 {branchColumns.map((b) => (
-                  <th key={b.id} className="px-4 py-3">
+                  <th key={b.id} className="px-2 py-2">
                     <div className="flex flex-col gap-1">
                       <span>
                         Stock {b.name}
                         {b.id === activeBranchId && (
-                          <span className="ml-1 font-normal normal-case text-ink-faint">(tu sucursal)</span>
+                          <span className="ml-1 font-normal normal-case text-white/60">(tu sucursal)</span>
                         )}
                       </span>
                       {b.id !== activeBranchId && (
-                        <label className="flex items-center gap-1.5 font-normal normal-case tracking-normal text-ink-soft">
+                        <label className="flex items-center gap-1.5 font-normal normal-case tracking-normal text-white/75">
                           <input
                             type="checkbox"
                             checked={enabledBranches.has(b.id)}
@@ -264,8 +293,8 @@ export function ProductsTable({
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-3">Ventas</th>
-                <th className="px-4 py-3">Estado</th>
+                <th className="px-2 py-2">Ventas</th>
+                <th className="px-2 py-2">Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -310,10 +339,65 @@ function EditableProductRow({
   const [supplierId, setSupplierId] = useState(row.supplierId ?? "");
   const [price, setPrice] = useState<number | "">(row.price);
   const [cost, setCost] = useState<number | "">(row.cost ?? "");
+  const [marginPercent, setMarginPercent] = useState<number | "">(() =>
+    row.marginPercent != null ? Math.round(row.marginPercent * 10) / 10 : "",
+  );
+  const [marginAmount, setMarginAmount] = useState<number | "">(row.marginAmount ?? "");
   const [stockByBranch, setStockByBranch] = useState<Record<string, number | "">>(
     Object.fromEntries(row.stocksByBranch.map((s) => [s.branchId, s.stock])),
   );
   const [saved, setSaved] = useState(false);
+
+  // Misma lógica que en la ficha del producto (ProductForm): cambiar
+  // cualquiera de precio/costo/margen recalcula los otros dos, siempre
+  // tomando costo como el dato fijo de referencia.
+  function handleCostChange(value: number | "") {
+    setCost(value);
+    markDirty();
+    if (value !== "" && value > 0 && price !== "" && price > 0) {
+      const amount = price - value;
+      setMarginAmount(amount);
+      setMarginPercent(Math.round((amount / value) * 1000) / 10);
+    } else if (value !== "" && value > 0 && marginPercent !== "") {
+      const newPrice = Math.round(value * (1 + marginPercent / 100));
+      setPrice(newPrice);
+      setMarginAmount(newPrice - value);
+    } else if (value !== "" && value > 0 && marginAmount !== "") {
+      const newPrice = value + marginAmount;
+      setPrice(newPrice);
+      setMarginPercent(Math.round((marginAmount / value) * 1000) / 10);
+    }
+  }
+
+  function handlePriceChange(value: number | "") {
+    setPrice(value);
+    markDirty();
+    if (cost !== "" && cost > 0 && value !== "") {
+      const amount = value - cost;
+      setMarginAmount(amount);
+      setMarginPercent(Math.round((amount / cost) * 1000) / 10);
+    }
+  }
+
+  function handleMarginPercentChange(value: number | "") {
+    setMarginPercent(value);
+    markDirty();
+    if (cost !== "" && cost > 0 && value !== "") {
+      const newPrice = Math.round(cost * (1 + value / 100));
+      setPrice(newPrice);
+      setMarginAmount(newPrice - cost);
+    }
+  }
+
+  function handleMarginAmountChange(value: number | "") {
+    setMarginAmount(value);
+    markDirty();
+    if (cost !== "" && cost > 0 && value !== "") {
+      const newPrice = cost + value;
+      setPrice(newPrice);
+      setMarginPercent(Math.round((value / cost) * 1000) / 10);
+    }
+  }
 
   // Último estado guardado con éxito — el "modificado" se compara contra
   // esto, no contra los props originales, para que la fila deje de
@@ -380,12 +464,11 @@ function EditableProductRow({
     registerRow(row.id, { save });
   });
 
-  const margin = calculateMargin(price === "" ? 0 : price, cost === "" ? null : cost);
   const error = externalError;
 
   return (
     <tr className={`border-b border-line-soft last:border-0 align-top ${isDirty ? "bg-warn-bg/40" : ""}`}>
-      <td className="px-4 py-3">
+      <td className="px-3 py-2">
         <div className="flex items-start gap-3">
           {row.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -416,7 +499,7 @@ function EditableProductRow({
           </div>
         </div>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-2">
         <Combobox
           value={supplierId}
           onChange={(v) => {
@@ -428,40 +511,34 @@ function EditableProductRow({
           className="w-40"
         />
       </td>
-      <td className="px-4 py-3">
-        <MoneyInput
-          value={price}
-          onChange={(v) => {
-            setPrice(v);
-            markDirty();
-          }}
-          className="w-28"
-        />
+      <td className="px-2 py-2">
+        <MoneyInput value={price} onChange={handlePriceChange} className="w-28" />
         {row.fractionUnit && (
           <p className="mt-1 text-xs text-ink-faint">
             {formatMoney(row.fractionPrice ?? 0)} / {row.fractionUnit}
           </p>
         )}
       </td>
-      <td className="px-4 py-3 text-ink-soft">
-        {margin ? (
-          <span className={margin.amount < 0 ? "font-semibold text-err-ink" : undefined}>
-            {formatMoney(margin.amount)}
-          </span>
-        ) : (
-          "—"
-        )}
-      </td>
-      <td className="px-4 py-3 text-ink-soft">{formatMarginPercent(margin)}</td>
-      <td className="px-4 py-3">
-        <MoneyInput
-          value={cost}
-          onChange={(v) => {
-            setCost(v);
-            markDirty();
-          }}
-          className="w-28"
+      <td className="px-2 py-2">
+        <NumberInput
+          step="any"
+          value={marginAmount}
+          onChange={handleMarginAmountChange}
+          disabled={cost === "" || cost <= 0}
+          className={`w-24 ${marginAmount !== "" && marginAmount < 0 ? "font-semibold text-err-ink" : ""}`}
         />
+      </td>
+      <td className="px-2 py-2">
+        <NumberInput
+          step="any"
+          value={marginPercent}
+          onChange={handleMarginPercentChange}
+          disabled={cost === "" || cost <= 0}
+          className={`w-20 ${marginPercent !== "" && marginPercent < 0 ? "font-semibold text-err-ink" : ""}`}
+        />
+      </td>
+      <td className="px-2 py-2">
+        <MoneyInput value={cost} onChange={handleCostChange} className="w-28" />
       </td>
       {row.stocksByBranch.map((branch) => {
         const value = stockByBranch[branch.branchId] ?? "";
@@ -469,7 +546,7 @@ function EditableProductRow({
         const isActiveBranch = branch.branchId === activeBranchId;
         const isEnabled = isActiveBranch || enabledBranches.has(branch.branchId);
         return (
-          <td key={branch.branchId} className="px-4 py-3">
+          <td key={branch.branchId} className="px-2 py-2">
             <NumberInput
               min={0}
               step="any"
@@ -494,8 +571,8 @@ function EditableProductRow({
           </td>
         );
       })}
-      <td className="px-4 py-3 text-ink-soft">{row.soldLabel}</td>
-      <td className="px-4 py-3 text-right">
+      <td className="px-2 py-2 text-ink-soft">{row.soldLabel}</td>
+      <td className="px-2 py-2 text-right">
         {error ? (
           <span className="text-xs font-semibold text-err-ink">{error}</span>
         ) : saved ? (
