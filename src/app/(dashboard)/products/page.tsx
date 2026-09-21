@@ -19,7 +19,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const biteTypeParam =
     typeof searchParams?.biteType === "string" ? searchParams.biteType : "";
 
-  const { branches } = await getActiveBranch();
+  const { active, branches } = await getActiveBranch();
 
   const [products, suppliers, rubros, allProducts, soldItems] = await Promise.all([
     db.product.findMany({
@@ -194,7 +194,12 @@ export default async function ProductsPage(props: PageProps<"/products">) {
       </form>
 
       <div className="mt-6">
-        <ProductsTable products={rows} hasOtherFilters={hasFilters} suppliers={suppliers} />
+        <ProductsTable
+          products={rows}
+          hasOtherFilters={hasFilters}
+          suppliers={suppliers}
+          activeBranchId={active?.id ?? null}
+        />
       </div>
     </div>
   );

@@ -42,10 +42,12 @@ export function ProductsTable({
   products,
   hasOtherFilters,
   suppliers,
+  activeBranchId,
 }: {
   products: ProductRow[];
   hasOtherFilters: boolean;
   suppliers: { id: string; name: string }[];
+  activeBranchId: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -170,6 +172,9 @@ export function ProductsTable({
                 {branchColumns.map((b) => (
                   <th key={b.id} className="px-4 py-3">
                     Stock {b.name}
+                    {b.id === activeBranchId && (
+                      <span className="ml-1 font-normal normal-case text-ink-faint">(tu sucursal)</span>
+                    )}
                   </th>
                 ))}
                 <th className="px-4 py-3">Ventas</th>
@@ -178,7 +183,12 @@ export function ProductsTable({
             </thead>
             <tbody>
               {sorted.map((p) => (
-                <EditableProductRow key={p.id} row={p} supplierOptions={supplierOptions} />
+                <EditableProductRow
+                  key={p.id}
+                  row={p}
+                  supplierOptions={supplierOptions}
+                  activeBranchId={activeBranchId}
+                />
               ))}
             </tbody>
           </table>
@@ -191,9 +201,11 @@ export function ProductsTable({
 function EditableProductRow({
   row,
   supplierOptions,
+  activeBranchId,
 }: {
   row: ProductRow;
   supplierOptions: { value: string; label: string }[];
+  activeBranchId: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState(row.name);
@@ -203,8 +215,26 @@ function EditableProductRow({
   const [stockByBranch, setStockByBranch] = useState<Record<string, number | "">>(
     Object.fromEntries(row.stocksByBranch.map((s) => [s.branchId, s.stock])),
   );
+  // Por seguridad, el stock de una sucursal en la que no estás parado
+  // arranca deshabilitado — hay que tildar el check para poder cargarlo.
+  const [enabledBranches, setEnabledBranches] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  function toggleBranchEnabled(branchId: string, originalStock: number) {
+    setEnabledBranches((prev) => {
+      const next = new Set(prev);
+      if (next.has(branchId)) {
+        next.delete(branchId);
+        // Al destildar, se descarta lo tipeado sin guardar.
+        setStockByBranch((s) => ({ ...s, [branchId]: originalStock }));
+      } else {
+        next.add(branchId);
+      }
+      return next;
+    });
+    markDirty();
+  }
 
   const margin = calculateMargin(price === "" ? 0 : price, cost === "" ? null : cost);
 
@@ -228,8 +258,11 @@ function EditableProductRow({
         return;
       }
 
+      const editableBranches = row.stocksByBranch.filter(
+        (branch) => branch.branchId === activeBranchId || enabledBranches.has(branch.branchId),
+      );
       const stockResults = await Promise.all(
-        row.stocksByBranch.map((branch) => {
+        editableBranches.map((branch) => {
           const stockForm = new FormData();
           stockForm.set("stock", String(stockByBranch[branch.branchId] === "" ? 0 : stockByBranch[branch.branchId]));
           // Se reenvía el mínimo tal cual estaba — acá solo se edita la cantidad.
@@ -330,12 +363,26 @@ function EditableProductRow({
       {row.stocksByBranch.map((branch) => {
         const value = stockByBranch[branch.branchId] ?? "";
         const numericValue = value === "" ? 0 : value;
+        const isActiveBranch = branch.branchId === activeBranchId;
+        const isEnabled = isActiveBranch || enabledBranches.has(branch.branchId);
         return (
           <td key={branch.branchId} className="px-4 py-3">
+            {!isActiveBranch && (
+              <label className="mb-1 flex items-center gap-1.5 text-[11px] text-ink-soft">
+                <input
+                  type="checkbox"
+                  checked={enabledBranches.has(branch.branchId)}
+                  onChange={() => toggleBranchEnabled(branch.branchId, branch.stock)}
+                  className="h-3.5 w-3.5"
+                />
+                Cargar acá
+              </label>
+            )}
             <NumberInput
               min={0}
               step="any"
               value={value}
+              disabled={!isEnabled}
               onChange={(v) => {
                 setStockByBranch((prev) => ({ ...prev, [branch.branchId]: v }));
                 markDirty();
