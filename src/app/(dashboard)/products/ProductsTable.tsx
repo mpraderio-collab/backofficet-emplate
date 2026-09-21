@@ -213,17 +213,16 @@ export function ProductsTable({
         </p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-line">
-          <table className="w-full min-w-[960px] text-left text-sm">
+          <table className="w-full min-w-[960px] table-fixed text-left text-sm">
             <thead>
-              <tr className="border-b border-line bg-[#1e3a5f] text-xs uppercase tracking-wide text-white/85">
+              <tr className="border-b border-line bg-[#e6ecf3] text-xs uppercase tracking-wide text-[#1e3a5f]">
                 <SortHeader
                   label="Producto"
                   columnKey="name"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
-                  className="w-full px-3 py-2"
-                  buttonClassName="!text-white/85 hover:!text-white"
+                  className="w-[420px] px-3 py-2"
                 />
                 <SortHeader
                   label="Proveedor"
@@ -231,8 +230,7 @@ export function ProductsTable({
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
-                  className="px-2 py-2"
-                  buttonClassName="!text-white/85 hover:!text-white"
+                  className="w-[170px] px-2 py-2"
                 />
                 <SortHeader
                   label="Precio"
@@ -240,8 +238,7 @@ export function ProductsTable({
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
-                  className="px-2 py-2"
-                  buttonClassName="!text-white/85 hover:!text-white"
+                  className="w-[110px] px-2 py-2"
                 />
                 <SortHeader
                   label="Margen $"
@@ -249,8 +246,7 @@ export function ProductsTable({
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
-                  className="px-2 py-2"
-                  buttonClassName="!text-white/85 hover:!text-white"
+                  className="w-[110px] px-2 py-2"
                 />
                 <SortHeader
                   label="Margen %"
@@ -258,8 +254,7 @@ export function ProductsTable({
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
-                  className="px-2 py-2"
-                  buttonClassName="!text-white/85 hover:!text-white"
+                  className="w-[100px] px-2 py-2"
                 />
                 <SortHeader
                   label="Costo"
@@ -267,20 +262,19 @@ export function ProductsTable({
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
-                  className="px-2 py-2"
-                  buttonClassName="!text-white/85 hover:!text-white"
+                  className="w-[110px] px-2 py-2"
                 />
                 {branchColumns.map((b) => (
-                  <th key={b.id} className="px-2 py-2">
+                  <th key={b.id} className="w-[140px] px-2 py-2">
                     <div className="flex flex-col gap-1">
                       <span>
                         Stock {b.name}
                         {b.id === activeBranchId && (
-                          <span className="ml-1 font-normal normal-case text-white/60">(tu sucursal)</span>
+                          <span className="ml-1 font-normal normal-case text-[#1e3a5f]/60">(tu sucursal)</span>
                         )}
                       </span>
                       {b.id !== activeBranchId && (
-                        <label className="flex items-center gap-1.5 font-normal normal-case tracking-normal text-white/75">
+                        <label className="flex items-center gap-1.5 font-normal normal-case tracking-normal text-[#1e3a5f]/75">
                           <input
                             type="checkbox"
                             checked={enabledBranches.has(b.id)}
@@ -293,8 +287,8 @@ export function ProductsTable({
                     </div>
                   </th>
                 ))}
-                <th className="px-2 py-2">Ventas</th>
-                <th className="px-2 py-2">Estado</th>
+                <th className="w-[90px] px-2 py-2">Ventas</th>
+                <th className="w-[110px] px-2 py-2">Estado</th>
               </tr>
             </thead>
             <tbody>
