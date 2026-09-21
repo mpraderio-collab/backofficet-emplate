@@ -474,7 +474,7 @@ function EditableProductRow({
           ) : (
             <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-surface" />
           )}
-          <div className="min-w-[160px]">
+          <div className="min-w-[160px] flex-1">
             <input
               value={name}
               onChange={(e) => {
