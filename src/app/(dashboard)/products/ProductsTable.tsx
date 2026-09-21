@@ -91,6 +91,18 @@ export function ProductsTable({
 
   const branchColumns = products[0]?.stocksByBranch.map((s) => ({ id: s.branchId, name: s.branchName })) ?? [];
 
+  // Habilita/deshabilita la carga de stock por sucursal para TODA la
+  // tabla de una — se tilda una vez arriba en vez de fila por fila.
+  const [enabledBranches, setEnabledBranches] = useState<Set<string>>(new Set());
+  function toggleBranchEnabled(branchId: string) {
+    setEnabledBranches((prev) => {
+      const next = new Set(prev);
+      if (next.has(branchId)) next.delete(branchId);
+      else next.add(branchId);
+      return next;
+    });
+  }
+
   return (
     <>
       <div className="relative max-w-xs">
@@ -171,10 +183,25 @@ export function ProductsTable({
                 <SortHeader label="Costo" columnKey="cost" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 {branchColumns.map((b) => (
                   <th key={b.id} className="px-4 py-3">
-                    Stock {b.name}
-                    {b.id === activeBranchId && (
-                      <span className="ml-1 font-normal normal-case text-ink-faint">(tu sucursal)</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      <span>
+                        Stock {b.name}
+                        {b.id === activeBranchId && (
+                          <span className="ml-1 font-normal normal-case text-ink-faint">(tu sucursal)</span>
+                        )}
+                      </span>
+                      {b.id !== activeBranchId && (
+                        <label className="flex items-center gap-1.5 font-normal normal-case tracking-normal text-ink-soft">
+                          <input
+                            type="checkbox"
+                            checked={enabledBranches.has(b.id)}
+                            onChange={() => toggleBranchEnabled(b.id)}
+                            className="h-3.5 w-3.5"
+                          />
+                          Habilitar carga
+                        </label>
+                      )}
+                    </div>
                   </th>
                 ))}
                 <th className="px-4 py-3">Ventas</th>
@@ -188,6 +215,7 @@ export function ProductsTable({
                   row={p}
                   supplierOptions={supplierOptions}
                   activeBranchId={activeBranchId}
+                  enabledBranches={enabledBranches}
                 />
               ))}
             </tbody>
@@ -202,10 +230,12 @@ function EditableProductRow({
   row,
   supplierOptions,
   activeBranchId,
+  enabledBranches,
 }: {
   row: ProductRow;
   supplierOptions: { value: string; label: string }[];
   activeBranchId: string | null;
+  enabledBranches: Set<string>;
 }) {
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState(row.name);
@@ -215,26 +245,8 @@ function EditableProductRow({
   const [stockByBranch, setStockByBranch] = useState<Record<string, number | "">>(
     Object.fromEntries(row.stocksByBranch.map((s) => [s.branchId, s.stock])),
   );
-  // Por seguridad, el stock de una sucursal en la que no estás parado
-  // arranca deshabilitado — hay que tildar el check para poder cargarlo.
-  const [enabledBranches, setEnabledBranches] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-
-  function toggleBranchEnabled(branchId: string, originalStock: number) {
-    setEnabledBranches((prev) => {
-      const next = new Set(prev);
-      if (next.has(branchId)) {
-        next.delete(branchId);
-        // Al destildar, se descarta lo tipeado sin guardar.
-        setStockByBranch((s) => ({ ...s, [branchId]: originalStock }));
-      } else {
-        next.add(branchId);
-      }
-      return next;
-    });
-    markDirty();
-  }
 
   const margin = calculateMargin(price === "" ? 0 : price, cost === "" ? null : cost);
 
@@ -367,17 +379,6 @@ function EditableProductRow({
         const isEnabled = isActiveBranch || enabledBranches.has(branch.branchId);
         return (
           <td key={branch.branchId} className="px-4 py-3">
-            {!isActiveBranch && (
-              <label className="mb-1 flex items-center gap-1.5 text-[11px] text-ink-soft">
-                <input
-                  type="checkbox"
-                  checked={enabledBranches.has(branch.branchId)}
-                  onChange={() => toggleBranchEnabled(branch.branchId, branch.stock)}
-                  className="h-3.5 w-3.5"
-                />
-                Cargar acá
-              </label>
-            )}
             <NumberInput
               min={0}
               step="any"
